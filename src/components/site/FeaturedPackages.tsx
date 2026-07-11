@@ -1,20 +1,32 @@
-import { Link, useLoaderData } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { Clock, Check, Star, Car, Compass, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "./Reveal";
 import { triggerNomadikPlanner } from "./TripPlannerDialog";
 import { Route } from "@/routes/index";
+import { useQuery } from "@tanstack/react-query";
+import { getCmsSection } from "@/lib/queries/cms";
 
 export function FeaturedPackages() {
   const { journeys } = Route.useLoaderData();
+
+  const { data: section } = useQuery({
+    queryKey: ["cms", "featured_packages"],
+    queryFn: () => getCmsSection("featured_packages"),
+    staleTime: 1000,
+  });
+
+  const sectionLabel = (section?.content as any)?.badge || "NOMADIK SIGNATURE";
+  const sectionTitle = section?.title || "Signature Experiences";
+  const sectionDesc = section?.subtitle || "Handpicked adventures loved by thousands of explorers. Built around slow road travel and authentic vibes.";
 
   if (!journeys || journeys.length === 0) {
     return (
       <section id="packages" className="mx-auto max-w-7xl px-5 py-24">
         <Reveal className="mx-auto max-w-2xl text-center">
-          <span className="text-xs font-poppins font-bold uppercase tracking-[0.25em] text-gold">NOMADIK SIGNATURE</span>
+          <span className="text-xs font-poppins font-bold uppercase tracking-[0.25em] text-gold">{sectionLabel}</span>
           <h2 className="mt-3 font-display text-4xl font-bold text-primary sm:text-5xl">
-            Signature Experiences
+            {sectionTitle}
           </h2>
           <div className="mt-12 rounded-3xl border border-dashed border-border bg-card p-12 text-center shadow-soft">
             <Compass className="mx-auto h-12 w-12 text-muted-foreground/60 animate-pulse" />
@@ -31,12 +43,12 @@ export function FeaturedPackages() {
   return (
     <section id="packages" className="mx-auto max-w-7xl px-5 py-24">
       <Reveal className="mx-auto max-w-2xl text-center">
-        <span className="text-xs font-poppins font-bold uppercase tracking-[0.25em] text-gold">NOMADIK SIGNATURE</span>
+        <span className="text-xs font-poppins font-bold uppercase tracking-[0.25em] text-gold">{sectionLabel}</span>
         <h2 className="mt-3 font-display text-4xl font-bold text-primary sm:text-5xl">
-          Signature Experiences
+          {sectionTitle}
         </h2>
         <p className="mt-4 text-muted-foreground text-sm leading-relaxed">
-          Handpicked adventures loved by thousands of explorers. Built around slow road travel and authentic vibes.
+          {sectionDesc}
         </p>
       </Reveal>
 

@@ -1,8 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Toaster } from "@/components/ui/sonner";
 import { Navbar } from "@/components/site/Navbar";
 import { Hero } from "@/components/site/Hero";
-import { SearchPackages } from "@/components/site/SearchPackages";
 import { PopularDestinations } from "@/components/site/PopularDestinations";
 import { TravelStats } from "@/components/site/TravelStats";
 import { WhyChooseUs } from "@/components/site/WhyChooseUs";
@@ -65,9 +63,7 @@ function Index() {
       <main>
         {/* 1. Hero with video loop + trusted partners */}
         <Hero />
-        {/* 2. Quick search bar */}
-        <SearchPackages />
-        {/* 3. Phase 1 destination cards */}
+        {/* 2. Phase 1 destination cards */}
         <PopularDestinations />
         {/* 4. Animated stats counter */}
         <TravelStats />
@@ -95,7 +91,6 @@ function Index() {
       <Footer />
       <FloatingUI />
       <TripPlannerDialog />
-      <Toaster position="top-center" richColors />
     </div>
   );
 }

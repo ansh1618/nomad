@@ -14,9 +14,9 @@ export function PaymentStep({ data, updateData, onNext, onPrev }: any) {
     setError("");
 
     try {
-      // 1. In a real app, we need a userId. For now, fetch a dummy user or use a hardcoded one if no auth exists
-      const { data: user } = await supabase.from('users').select('id').limit(1).single();
-      const userId = user?.id || "00000000-0000-0000-0000-000000000000";
+      // 1. Get logged-in user or set to null for guest checkout
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id || null;
 
       // 2. Create booking first to get bookingId
       const mappedTravellers = data.travellers.map((t: any, idx: number) => ({

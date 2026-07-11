@@ -1,6 +1,5 @@
 import { supabase } from "@/lib/supabase";
-import { destinations as mockDestinations } from "@/data/destinations";
-import { journeys as mockJourneys } from "@/data/journeys";
+import { sendEmail } from "@/lib/email";
 
 // ==========================================
 // TYPES
@@ -35,16 +34,10 @@ export async function getDestinations() {
 
   if (error) {
     console.error("Error fetching destinations:", error);
-    throw error; // Rethrow to let router boundary catch it
+    throw error;
   }
 
   return data.map((d: any) => {
-    const mock = mockDestinations.find((md) => md.slug === d.slug) || {
-      bestTime: "Best time to visit",
-      topPlaces: [],
-      faqs: [],
-      reviews: []
-    };
     return {
       slug: d.slug,
       name: d.name,
@@ -53,10 +46,10 @@ export async function getDestinations() {
       overview: d.description,
       weather: d.weather,
       howToReach: d.how_to_reach,
-      bestTime: mock.bestTime,
-      topPlaces: mock.topPlaces,
-      faqs: mock.faqs,
-      reviews: mock.reviews
+      bestTime: d.best_time_to_visit || d.best_time || "Best time to visit",
+      topPlaces: d.things_to_do || d.highlights || [],
+      faqs: d.faqs || [],
+      reviews: []
     };
   });
 }
@@ -81,13 +74,6 @@ export async function getDestinationBySlug(slug: string) {
     .order("created_at", { ascending: false })
     .limit(6);
 
-  const mock = mockDestinations.find((md) => md.slug === slug) || {
-    bestTime: "Best time to visit",
-    topPlaces: [],
-    faqs: [],
-    reviews: []
-  };
-
   const reviewsList = dbReviews && dbReviews.length > 0
     ? dbReviews.map((r: any) => ({
         name: r.author_name,
@@ -96,7 +82,7 @@ export async function getDestinationBySlug(slug: string) {
         text: r.content,
         date: r.trip_date || "Recent"
       }))
-    : mock.reviews;
+    : [];
 
   return {
     slug: data.slug,
@@ -106,9 +92,9 @@ export async function getDestinationBySlug(slug: string) {
     overview: data.description,
     weather: data.weather,
     howToReach: data.how_to_reach,
-    bestTime: mock.bestTime,
-    topPlaces: mock.topPlaces,
-    faqs: mock.faqs,
+    bestTime: data.best_time_to_visit || data.best_time || "Best time to visit",
+    topPlaces: data.things_to_do || data.highlights || [],
+    faqs: data.faqs || [],
     reviews: reviewsList
   };
 }
@@ -129,48 +115,38 @@ export async function getJourneys() {
   }
 
   return data.map((j: any) => {
-    const mock = mockJourneys.find((mj) => mj.slug === j.slug) || {
-      bestSeason: j.season || "Best season",
-      highlights: [],
-      dayByDay: [],
-      stayInfo: j.hotel || "",
-      foodInfo: j.food || "",
-      transportDetails: j.transport || "",
-      inclusions: [],
-      exclusions: [],
-      packingList: []
-    };
+    const it = j.itinerary || [];
     return {
       slug: j.slug,
       destinationSlug: j.destinations?.slug || "",
       name: j.name,
-      image: (j.gallery as string[] | null)?.[0] || "",
+      image: (j.gallery as string[] | null)?.[0] || j.hero_banner || "",
       duration: j.duration,
       transport: j.transport,
       difficulty: j.difficulty,
       distance: j.distance,
-      bestSeason: j.season || mock.bestSeason,
+      bestSeason: j.season || j.best_season || "Best season",
       groupSize: j.group_size,
-      price: `Rs.${Number(j.price).toLocaleString()}`,
-      priceNumber: Number(j.price),
+      price: `Rs.${Number(j.price || j.starting_price || 0).toLocaleString()}`,
+      priceNumber: Number(j.price || j.starting_price || 0),
       maxCapacity: j.max_capacity || 18,
       remainingSeats: j.remaining_seats || 18,
       pickupPoint: j.pickup_point,
       dropPoint: j.drop_point,
-      itinerary: j.itinerary || [],
+      itinerary: it,
       overview: j.description || j.name,
-      highlights: j.itinerary && j.itinerary.length > 0 
-        ? j.itinerary.map((day: any) => day.title).slice(0, 3)
-        : mock.highlights,
+      highlights: it.length > 0 
+        ? it.map((day: any) => day.title).slice(0, 3)
+        : (j.highlights || []),
       hotel: j.hotel,
       food: j.food,
-      dayByDay: mock.dayByDay,
-      stayInfo: mock.stayInfo,
-      foodInfo: mock.foodInfo,
-      transportDetails: mock.transportDetails,
-      inclusions: mock.inclusions,
-      exclusions: mock.exclusions,
-      packingList: mock.packingList
+      dayByDay: it,
+      stayInfo: j.hotel || j.stay_info || "",
+      foodInfo: j.food || j.food_info || "",
+      transportDetails: j.transport || j.transport_details || "",
+      inclusions: j.inclusions || [],
+      exclusions: j.exclusions || [],
+      packingList: j.packing_list || []
     };
   });
 }
@@ -193,50 +169,40 @@ export async function getJourneyBySlug(slug: string) {
   }
   if (!data) return null;
 
-  const mock = mockJourneys.find((mj) => mj.slug === slug) || {
-    bestSeason: data.season || "Best season",
-    highlights: [],
-    dayByDay: [],
-    stayInfo: data.hotel || "",
-    foodInfo: data.food || "",
-    transportDetails: data.transport || "",
-    inclusions: [],
-    exclusions: [],
-    packingList: []
-  };
+  const it = data.itinerary || [];
 
   return {
     slug: data.slug,
     destinationSlug: (data.destinations as any)?.slug || "",
     destinationName: (data.destinations as any)?.name || "",
     name: data.name,
-    image: (data.gallery as string[] | null)?.[0] || "",
+    image: (data.gallery as string[] | null)?.[0] || data.hero_banner || "",
     duration: data.duration,
     transport: data.transport,
     difficulty: data.difficulty,
     distance: data.distance,
-    bestSeason: data.season || mock.bestSeason,
+    bestSeason: data.season || data.best_season || "Best season",
     groupSize: data.group_size,
-    price: `Rs.${Number(data.price).toLocaleString()}`,
-    priceNumber: Number(data.price),
+    price: `Rs.${Number(data.price || data.starting_price || 0).toLocaleString()}`,
+    priceNumber: Number(data.price || data.starting_price || 0),
     maxCapacity: data.max_capacity || 18,
     remainingSeats: data.remaining_seats || 18,
     pickupPoint: data.pickup_point,
     dropPoint: data.drop_point,
-    itinerary: data.itinerary || [],
+    itinerary: it,
     overview: data.description || data.name,
-    highlights: data.itinerary && data.itinerary.length > 0 
-      ? data.itinerary.map((day: any) => day.title).slice(0, 3)
-      : mock.highlights,
+    highlights: it.length > 0 
+      ? it.map((day: any) => day.title).slice(0, 3)
+      : (data.highlights || []),
     hotel: data.hotel,
     food: data.food,
-    dayByDay: mock.dayByDay,
-    stayInfo: mock.stayInfo,
-    foodInfo: mock.foodInfo,
-    transportDetails: mock.transportDetails,
-    inclusions: mock.inclusions,
-    exclusions: mock.exclusions,
-    packingList: mock.packingList
+    dayByDay: it,
+    stayInfo: data.hotel || data.stay_info || "",
+    foodInfo: data.food || data.food_info || "",
+    transportDetails: data.transport || data.transport_details || "",
+    inclusions: data.inclusions || [],
+    exclusions: data.exclusions || [],
+    packingList: data.packing_list || []
   };
 }
 
@@ -605,3 +571,177 @@ export async function verifyAdmin(userId: string): Promise<{ isAdmin: boolean; r
   if (error || !data) return { isAdmin: false, role: null };
   return { isAdmin: true, role: data.role as AdminRole };
 }
+
+// ==========================================
+// PUBLIC: CONTACT INQUIRIES & ACTIONS
+// ==========================================
+
+export async function submitContactInquiry(inquiryData: {
+  name: string;
+  email: string;
+  phone: string;
+  subject: string;
+  message: string;
+}) {
+  if (!inquiryData.name?.trim()) throw new Error("Name is required");
+  if (!inquiryData.email?.trim()) throw new Error("Email is required");
+  if (!inquiryData.phone?.trim()) throw new Error("Phone number is required");
+
+  const { error } = await supabase
+    .from("contact_inquiries")
+    .insert([{
+      name: inquiryData.name.trim(),
+      email: inquiryData.email.trim(),
+      phone: inquiryData.phone.trim(),
+      subject: inquiryData.subject.trim() || "General Inquiry",
+      message: inquiryData.message.trim(),
+      source: "Contact Page",
+      status: "NEW"
+    }]);
+
+  if (error) {
+    console.error("Contact Inquiry submission error:", error);
+    throw new Error("Failed to submit contact inquiry: " + error.message);
+  }
+
+  // Also insert into the main inquiries (Leads CRM) table so it shows in the Admin pipeline
+  try {
+    await supabase.from("inquiries").insert([{
+      full_name: inquiryData.name.trim(),
+      phone: inquiryData.phone.trim(),
+      email: inquiryData.email.trim(),
+      destination: inquiryData.subject || "General Enquiry",
+      journey: "Contact Page Inquiry",
+      travel_date: "Not decided",
+      travellers: 1,
+      message: inquiryData.message,
+      source: "Contact Page",
+      status: 'NEW',
+    }]);
+  } catch (crmErr) {
+    // Non-fatal: log but don't block the user's submission
+    console.warn("Could not mirror contact inquiry to leads CRM:", crmErr);
+  }
+
+
+
+  // Trigger confirmation email
+  try {
+    const emailHtml = `
+      <div style="font-family: sans-serif; padding: 20px; color: #333; line-height: 1.6;">
+        <h2 style="color: #0b3d59;">Hi ${inquiryData.name},</h2>
+        <p>Thank you for reaching out to <strong>Nomadik</strong>! We have received your inquiry regarding "<strong>${inquiryData.subject || "General Inquiry"}</strong>".</p>
+        <p>Our Trip Captain is already reviewing your request and will contact you within the next 2-4 business hours.</p>
+        <div style="background: #f7f7f7; padding: 15px; border-radius: 8px; margin: 20px 0;">
+          <h4 style="margin-top: 0; color: #b89047;">Your Message Details:</h4>
+          <p style="margin-bottom: 5px;"><strong>Name:</strong> ${inquiryData.name}</p>
+          <p style="margin-bottom: 5px;"><strong>Email:</strong> ${inquiryData.email}</p>
+          <p style="margin-bottom: 5px;"><strong>Phone:</strong> ${inquiryData.phone}</p>
+          <p style="margin-bottom: 0;"><strong>Message:</strong> ${inquiryData.message}</p>
+        </div>
+        <p>Keep exploring,<br><strong>Team Nomadik</strong></p>
+      </div>
+    `;
+    await sendEmail({
+      to: inquiryData.email,
+      subject: `Inquiry Received: ${inquiryData.subject || "General Inquiry"} | Nomadik`,
+      html: emailHtml,
+    });
+  } catch (emailErr) {
+    console.error("Failed to send confirmation email:", emailErr);
+  }
+
+  return { success: true };
+}
+
+export async function submitConsultationRequest(consultationData: {
+  name: string;
+  email?: string;
+  phone: string;
+  destination?: string;
+  budget?: string;
+  preferred_date?: string;
+  preferred_time?: string;
+  notes?: string;
+}) {
+  if (!consultationData.name?.trim()) throw new Error("Name is required");
+  if (!consultationData.phone?.trim()) throw new Error("Phone number is required");
+
+  const { error } = await supabase
+    .from("consultation_requests")
+    .insert([{
+      name: consultationData.name.trim(),
+      email: consultationData.email?.trim() || null,
+      phone: consultationData.phone.trim(),
+      destination: consultationData.destination?.trim() || null,
+      budget: consultationData.budget?.trim() || null,
+      preferred_date: consultationData.preferred_date || null,
+      preferred_time: consultationData.preferred_time?.trim() || null,
+      notes: consultationData.notes?.trim() || null,
+      status: "NEW"
+    }]);
+
+  if (error) {
+    console.error("Consultation Request submission error:", error);
+    throw new Error("Failed to submit consultation request: " + error.message);
+  }
+
+  // Trigger confirmation email if email is provided
+  if (consultationData.email?.trim()) {
+    try {
+      const emailHtml = `
+        <div style="font-family: sans-serif; padding: 20px; color: #333; line-height: 1.6;">
+          <h2 style="color: #0b3d59;">Hi ${consultationData.name},</h2>
+          <p>Thank you for scheduling a <strong>Free Consultation</strong> with <strong>Nomadik</strong>!</p>
+          <p>We have successfully registered your request. One of our Senior Route Experts will contact you to discuss your trip plans.</p>
+          <div style="background: #f7f7f7; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <h4 style="margin-top: 0; color: #b89047;">Consultation Details:</h4>
+            <p style="margin-bottom: 5px;"><strong>Destination:</strong> ${consultationData.destination || "Not specified"}</p>
+            <p style="margin-bottom: 5px;"><strong>Budget:</strong> ${consultationData.budget || "Not specified"}</p>
+            <p style="margin-bottom: 5px;"><strong>Preferred Date:</strong> ${consultationData.preferred_date || "As soon as possible"}</p>
+            <p style="margin-bottom: 5px;"><strong>Preferred Time:</strong> ${consultationData.preferred_time || "Not specified"}</p>
+            <p style="margin-bottom: 0;"><strong>Special Notes:</strong> ${consultationData.notes || "None"}</p>
+          </div>
+          <p>Keep exploring,<br><strong>Team Nomadik</strong></p>
+        </div>
+      `;
+      await sendEmail({
+        to: consultationData.email,
+        subject: `Consultation Booked | Nomadik`,
+        html: emailHtml,
+      });
+    } catch (emailErr) {
+      console.error("Failed to send consultation confirmation email:", emailErr);
+    }
+  }
+
+  return { success: true };
+}
+
+export async function submitCallbackRequest(callbackData: {
+  name: string;
+  phone: string;
+  preferred_time?: string;
+  notes?: string;
+}) {
+  if (!callbackData.name?.trim()) throw new Error("Name is required");
+  if (!callbackData.phone?.trim()) throw new Error("Phone number is required");
+
+  const { error } = await supabase
+    .from("callback_requests")
+    .insert([{
+      name: callbackData.name.trim(),
+      phone: callbackData.phone.trim(),
+      preferred_time: callbackData.preferred_time?.trim() || null,
+      notes: callbackData.notes?.trim() || null,
+      status: "NEW"
+    }]);
+
+  if (error) {
+    console.error("Callback Request submission error:", error);
+    throw new Error("Failed to submit callback request: " + error.message);
+  }
+
+  return { success: true };
+}
+

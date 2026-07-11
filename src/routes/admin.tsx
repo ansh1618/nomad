@@ -1,10 +1,10 @@
-import { createFileRoute, Outlet, redirect, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useNavigate, useLocation } from "@tanstack/react-router";
 import { AdminAuthProvider, useAdminAuth } from "@/hooks/use-admin-auth";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import { Toaster } from "@/components/ui/sonner";
 import { Loader2 } from "lucide-react";
+import { useEffect } from "react";
 
 export const Route = createFileRoute("/admin")({
   component: AdminLayoutWrapper,
@@ -14,14 +14,27 @@ function AdminLayoutWrapper() {
   return (
     <AdminAuthProvider>
       <AdminLayoutGate />
-      <Toaster position="top-right" richColors />
     </AdminAuthProvider>
   );
 }
 
+
 function AdminLayoutGate() {
   const { admin, loading, isAdmin } = useAdminAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const currentPath = location.pathname;
+
+  // Protect routes from unauthenticated access
+  useEffect(() => {
+    if (!loading) {
+      if (!isAdmin && currentPath !== "/admin/login") {
+        navigate({ to: "/admin/login" });
+      } else if (isAdmin && currentPath === "/admin/login") {
+        navigate({ to: "/admin" });
+      }
+    }
+  }, [loading, isAdmin, currentPath, navigate]);
 
   // Show loading spinner while checking auth
   if (loading) {
@@ -35,7 +48,7 @@ function AdminLayoutGate() {
     );
   }
 
-  // Not authenticated or not an admin → show login
+  // Not authenticated or not an admin → show login page outlet
   if (!isAdmin) {
     return <Outlet />;
   }

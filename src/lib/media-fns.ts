@@ -61,8 +61,8 @@ export const uploadMediaFn = createServerFn({ method: "POST" })
     const { data: asset, error: dbError } = await supabase
       .from("media_assets")
       .insert({
-        file_name: data.fileName,
-        file_size: data.fileSize,
+        filename: data.fileName,
+        size: data.fileSize,
         mime_type: data.mimeType,
         url: publicUrl,
         folder: data.folder,
@@ -103,7 +103,7 @@ export const listMediaFn = createServerFn({ method: "GET" })
     }
 
     if (data.search) {
-      query = query.or(`file_name.ilike.%${data.search}%,alt_text.ilike.%${data.search}%`);
+      query = query.or(`filename.ilike.%${data.search}%,alt_text.ilike.%${data.search}%`);
     }
 
     const { data: assets, error } = await query;

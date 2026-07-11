@@ -31,12 +31,25 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const { data, error } = await supabase
         .from("admins")
-        .select("id, email, role")
+        .select("id, email, role, is_active")
         .eq("id", userId)
         .single();
 
       if (error || !data) {
-        console.warn("[Admin Auth] User is not an admin:", email);
+        console.warn("[Admin Auth] Access denied. User is not registered in the admins table:", email, error);
+        setAdmin(null);
+        return null;
+      }
+
+      if (!data.is_active) {
+        console.warn("[Admin Auth] Access denied. Admin account is inactive:", email);
+        setAdmin(null);
+        return null;
+      }
+
+      const authorizedRoles = ["SUPER_ADMIN", "ADMIN", "TRIP_MANAGER", "ACCOUNTANT", "SUPPORT"];
+      if (!authorizedRoles.includes(data.role)) {
+        console.warn("[Admin Auth] Access denied. Role is not authorized:", data.role);
         setAdmin(null);
         return null;
       }
@@ -48,7 +61,8 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
       };
       setAdmin(adminData);
       return adminData;
-    } catch {
+    } catch (e) {
+      console.error("[Admin Auth] fetchAdminRole query exception:", e);
       setAdmin(null);
       return null;
     }
@@ -65,11 +79,30 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
 
     const timer = setTimeout(resolve, 5000);
 
+    // Setup unload handler for non-persistent sessions (Remember Me option)
+    const handleUnload = () => {
+      const rememberMe = localStorage.getItem("admin_remember_me") !== "false";
+      if (!rememberMe) {
+        supabase.auth.signOut();
+      }
+    };
+    window.addEventListener("beforeunload", handleUnload);
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchAdminRole(session.user.id, session.user.email ?? "").finally(resolve);
+        fetchAdminRole(session.user.id, session.user.email ?? "")
+          .then((adminResult) => {
+            if (!adminResult) {
+              // Sign out immediately if not authorized admin
+              supabase.auth.signOut();
+              setSession(null);
+              setUser(null);
+              setAdmin(null);
+            }
+          })
+          .finally(resolve);
       } else {
         resolve();
       }
@@ -80,7 +113,14 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
         setSession(newSession);
         setUser(newSession?.user ?? null);
         if (newSession?.user) {
-          await fetchAdminRole(newSession.user.id, newSession.user.email ?? "");
+          const adminResult = await fetchAdminRole(newSession.user.id, newSession.user.email ?? "");
+          if (!adminResult) {
+            // Sign out immediately if not authorized admin
+            await supabase.auth.signOut();
+            setSession(null);
+            setUser(null);
+            setAdmin(null);
+          }
         } else {
           setAdmin(null);
         }
@@ -90,6 +130,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       clearTimeout(timer);
+      window.removeEventListener("beforeunload", handleUnload);
       subscription.unsubscribe();
     };
   }, []);
@@ -102,7 +143,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
       const adminResult = await fetchAdminRole(data.user.id, data.user.email ?? "");
       if (!adminResult) {
         await supabase.auth.signOut();
-        return { error: "Access denied. You are not an admin." };
+        return { error: "Access denied. You are not authorized or your admin account is inactive." };
       }
     }
     return { error: null };
@@ -110,6 +151,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    localStorage.removeItem("admin_remember_me");
     setSession(null);
     setUser(null);
     setAdmin(null);

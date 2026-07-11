@@ -1,135 +1,233 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
-import { Loader2, CreditCard, Calendar, CheckCircle } from "lucide-react";
+import { createFileRoute } from '@tanstack/react-router'
+import { useState, useCallback } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { motion } from 'motion/react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { DataTable, exportToCSV } from '@/components/admin/DataTable'
+import type { ColumnDef } from '@tanstack/react-table'
+import { getPayments } from '@/lib/queries/admin'
+import { initiateRefundFn } from '@/lib/mutations/payment'
+import type { Payment } from '@/types/supabase'
+import { toast } from 'sonner'
+import {
+  CreditCard,
+  Calendar,
+  Loader2,
+} from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
-export const Route = createFileRoute("/admin/payments")({
-  component: AdminPaymentsLedger,
-});
+export const Route = createFileRoute('/admin/payments')({
+  component: PaymentsPage,
+})
 
 const GATEWAY_COLORS: Record<string, string> = {
-  PENDING: "bg-yellow-100 text-yellow-700",
-  SUCCESS: "bg-green-100 text-green-700",
-  FAILED: "bg-red-100 text-red-700",
-  REFUNDED: "bg-orange-100 text-orange-700",
-};
+  PENDING: 'bg-yellow-100 text-yellow-700',
+  SUCCESS: 'bg-green-100 text-green-700',
+  FAILED: 'bg-red-100 text-red-700',
+  REFUNDED: 'bg-orange-100 text-orange-700',
+}
 
-function AdminPaymentsLedger() {
-  const [payments, setPayments] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+type PaymentWithJoins = Payment & {
+  bookings?: {
+    booking_id: string
+    users?: { full_name: string; phone: string }
+  }
+}
 
-  const fetchPayments = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from("payments")
-        .select(`
-          *,
-          bookings (
-            booking_id,
-            users (full_name)
+function PaymentsPage() {
+  const qc = useQueryClient()
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
+  const [search, setSearch] = useState('')
+  const [sortBy, setSortBy] = useState('created_at')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
+  const [statusFilter, setStatusFilter] = useState('')
+
+  const { data: result, isLoading } = useQuery({
+    queryKey: ['payments_list', page, pageSize, search, sortBy, sortDir, statusFilter],
+    queryFn: () => getPayments({ page, pageSize, search, sortBy, sortDir, status: statusFilter || undefined }),
+    placeholderData: (prev) => prev,
+  })
+
+  const payments = (result?.data ?? []) as PaymentWithJoins[]
+
+  const refundMutation = useMutation({
+    mutationFn: initiateRefundFn,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['payments_list'] })
+      toast.success('Refund processed successfully')
+    },
+    onError: (err: Error) => toast.error(err.message),
+  })
+
+  const handleRefund = (payment: PaymentWithJoins) => {
+    if (!payment.gateway_payment_id) {
+      toast.error('No gateway payment ID found to refund')
+      return
+    }
+    if (confirm(`Refund ₹${payment.amount} for booking ${payment.bookings?.booking_id}?`)) {
+      refundMutation.mutate({
+        paymentId: payment.id,
+        amount: payment.amount,
+        bookingId: payment.booking_id,
+      })
+    }
+  }
+
+  const handleSort = useCallback((by: string, dir: 'asc' | 'desc') => {
+    setSortBy(by)
+    setSortDir(dir)
+  }, [])
+
+  const handleExport = () => {
+    exportToCSV(
+      payments.map((p) => ({
+        transaction_id: p.gateway_payment_id ?? '',
+        order_id: p.gateway_order_id ?? '',
+        booking_id: p.bookings?.booking_id ?? '',
+        customer: p.bookings?.users?.full_name ?? '',
+        amount: p.amount,
+        status: p.status,
+        created_at: p.created_at,
+      })),
+      'payments'
+    )
+  }
+
+  const columns: ColumnDef<PaymentWithJoins>[] = [
+    {
+      accessorKey: 'gateway_payment_id',
+      header: 'Transaction ID',
+      cell: ({ row }) => (
+        <span className="font-mono text-xs font-semibold text-primary">
+          {row.original.gateway_payment_id ?? row.original.gateway_order_id ?? '—'}
+        </span>
+      ),
+    },
+    {
+      accessorKey: 'bookings.booking_id',
+      header: 'Booking ID',
+      cell: ({ row }) => (
+        <span className="font-mono text-xs font-semibold">
+          {row.original.bookings?.booking_id ?? '—'}
+        </span>
+      ),
+    },
+    {
+      accessorKey: 'bookings.users.full_name',
+      header: 'Customer',
+      cell: ({ row }) => (
+        <div>
+          <p className="text-sm font-semibold">{row.original.bookings?.users?.full_name ?? 'Guest'}</p>
+          <p className="text-xs text-muted-foreground">{row.original.bookings?.users?.phone ?? ''}</p>
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'payment_gateway',
+      header: 'Gateway',
+      cell: ({ row }) => <span className="text-xs text-muted-foreground font-semibold">{row.original.payment_gateway}</span>,
+    },
+    {
+      accessorKey: 'amount',
+      header: 'Amount',
+      cell: ({ row }) => (
+        <span className="text-sm font-semibold">₹{row.original.amount.toLocaleString('en-IN')}</span>
+      ),
+    },
+    {
+      accessorKey: 'status',
+      header: 'Status',
+      cell: ({ row }) => (
+        <Badge className={`${GATEWAY_COLORS[row.original.status] ?? 'bg-gray-100'} border-0 font-semibold text-xs`}>
+          {row.original.status}
+        </Badge>
+      ),
+    },
+    {
+      accessorKey: 'created_at',
+      header: 'Date',
+      cell: ({ row }) => (
+        <span className="text-xs text-muted-foreground flex items-center gap-1">
+          <Calendar className="h-3.5 w-3.5" />
+          {new Date(row.original.created_at).toLocaleDateString('en-IN')}
+        </span>
+      ),
+    },
+    {
+      id: 'actions',
+      header: '',
+      size: 80,
+      cell: ({ row }) => {
+        const p = row.original
+        return (
+          p.status === 'SUCCESS' && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleRefund(p)}
+              disabled={refundMutation.isPending}
+              className="text-xs text-destructive hover:bg-destructive/5 hover:text-destructive h-7"
+            >
+              Refund
+            </Button>
           )
-        `)
-        .order("created_at", { ascending: false });
+        )
+      },
+    },
+  ]
 
-      if (error) throw error;
-      setPayments(data || []);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to load payments ledger");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchPayments();
-  }, []);
-
-  const handleRefund = async (paymentId: string) => {
-    if (!confirm("Are you sure you want to issue a refund? This will reverse the transaction in Razorpay gateway log.")) return;
-    try {
-      const { error } = await supabase
-        .from("payments")
-        .update({ status: "REFUNDED" })
-        .eq("id", paymentId);
-
-      if (error) throw error;
-      toast.success("Refund processed successfully");
-      fetchPayments();
-    } catch (err: any) {
-      toast.error(err.message || "Refund initiation failed");
-    }
-  };
+  const filters = (
+    <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v === 'ALL' ? '' : v); setPage(1) }}>
+      <SelectTrigger className="w-36 h-9">
+        <SelectValue placeholder="All Status" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="ALL">All Status</SelectItem>
+        <SelectItem value="SUCCESS">Success</SelectItem>
+        <SelectItem value="PENDING">Pending</SelectItem>
+        <SelectItem value="FAILED">Failed</SelectItem>
+        <SelectItem value="REFUNDED">Refunded</SelectItem>
+      </SelectContent>
+    </Select>
+  )
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold font-poppins text-foreground">Payments Ledger</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">
-          Razorpay checkout logs, receipts tracking, refund processing, and transactions ledger.
-        </p>
-      </div>
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex items-center justify-between"
+      >
+        <div>
+          <h1 className="text-2xl font-bold font-poppins">Payments Ledger</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            {result?.total ?? 0} transaction{(result?.total ?? 0) !== 1 ? 's' : ''} total
+          </p>
+        </div>
+      </motion.div>
 
-      {/* Ledger Table */}
-      <div className="bg-white rounded-xl border border-border overflow-hidden">
-        {loading ? (
-          <div className="py-20 flex flex-col items-center justify-center gap-3">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">Loading payments log...</p>
-          </div>
-        ) : payments.length === 0 ? (
-          <div className="py-20 text-center text-muted-foreground">
-            No transactions processed yet.
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-muted/20">
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase">Transaction ID</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase">Booking ID</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase">Customer</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase">Gateway</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase">Amount</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase">Status</th>
-                  <th className="text-right py-3 px-4 text-xs font-semibold text-muted-foreground uppercase">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {payments.map((p) => (
-                  <tr key={p.id} className="border-b border-border/50 hover:bg-muted/10 transition">
-                    <td className="py-3 px-4 font-mono text-xs font-semibold">{p.transaction_id || "tx_mock_19028a"}</td>
-                    <td className="py-3 px-4 font-mono text-xs">{p.bookings?.booking_id || "NOM-NEW"}</td>
-                    <td className="py-3 px-4 font-semibold">{p.bookings?.users?.full_name || "Guest"}</td>
-                    <td className="py-3 px-4 text-muted-foreground text-xs">{p.payment_gateway || "RAZORPAY"}</td>
-                    <td className="py-3 px-4 font-semibold text-sm">₹{Number(p.amount).toLocaleString("en-IN")}</td>
-                    <td className="py-3 px-4">
-                      <Badge className={`${GATEWAY_COLORS[p.status]} text-[10px] font-bold border-0`}>
-                        {p.status}
-                      </Badge>
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      {p.status === "SUCCESS" && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleRefund(p.id)}
-                          className="h-7 text-xs text-destructive hover:bg-destructive/5 hover:text-destructive"
-                        >
-                          Refund
-                        </Button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
+        <DataTable
+          data={payments}
+          columns={columns}
+          total={result?.total ?? 0}
+          page={page}
+          pageSize={pageSize}
+          totalPages={result?.totalPages ?? 1}
+          isLoading={isLoading}
+          searchPlaceholder="Search payment gateway ID..."
+          onPageChange={setPage}
+          onPageSizeChange={(s) => { setPageSize(s); setPage(1) }}
+          onSearch={(s) => { setSearch(s); setPage(1) }}
+          onSort={handleSort}
+          onRefresh={() => qc.invalidateQueries({ queryKey: ['payments_list'] })}
+          onExportCSV={handleExport}
+          filterComponent={filters}
+          emptyMessage="No payments recorded."
+        />
+      </motion.div>
     </div>
-  );
+  )
 }

@@ -1,64 +1,71 @@
-import { useEffect, useState, useRef } from "react";
-import { Reveal } from "./Reveal";
-import { Users, Compass, Star, Award } from "lucide-react";
+import { useEffect, useState, useRef } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { Reveal } from './Reveal'
+import { Users, Compass, Star, Award, Trophy, Map } from 'lucide-react'
+import { getCmsSection } from '@/lib/queries/cms'
 
-interface StatItemProps {
-  icon: React.ReactNode;
-  value: number;
-  suffix: string;
-  label: string;
+interface StatData {
+  label: string
+  value: number
+  suffix: string
+  icon: string
 }
 
-function StatItem({ icon, value, suffix, label }: StatItemProps) {
-  const [count, setCount] = useState(0);
-  const elementRef = useRef<HTMLDivElement>(null);
-  const [isVisible, setIsVisible] = useState(false);
+const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+  users: Users,
+  compass: Compass,
+  star: Star,
+  award: Award,
+  trophy: Trophy,
+  map: Map,
+}
+
+interface StatItemProps {
+  icon: React.ComponentType<{ className?: string }>
+  value: number
+  suffix: string
+  label: string
+}
+
+function StatItem({ icon: Icon, value, suffix, label }: StatItemProps) {
+  const [count, setCount] = useState(0)
+  const elementRef = useRef<HTMLDivElement>(null)
+  const [isVisible, setIsVisible] = useState(false)
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-        }
+        if (entry.isIntersecting) setIsVisible(true)
       },
       { threshold: 0.1 }
-    );
-
-    if (elementRef.current) {
-      observer.observe(elementRef.current);
-    }
-
+    )
+    if (elementRef.current) observer.observe(elementRef.current)
     return () => {
-      if (elementRef.current) {
-        observer.unobserve(elementRef.current);
-      }
-    };
-  }, []);
+      if (elementRef.current) observer.unobserve(elementRef.current)
+    }
+  }, [])
 
   useEffect(() => {
-    if (!isVisible) return;
-
-    let start = 0;
-    const duration = 1500; // ms
-    const increment = value / (duration / 16); // ~60fps
-    
+    if (!isVisible) return
+    let start = 0
+    const duration = 1500
+    const increment = value / (duration / 16)
     const timer = setInterval(() => {
-      start += increment;
+      start += increment
       if (start >= value) {
-        setCount(value);
-        clearInterval(timer);
+        setCount(value)
+        clearInterval(timer)
       } else {
-        setCount(Math.floor(start));
+        setCount(Math.floor(start))
       }
-    }, 16);
-
-    return () => clearInterval(timer);
-  }, [isVisible, value]);
+    }, 16)
+    return () => clearInterval(timer)
+  }, [isVisible, value])
 
   return (
     <div ref={elementRef} className="bg-white border border-border p-6 rounded-3xl shadow-soft text-center space-y-3">
       <div className="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-gold-gradient text-gold-foreground shadow-gold">
-        {icon}
+        <Icon className="h-6 w-6" />
       </div>
       <h3 className="font-display text-4xl font-bold text-primary flex items-center justify-center">
         {count.toLocaleString()}{suffix}
@@ -67,38 +74,34 @@ function StatItem({ icon, value, suffix, label }: StatItemProps) {
         {label}
       </p>
     </div>
-  );
+  )
 }
 
 export function TravelStats() {
+  const { data: section } = useQuery({
+    queryKey: ['cms', 'stats'],
+    queryFn: () => getCmsSection('stats'),
+    staleTime: 1000,
+  })
+
+  const stats: StatData[] = (section?.content as any)?.stats ?? []
+
   return (
     <section className="mx-auto max-w-7xl px-5 py-16">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatItem
-          icon={<Users className="h-6 w-6" />}
-          value={15000}
-          suffix="+"
-          label="Happy Explorers"
-        />
-        <StatItem
-          icon={<Compass className="h-6 w-6" />}
-          value={120}
-          suffix="+"
-          label="Road Trips"
-        />
-        <StatItem
-          icon={<Star className="h-6 w-6" />}
-          value={4} // Rendered as decimal below
-          suffix=".9★"
-          label="Average Rating"
-        />
-        <StatItem
-          icon={<Award className="h-6 w-6" />}
-          value={8}
-          suffix="+"
-          label="Years Experience"
-        />
+        {stats.map((stat) => {
+          const Icon = ICON_MAP[stat.icon] ?? Award
+          return (
+            <StatItem
+              key={stat.label}
+              icon={Icon}
+              value={stat.value}
+              suffix={stat.suffix}
+              label={stat.label}
+            />
+          )
+        })}
       </div>
     </section>
-  );
+  )
 }

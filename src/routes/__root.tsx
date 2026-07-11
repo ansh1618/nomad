@@ -92,9 +92,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@NomadikTraveller" },
+      { name: "twitter:site", content: "@gonomadik" },
     ],
     links: [
+      { rel: "icon", type: "image/jpeg", href: "/assets/logo.jpg" },
+      { rel: "apple-touch-icon", href: "/assets/logo.jpg" },
+      { rel: "shortcut icon", href: "/assets/logo.jpg" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
@@ -115,7 +118,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 import { AuthProvider, useAuth } from "@/components/site/AuthContext";
 import { AuthModal } from "@/components/site/AuthModal";
+import { AnnouncementBar } from "@/components/site/AnnouncementBar";
 import { AlertTriangle } from "lucide-react";
+import { Toaster } from "@/components/ui/sonner";
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
@@ -125,6 +130,7 @@ function RootShell({ children }: { children: ReactNode }) {
       </head>
       <body>
         {children}
+        <Toaster position="top-center" richColors />
         <Scripts />
       </body>
     </html>
@@ -136,6 +142,7 @@ function MainAppLayout() {
 
   return (
     <div className="relative min-h-screen flex flex-col">
+      <AnnouncementBar />
       {user && !isEmailVerified && (
         <div className="sticky top-0 z-[100] w-full bg-[#E53E3E] text-white py-2.5 px-4 text-center text-xs font-poppins font-semibold flex items-center justify-center gap-2 shadow-md animate-slide-down">
           <AlertTriangle className="h-4 w-4 shrink-0 animate-pulse" />
@@ -149,6 +156,7 @@ function MainAppLayout() {
     </div>
   );
 }
+
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();

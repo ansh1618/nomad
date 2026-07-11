@@ -3,17 +3,29 @@ import { Star, Clock, MapPin, Compass } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "./Reveal";
 import { Route } from "@/routes/index";
+import { useQuery } from "@tanstack/react-query";
+import { getCmsSection } from "@/lib/queries/cms";
 
 export function PopularDestinations() {
   const { destinations, journeys } = Route.useLoaderData();
+
+  const { data: section } = useQuery({
+    queryKey: ["cms", "popular_destinations"],
+    queryFn: () => getCmsSection("popular_destinations"),
+    staleTime: 1000,
+  });
+
+  const sectionLabel = (section?.content as any)?.badge || "ACTIVE CONVOYS";
+  const sectionTitle = section?.title || "Popular Destinations";
+  const sectionDesc = section?.subtitle || "Explore India's most breathtaking roads. Handpicked getaways vetted by Nomadik Trip Captains.";
 
   if (!destinations || destinations.length === 0) {
     return (
       <section id="destinations" className="mx-auto max-w-7xl px-5 py-24">
         <Reveal className="mx-auto max-w-2xl text-center">
-          <span className="text-xs font-poppins font-bold uppercase tracking-[0.25em] text-gold">ACTIVE CONVOYS</span>
+          <span className="text-xs font-poppins font-bold uppercase tracking-[0.25em] text-gold">{sectionLabel}</span>
           <h2 className="mt-3 font-display text-4xl font-bold text-primary sm:text-5xl">
-            Popular Destinations
+            {sectionTitle}
           </h2>
           <div className="mt-12 rounded-3xl border border-dashed border-border bg-card p-12 text-center shadow-soft">
             <Compass className="mx-auto h-12 w-12 text-muted-foreground/60 animate-pulse" />
@@ -39,19 +51,19 @@ export function PopularDestinations() {
   return (
     <section id="destinations" className="mx-auto max-w-7xl px-5 py-24">
       <Reveal className="mx-auto max-w-2xl text-center">
-        <span className="text-xs font-poppins font-bold uppercase tracking-[0.25em] text-gold">ACTIVE CONVOYS</span>
+        <span className="text-xs font-poppins font-bold uppercase tracking-[0.25em] text-gold">{sectionLabel}</span>
         <h2 className="mt-3 font-display text-4xl font-bold text-primary sm:text-5xl">
-          Popular Destinations
+          {sectionTitle}
         </h2>
         <p className="mt-4 text-muted-foreground text-sm leading-relaxed">
-          Explore India's most breathtaking roads. Handpicked getaways vetted by Nomadik Trip Captains.
+          {sectionDesc}
         </p>
       </Reveal>
 
       <div className="mt-14 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 justify-center">
         {destinations.map((d, i) => {
           const meta = getDestMeta(d.slug);
-          const linkPath = d.slug === "chopta-tungnath" ? "/chopta-tungnath" : d.slug === "mcleodganj" ? "/mcleodganj" : `/${d.slug}`;
+          const linkPath = `/destinations/${d.slug}`;
           return (
             <Reveal key={d.slug} delay={i} className="group">
               <article className="hover-lift overflow-hidden rounded-3xl bg-card border border-border shadow-soft flex flex-col h-full">

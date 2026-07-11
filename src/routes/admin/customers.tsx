@@ -1,133 +1,159 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
+import { createFileRoute } from '@tanstack/react-router'
+import { useState, useCallback } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { motion } from 'motion/react'
+import { Badge } from '@/components/ui/badge'
+import { DataTable, exportToCSV } from '@/components/admin/DataTable'
+import type { ColumnDef } from '@tanstack/react-table'
+import { getCustomers } from '@/lib/queries/admin'
+import type { SiteUser } from '@/types/supabase'
 import {
-  Search,
   Users,
   Compass,
   CreditCard,
-  Star,
-  Loader2,
-} from "lucide-react";
+  Mail,
+  Phone,
+} from 'lucide-react'
 
-export const Route = createFileRoute("/admin/customers")({
-  component: AdminCustomers,
-});
+export const Route = createFileRoute('/admin/customers')({
+  component: CustomersPage,
+})
 
-function AdminCustomers() {
-  const [customers, setCustomers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+function CustomersPage() {
+  const qc = useQueryClient()
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
+  const [search, setSearch] = useState('')
+  const [sortBy, setSortBy] = useState('created_at')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
 
-  const fetchCustomers = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from("users")
-        .select(`
-          *,
-          bookings (id)
-        `);
+  const { data: result, isLoading } = useQuery({
+    queryKey: ['customers_list', page, pageSize, search, sortBy, sortDir],
+    queryFn: () => getCustomers({ page, pageSize, search, sortBy, sortDir }),
+    placeholderData: (prev) => prev,
+  })
 
-      if (error) throw error;
-      setCustomers(data || []);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to load customers list");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const customers = result?.data ?? []
 
-  useEffect(() => {
-    fetchCustomers();
-  }, []);
+  const handleSort = useCallback((by: string, dir: 'asc' | 'desc') => {
+    setSortBy(by)
+    setSortDir(dir)
+  }, [])
 
-  const filtered = customers.filter(c =>
-    c.full_name?.toLowerCase().includes(search.toLowerCase()) ||
-    c.phone?.toLowerCase().includes(search.toLowerCase()) ||
-    c.email?.toLowerCase().includes(search.toLowerCase())
-  );
+  const handleExport = () => {
+    exportToCSV(
+      customers.map((c) => ({
+        name: c.full_name,
+        email: c.email ?? '',
+        phone: c.phone,
+        city: c.city ?? '',
+        state: c.state ?? '',
+        wallet_balance: c.wallet_balance,
+        created_at: c.created_at,
+      })),
+      'customers'
+    )
+  }
+
+  const columns: ColumnDef<SiteUser>[] = [
+    {
+      accessorKey: 'full_name',
+      header: 'Explorer Customer',
+      cell: ({ row }) => {
+        const c = row.original
+        return (
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shrink-0">
+              {c.full_name.slice(0, 2).toUpperCase()}
+            </div>
+            <div>
+              <p className="font-semibold text-sm">{c.full_name}</p>
+              {c.email && (
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Mail className="h-3 w-3" /> {c.email}
+                </p>
+              )}
+            </div>
+          </div>
+        )
+      },
+    },
+    {
+      accessorKey: 'phone',
+      header: 'Phone Contact',
+      cell: ({ row }) => (
+        <span className="text-sm font-mono text-muted-foreground flex items-center gap-1">
+          <Phone className="h-3 w-3" />
+          {row.original.phone}
+        </span>
+      ),
+    },
+    {
+      accessorKey: 'wallet_balance',
+      header: 'Wallet Balance',
+      cell: ({ row }) => (
+        <span className="text-sm font-semibold text-emerald-600">
+          ₹{row.original.wallet_balance.toLocaleString('en-IN')}
+        </span>
+      ),
+    },
+    {
+      accessorKey: 'city',
+      header: 'Location',
+      cell: ({ row }) => {
+        const c = row.original
+        return (
+          <span className="text-xs text-muted-foreground">
+            {c.city ? `${c.city}${c.state ? `, ${c.state}` : ''}` : '—'}
+          </span>
+        )
+      },
+    },
+    {
+      accessorKey: 'created_at',
+      header: 'Joined Date',
+      cell: ({ row }) => (
+        <span className="text-xs text-muted-foreground">
+          {new Date(row.original.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+        </span>
+      ),
+    },
+  ]
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold font-poppins text-foreground">Customer Relationship Management</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">
-          View explorer profiles, booking history metrics, and reviews.
-        </p>
-      </div>
-
-      {/* Filter and Search */}
-      <div className="flex items-center gap-3 bg-white p-4 rounded-xl border border-border">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search customer profiles..."
-            className="pl-9"
-          />
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex items-center justify-between"
+      >
+        <div>
+          <h1 className="text-2xl font-bold font-poppins">Customers CRM</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            {result?.total ?? 0} registered customer{(result?.total ?? 0) !== 1 ? 's' : ''} total
+          </p>
         </div>
-      </div>
+      </motion.div>
 
-      {/* Customers Table */}
-      <div className="bg-white rounded-xl border border-border overflow-hidden">
-        {loading ? (
-          <div className="py-20 flex flex-col items-center justify-center gap-3">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">Loading explorers profile metrics...</p>
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="py-20 text-center text-muted-foreground">
-            No customers profiles found.
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-muted/20">
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase">Explorer</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase">Phone</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase">Wallet Balance</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase">Completed Trips</th>
-                  <th className="text-right py-3 px-4 text-xs font-semibold text-muted-foreground uppercase">Joined Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((c) => (
-                  <tr key={c.id} className="border-b border-border/50 hover:bg-muted/10 transition">
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-                          {c.full_name?.slice(0,2).toUpperCase()}
-                        </div>
-                        <div>
-                          <p className="font-semibold text-sm">{c.full_name}</p>
-                          <p className="text-xs text-muted-foreground">{c.email || "No Email"}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-muted-foreground font-mono text-xs">{c.phone}</td>
-                    <td className="py-3 px-4 font-semibold text-green-600">
-                      ₹{Number(c.wallet_balance || 0).toLocaleString("en-IN")}
-                    </td>
-                    <td className="py-3 px-4 font-semibold">
-                      {c.bookings?.length || 0} Trips
-                    </td>
-                    <td className="py-3 px-4 text-right text-muted-foreground">
-                      {new Date(c.created_at).toLocaleDateString('en-IN')}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
+        <DataTable
+          data={customers}
+          columns={columns}
+          total={result?.total ?? 0}
+          page={page}
+          pageSize={pageSize}
+          totalPages={result?.totalPages ?? 1}
+          isLoading={isLoading}
+          searchPlaceholder="Search customer profiles..."
+          onPageChange={setPage}
+          onPageSizeChange={(s) => { setPageSize(s); setPage(1) }}
+          onSearch={(s) => { setSearch(s); setPage(1) }}
+          onSort={handleSort}
+          onRefresh={() => qc.invalidateQueries({ queryKey: ['customers_list'] })}
+          onExportCSV={handleExport}
+          emptyMessage="No customers profiles found."
+        />
+      </motion.div>
     </div>
-  );
+  )
 }

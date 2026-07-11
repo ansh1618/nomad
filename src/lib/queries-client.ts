@@ -1,77 +1,38 @@
 import { supabase } from "@/lib/supabase";
-import { destinations as mockDestinations } from "@/data/destinations";
-import { journeys as mockJourneys } from "@/data/journeys";
+import { getPublishedDestinations, getDestinationBySlug as sharedGetDestinationBySlug } from "./queries/destinations";
+import { getPublishedPackages, getPackageBySlug } from "./queries/packages";
+import { getApprovedReviews as sharedGetApprovedReviews } from "./queries/admin";
 
 export async function getDestinations() {
-  const { data, error } = await supabase
-    .from("destinations")
-    .select("*")
-    .order("name");
-
-  if (error) {
-    console.error("Error fetching destinations:", error);
-    throw error;
-  }
-
-  return data.map((d: any) => {
-    const mock = mockDestinations.find((md) => md.slug === d.slug) || {
-      bestTime: "Best time to visit",
-      topPlaces: [],
-      faqs: [],
-      reviews: []
-    };
-    return {
-      slug: d.slug,
-      name: d.name,
-      subtitle: d.subtitle,
-      image: d.hero_image,
-      overview: d.description,
-      weather: d.weather,
-      howToReach: d.how_to_reach,
-      bestTime: mock.bestTime,
-      topPlaces: mock.topPlaces,
-      faqs: mock.faqs,
-      reviews: mock.reviews
-    };
-  });
+  const data = await getPublishedDestinations();
+  return data.map((d: any) => ({
+    slug: d.slug,
+    name: d.name,
+    subtitle: d.subtitle,
+    image: d.hero_image,
+    overview: d.description,
+    weather: d.weather,
+    howToReach: d.how_to_reach,
+    bestTime: d.best_time || "Best time to visit",
+    topPlaces: d.things_to_do || [],
+    faqs: d.faqs || [],
+    reviews: []
+  }));
 }
 
 export async function getDestinationBySlug(slug: string) {
-  const { data, error } = await supabase
-    .from("destinations")
-    .select("*")
-    .eq("slug", slug)
-    .single();
-
-  if (error) {
-    console.error("Error fetching destination by slug:", error);
-    throw error;
-  }
+  const data = await sharedGetDestinationBySlug(slug);
   if (!data) return null;
 
-  const { data: dbReviews } = await supabase
-    .from("reviews")
-    .select("*")
-    .eq("approved", true)
-    .order("created_at", { ascending: false })
-    .limit(6);
-
-  const mock = mockDestinations.find((md) => md.slug === slug) || {
-    bestTime: "Best time to visit",
-    topPlaces: [],
-    faqs: [],
-    reviews: []
-  };
-
-  const reviewsList = dbReviews && dbReviews.length > 0
-    ? dbReviews.map((r: any) => ({
-        name: r.author_name,
-        avatar: r.author_name.slice(0, 2).toUpperCase(),
-        rating: r.rating,
-        text: r.content,
-        date: r.trip_date || "Recent"
-      }))
-    : mock.reviews;
+  // Fetch approved reviews via shared admin queries layer using is_approved = true
+  const dbReviews = await sharedGetApprovedReviews(data.id, 6).catch(() => []);
+  const reviewsList = dbReviews.map((r: any) => ({
+    name: r.author_name,
+    avatar: r.author_name.slice(0, 2).toUpperCase(),
+    rating: r.rating,
+    text: r.content,
+    date: r.trip_date || "Recent"
+  }));
 
   return {
     slug: data.slug,
@@ -81,67 +42,48 @@ export async function getDestinationBySlug(slug: string) {
     overview: data.description,
     weather: data.weather,
     howToReach: data.how_to_reach,
-    bestTime: mock.bestTime,
-    topPlaces: mock.topPlaces,
-    faqs: mock.faqs,
+    bestTime: data.best_time || "Best time to visit",
+    topPlaces: data.things_to_do || [],
+    faqs: data.faqs || [],
     reviews: reviewsList
   };
 }
 
 export async function getJourneys() {
-  const { data, error } = await supabase
-    .from("journeys")
-    .select("*, destinations(slug)")
-    .order("name");
-
-  if (error) {
-    console.error("Error fetching journeys:", error);
-    throw error;
-  }
-
+  const data = await getPublishedPackages();
   return data.map((j: any) => {
-    const mock = mockJourneys.find((mj) => mj.slug === j.slug) || {
-      bestSeason: j.season || "Best season",
-      highlights: [],
-      dayByDay: [],
-      stayInfo: j.hotel || "",
-      foodInfo: j.food || "",
-      transportDetails: j.transport || "",
-      inclusions: [],
-      exclusions: [],
-      packingList: []
-    };
+    const it = j.itinerary_days || [];
     return {
       slug: j.slug,
       destinationSlug: j.destinations?.slug || "",
       name: j.name,
-      image: (j.gallery as string[] | null)?.[0] || "",
+      image: (j.gallery as string[] | null)?.[0] || j.hero_banner || "",
       duration: j.duration,
       transport: j.transport,
       difficulty: j.difficulty,
       distance: j.distance,
-      bestSeason: j.season || mock.bestSeason,
-      groupSize: j.group_size,
-      price: `Rs.${Number(j.price).toLocaleString()}`,
-      priceNumber: Number(j.price),
-      maxCapacity: j.max_capacity || 18,
-      remainingSeats: j.remaining_seats || 18,
+      bestSeason: j.season || j.best_season || "Best season",
+      groupSize: j.group_size || j.group_size_max,
+      price: `Rs.${Number(j.price || j.starting_price || 0).toLocaleString()}`,
+      priceNumber: Number(j.price || j.starting_price || 0),
+      maxCapacity: j.max_capacity || j.group_size_max || 18,
+      remainingSeats: j.remaining_seats || j.available_seats || 18,
       pickupPoint: j.pickup_point,
       dropPoint: j.drop_point,
-      itinerary: j.itinerary || [],
-      overview: j.description || j.name,
-      highlights: j.itinerary && j.itinerary.length > 0 
-        ? j.itinerary.map((day: any) => day.title).slice(0, 3)
-        : mock.highlights,
+      itinerary: it,
+      overview: j.description || j.overview || j.name,
+      highlights: it.length > 0 
+        ? it.map((day: any) => day.title).slice(0, 3)
+        : (j.highlights || []),
       hotel: j.hotel,
       food: j.food,
-      dayByDay: mock.dayByDay,
-      stayInfo: mock.stayInfo,
-      foodInfo: mock.foodInfo,
-      transportDetails: mock.transportDetails,
-      inclusions: mock.inclusions,
-      exclusions: mock.exclusions,
-      packingList: mock.packingList
+      dayByDay: it,
+      stayInfo: j.hotel || j.stay_info || "",
+      foodInfo: j.food || j.food_info || "",
+      transportDetails: j.transport || j.transport_details || "",
+      inclusions: j.inclusions || [],
+      exclusions: j.exclusions || [],
+      packingList: j.packing_list || []
     };
   });
 }
@@ -152,63 +94,43 @@ export async function getJourneysByDestination(destinationSlug: string) {
 }
 
 export async function getJourneyBySlug(slug: string) {
-  const { data, error } = await supabase
-    .from("journeys")
-    .select("*, destinations(slug, name)")
-    .eq("slug", slug)
-    .single();
-
-  if (error) {
-    console.error("Error fetching journey by slug:", error);
-    throw error;
-  }
+  const data = await getPackageBySlug(slug);
   if (!data) return null;
 
-  const mock = mockJourneys.find((mj) => mj.slug === slug) || {
-    bestSeason: data.season || "Best season",
-    highlights: [],
-    dayByDay: [],
-    stayInfo: data.hotel || "",
-    foodInfo: data.food || "",
-    transportDetails: data.transport || "",
-    inclusions: [],
-    exclusions: [],
-    packingList: []
-  };
-
+  const it = data.itinerary_days || [];
   return {
     id: data.id,
     slug: data.slug,
     destinationSlug: (data.destinations as any)?.slug || "",
     destinationName: (data.destinations as any)?.name || "",
     name: data.name,
-    image: (data.gallery as string[] | null)?.[0] || "",
+    image: (data.gallery as string[] | null)?.[0] || data.hero_banner || "",
     duration: data.duration,
     transport: data.transport,
     difficulty: data.difficulty,
     distance: data.distance,
-    bestSeason: data.season || mock.bestSeason,
-    groupSize: data.group_size,
-    price: `Rs.${Number(data.price).toLocaleString()}`,
-    priceNumber: Number(data.price),
-    maxCapacity: data.max_capacity || 18,
-    remainingSeats: data.remaining_seats || 18,
+    bestSeason: data.season || data.best_season || "Best season",
+    groupSize: data.group_size || data.group_size_max,
+    price: `Rs.${Number(data.price || data.starting_price || 0).toLocaleString()}`,
+    priceNumber: Number(data.price || data.starting_price || 0),
+    maxCapacity: data.max_capacity || data.group_size_max || 18,
+    remainingSeats: data.remaining_seats || data.available_seats || 18,
     pickupPoint: data.pickup_point,
     dropPoint: data.drop_point,
-    itinerary: data.itinerary || [],
-    overview: data.description || data.name,
-    highlights: data.itinerary && data.itinerary.length > 0 
-      ? data.itinerary.map((day: any) => day.title).slice(0, 3)
-      : mock.highlights,
+    itinerary: it,
+    overview: data.description || data.overview || data.name,
+    highlights: it.length > 0 
+      ? it.map((day: any) => day.title).slice(0, 3)
+      : (data.highlights || []),
     hotel: data.hotel,
     food: data.food,
-    dayByDay: mock.dayByDay,
-    stayInfo: mock.stayInfo,
-    foodInfo: mock.foodInfo,
-    transportDetails: mock.transportDetails,
-    inclusions: mock.inclusions,
-    exclusions: mock.exclusions,
-    packingList: mock.packingList
+    dayByDay: it,
+    stayInfo: data.hotel || data.stay_info || "",
+    foodInfo: data.food || data.food_info || "",
+    transportDetails: data.transport || data.transport_details || "",
+    inclusions: data.inclusions || [],
+    exclusions: data.exclusions || [],
+    packingList: data.packing_list || []
   };
 }
 
@@ -260,7 +182,7 @@ export async function getApprovedReviews(journeySlug?: string) {
   let query = supabase
     .from("reviews")
     .select("*, journeys(name, slug)")
-    .eq("approved", true)
+    .eq("is_approved", true)
     .order("created_at", { ascending: false })
     .limit(20);
 
@@ -274,7 +196,7 @@ export async function getApprovedReviews(journeySlug?: string) {
       query = supabase
         .from("reviews")
         .select("*, journeys(name, slug)")
-        .eq("approved", true)
+        .eq("is_approved", true)
         .eq("journey_id", journey.id)
         .order("created_at", { ascending: false })
         .limit(20);
@@ -285,3 +207,5 @@ export async function getApprovedReviews(journeySlug?: string) {
   if (error) return [];
   return data || [];
 }
+
+

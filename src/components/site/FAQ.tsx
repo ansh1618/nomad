@@ -1,58 +1,13 @@
-import { useState } from "react";
-import { Reveal } from "./Reveal";
-import { ChevronDown } from "lucide-react";
+import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { Reveal } from './Reveal'
+import { ChevronDown } from 'lucide-react'
+import { getFaqs } from '@/lib/queries/cms'
+import type { Faq } from '@/lib/queries/cms'
 
-interface FaqItem {
-  question: string;
-  answer: string;
-}
-
-const faqs: FaqItem[] = [
-  {
-    question: "Is it safe to travel solo with Nomadik?",
-    answer:
-      "Absolutely. Over 60% of our explorers are solo travelers. Every trip is led by an experienced Trip Captain, runs in GPS-tracked vehicles, and includes 24×7 support from our Delhi NCR operations team. We've safely hosted 15,000+ travelers across 120+ trips.",
-  },
-  {
-    question: "Where is the pickup and drop point?",
-    answer:
-      "Most trips depart from Delhi NCR (Majnu Ka Tila or Kashmere Gate). Chandigarh pickup is available for Himachal trips. Exact pickup details are shared 48 hours before departure via WhatsApp. Airport transfers can be arranged at additional cost.",
-  },
-  {
-    question: "Are meals included in the journey price?",
-    answer:
-      "Breakfast and dinner are included on all trips. Lunch is on your own so you can explore local eateries and street food — that's part of the adventure! We recommend budget-friendly local restaurants at every stop.",
-  },
-  {
-    question: "Can I customize an itinerary or do a private group trip?",
-    answer:
-      "Yes! We offer custom itineraries for private groups of 6+ explorers. You can choose dates, stays, and routes. Contact our Trip Planning team via WhatsApp or the website form and we'll design a personalized journey within 24 hours.",
-  },
-  {
-    question: "Do you offer EMI or split payment options?",
-    answer:
-      "Yes. You can secure your seat with a token amount of ₹2,000 and pay the rest in installments before the trip date. We support UPI, bank transfers, and select EMI options through Razorpay.",
-  },
-  {
-    question: "What about safety for women travelers?",
-    answer:
-      "Women safety is our top priority. All Trip Captains are background-verified. Our groups maintain a healthy gender ratio. We have a dedicated women's safety helpline, and female Trip Captains are available on select departures. Over 40% of our explorer community is women.",
-  },
-  {
-    question: "What is the cancellation and refund policy?",
-    answer:
-      "Full refund if cancelled 15+ days before departure. 50% refund for 7-14 days. No refund within 7 days, but you can transfer your seat to someone else. Trip date changes are free if done 10+ days in advance, subject to availability.",
-  },
-  {
-    question: "What should I pack for a mountain road trip?",
-    answer:
-      "We share a detailed packing checklist via WhatsApp 5 days before your trip. Essentials include layered clothing, comfortable trekking shoes, a rain jacket, sunscreen, and a power bank. We provide sleeping bags for camping trips.",
-  },
-];
-
-function FaqAccordionItem({ item, isOpen, onToggle }: { item: FaqItem; isOpen: boolean; onToggle: () => void }) {
+function FaqAccordionItem({ item, isOpen, onToggle }: { item: Faq; isOpen: boolean; onToggle: () => void }) {
   return (
-    <div className={`rounded-2xl border transition-colors duration-300 ${isOpen ? "border-gold/40 bg-gold/5" : "border-border bg-white"}`}>
+    <div className={`rounded-2xl border transition-colors duration-300 ${isOpen ? 'border-gold/40 bg-gold/5' : 'border-border bg-white'}`}>
       <button
         onClick={onToggle}
         className="flex w-full items-center justify-between gap-4 p-5 text-left"
@@ -60,20 +15,40 @@ function FaqAccordionItem({ item, isOpen, onToggle }: { item: FaqItem; isOpen: b
       >
         <span className="text-sm font-semibold text-primary font-sans pr-4">{item.question}</span>
         <ChevronDown
-          className={`h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-300 ${isOpen ? "rotate-180 text-gold" : ""}`}
+          className={`h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-300 ${isOpen ? 'rotate-180 text-gold' : ''}`}
         />
       </button>
       <div
-        className={`overflow-hidden transition-all duration-300 ${isOpen ? "max-h-60 pb-5 px-5" : "max-h-0"}`}
+        className={`overflow-hidden transition-all duration-300 ${isOpen ? 'max-h-60 pb-5 px-5' : 'max-h-0'}`}
       >
         <p className="text-xs text-muted-foreground leading-relaxed font-sans">{item.answer}</p>
       </div>
     </div>
-  );
+  )
+}
+
+function FaqSkeleton() {
+  return (
+    <div className="rounded-2xl border border-border bg-white p-5 animate-pulse">
+      <div className="flex items-center justify-between gap-4">
+        <div className="space-y-2 flex-1">
+          <div className="h-3 bg-muted rounded w-3/4" />
+          <div className="h-3 bg-muted rounded w-1/2" />
+        </div>
+        <div className="h-5 w-5 bg-muted rounded" />
+      </div>
+    </div>
+  )
 }
 
 export function FAQ() {
-  const [openIndex, setOpenIndex] = useState<number | null>(0);
+  const [openIndex, setOpenIndex] = useState<number | null>(0)
+
+  const { data: faqs = [], isLoading } = useQuery({
+    queryKey: ['faqs', 'homepage'],
+    queryFn: () => getFaqs('homepage'),
+    staleTime: 1000,
+  })
 
   return (
     <section id="faq" className="py-24">
@@ -91,17 +66,19 @@ export function FAQ() {
         </Reveal>
 
         <div className="space-y-3">
-          {faqs.map((faq, i) => (
-            <Reveal key={i} delay={Math.min(i, 3)}>
-              <FaqAccordionItem
-                item={faq}
-                isOpen={openIndex === i}
-                onToggle={() => setOpenIndex(openIndex === i ? null : i)}
-              />
-            </Reveal>
-          ))}
+          {isLoading
+            ? Array.from({ length: 5 }).map((_, i) => <FaqSkeleton key={i} />)
+            : faqs.map((faq, i) => (
+                <Reveal key={faq.id} delay={Math.min(i, 3)}>
+                  <FaqAccordionItem
+                    item={faq}
+                    isOpen={openIndex === i}
+                    onToggle={() => setOpenIndex(openIndex === i ? null : i)}
+                  />
+                </Reveal>
+              ))}
         </div>
       </div>
     </section>
-  );
+  )
 }

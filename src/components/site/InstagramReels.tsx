@@ -1,7 +1,10 @@
+import { useQuery } from "@tanstack/react-query";
 import { Reveal } from "./Reveal";
 import { Instagram } from "lucide-react";
+import { getPublishedStories, getSiteSettings } from "@/lib/queries/cms";
+import { BRAND } from "@/config/brand";
 
-const reels = [
+const DEFAULT_REELS = [
   { id: 1, caption: "Sunrise at Chopta meadows 🏔️", thumbnail: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=600&fit=crop" },
   { id: 2, caption: "Night bonfire at Jibhi camp 🔥", thumbnail: "https://images.unsplash.com/photo-1475483768296-6163e08872a1?w=400&h=600&fit=crop" },
   { id: 3, caption: "Road to Manali — windows down 🚗", thumbnail: "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=400&h=600&fit=crop" },
@@ -11,12 +14,36 @@ const reels = [
 ];
 
 export function InstagramReels() {
+  const { data: settings } = useQuery({
+    queryKey: ["site_settings"],
+    queryFn: getSiteSettings,
+    staleTime: 1000,
+  });
+
+  const { data: dbStories = [] } = useQuery({
+    queryKey: ["stories", "published-home"],
+    queryFn: () => getPublishedStories(6),
+    staleTime: 1000,
+  });
+
+  const instagramUrl = settings?.instagram_url || BRAND.instagram;
+  const username = instagramUrl.split("/").pop() || "gonomadik";
+
+  // Map dbStories to reel structures if we have them
+  const activeReels = dbStories.length > 0
+    ? dbStories.map((story) => ({
+        id: story.id,
+        caption: story.title + (story.snippet ? ` — ${story.snippet}` : ""),
+        thumbnail: story.image_url,
+      }))
+    : DEFAULT_REELS;
+
   return (
     <section className="py-24 overflow-hidden">
       <div className="mx-auto max-w-7xl px-5">
         <Reveal className="mx-auto max-w-2xl text-center pb-12">
           <span className="text-xs font-poppins font-bold uppercase tracking-[0.25em] text-gold">
-            @THENOMADIKTRAVELLER
+            @{username.toUpperCase()}
           </span>
           <h2 className="mt-3 font-display text-4xl font-bold text-primary sm:text-5xl">
             Live From The Road
@@ -34,10 +61,10 @@ export function InstagramReels() {
         <div className="pointer-events-none absolute right-0 top-0 bottom-0 z-10 w-24 bg-gradient-to-l from-background to-transparent" />
 
         <div className="flex gap-5 animate-marquee hover:[animation-play-state:paused]">
-          {[...reels, ...reels].map((reel, i) => (
+          {[...activeReels, ...activeReels].map((reel, i) => (
             <a
               key={`${reel.id}-${i}`}
-              href="https://instagram.com/thenomadiktraveller"
+              href={instagramUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="group relative flex-shrink-0 w-[220px] aspect-[9/16] rounded-2xl overflow-hidden shadow-soft border border-border"
@@ -63,15 +90,16 @@ export function InstagramReels() {
 
       <Reveal className="text-center mt-10">
         <a
-          href="https://instagram.com/thenomadiktraveller"
+          href={instagramUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-2 rounded-full border border-border bg-white px-6 py-3 text-xs font-poppins font-semibold text-primary shadow-soft hover:border-gold hover:shadow-gold transition-all duration-300"
         >
           <Instagram className="h-4 w-4 text-accent" />
-          Follow @thenomadiktraveller
+          Follow @{username}
         </a>
       </Reveal>
     </section>
   );
 }
+

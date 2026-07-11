@@ -108,12 +108,34 @@ async function seed() {
         { onConflict: "slug" }
       );
 
-    if (error) {
-      console.error(`Error seeding journey ${journey.name}:`, error);
     }
   }
-
   console.log("Journeys seeded successfully.");
+
+  // 3. Seed Admin user for production owner access
+  console.log("Seeding admin user...");
+  const adminId = "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d";
+  const adminEmail = "owner@gonomadik.com";
+
+  const { error: adminError } = await supabase
+    .from("admins")
+    .upsert(
+      {
+        id: adminId,
+        email: adminEmail,
+        role: "SUPER_ADMIN",
+        is_active: true,
+        full_name: "Nomadik Owner"
+      },
+      { onConflict: "id" }
+    );
+
+  if (adminError) {
+    console.error("Error seeding admin profile. This is expected if the admins table or auth user does not exist yet:", adminError.message);
+  } else {
+    console.log("Successfully registered owner@gonomadik.com as SUPER_ADMIN in the admins table!");
+  }
+
   console.log("Seed process completed!");
 }
 

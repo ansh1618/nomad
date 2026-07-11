@@ -6,20 +6,42 @@ import { supabase } from "@/lib/supabase";
 
 const fetchActiveDepartures = async (journeyId: string) => {
   const today = new Date().toISOString().split("T")[0];
-  const { data, error } = await supabase
+  try {
+    const { data, error } = await supabase
+      .from("departures")
+      .select("id, departure_date, base_price, available_seats, status")
+      .eq("journey_id", journeyId)
+      .neq("status", "CANCELLED")
+      .gte("departure_date", today)
+      .order("departure_date");
+      
+    if (!error && data) {
+      return data.map(d => ({
+        id: d.id,
+        date: d.departure_date,
+        basePrice: Number(d.base_price),
+        availableSeats: d.available_seats || 20
+      }));
+    }
+  } catch (e) {
+    console.warn("Departures query failed, falling back to trip_batches:", e);
+  }
+
+  // Fallback to trip_batches
+  const { data: legacyData, error: legacyError } = await supabase
     .from("trip_batches")
-    .select("id, departure_date, base_price, remaining_seats, status")
+    .select("id, departure_date, price, remaining_seats")
     .eq("journey_id", journeyId)
     .neq("status", "CANCELLED")
     .gte("departure_date", today)
     .order("departure_date");
-    
-  if (error || !data) return [];
-  
-  return data.map(d => ({
+
+  if (legacyError || !legacyData) return [];
+
+  return legacyData.map(d => ({
     id: d.id,
     date: d.departure_date,
-    basePrice: Number(d.base_price),
+    basePrice: Number(d.price || 0),
     availableSeats: d.remaining_seats || 20
   }));
 };

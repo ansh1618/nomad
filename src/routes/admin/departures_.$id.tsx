@@ -1,391 +1,481 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { toast } from "sonner";
-import { Loader2, ArrowLeft, Save, Plus, Trash2 } from "lucide-react";
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { useEffect, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { motion } from 'motion/react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { toast } from 'sonner'
+import {
+  ArrowLeft,
+  Save,
+  Loader2,
+  Plus,
+  Trash2,
+  Calendar,
+} from 'lucide-react'
+import {
+  getDepartureById,
+  createDeparture,
+  updateDeparture,
+  generateSeatInventory,
+} from '@/lib/queries/departures'
+import { getAllBuses, getAllHotels } from '@/lib/queries/hotels-buses'
+import { getAllTripCaptains } from '@/lib/queries/admin'
+import { useAdminAuth } from '@/hooks/use-admin-auth'
 
-export const Route = createFileRoute("/admin/departures_/$id")({
+export const Route = createFileRoute('/admin/departures_/$id')({
   component: DepartureFormPage,
-});
+})
+
+const departureSchema = z.object({
+  journey_id: z.string().min(1, 'Journey is required'),
+  trip_captain_id: z.string().optional(),
+  bus_id: z.string().optional(),
+  hotel_id: z.string().optional(),
+  departure_date: z.string().min(1, 'Departure date is required'),
+  return_date: z.string().min(1, 'Return date is required'),
+  total_seats: z.number().int().min(1).default(20),
+  base_price: z.number().min(0, 'Base price is required'),
+  dynamic_price: z.number().min(0).optional(),
+  discount_amount: z.number().min(0).default(0),
+  discount_type: z.enum(['PERCENTAGE', 'FLAT']).optional(),
+  pickup_location: z.string().optional(),
+  drop_location: z.string().optional(),
+  notes: z.string().optional(),
+  status: z.preprocess((val) => {
+    if (typeof val === 'string') return val.toUpperCase().trim();
+    return val;
+  }, z.enum(['UPCOMING', 'ONGOING', 'COMPLETED', 'CANCELLED', 'SOLD_OUT', 'CLOSED']).default('UPCOMING')),
+  is_visible: z.boolean().default(true),
+})
+
+type DepartureFormValues = z.infer<typeof departureSchema>
 
 function DepartureFormPage() {
-  const { id } = Route.useParams();
-  const isNew = id === "new";
-  const navigate = useNavigate();
+  const { id } = Route.useParams()
+  const isNew = id === 'new'
+  const navigate = useNavigate()
+  const qc = useQueryClient()
+  const { admin } = useAdminAuth()
 
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [pricingTiers, setPricingTiers] = useState<{ tier_name: string; price: number; seats_limit?: number }[]>([])
 
-  // Dropdown list states
-  const [journeys, setJourneys] = useState<any[]>([]);
-  const [buses, setBuses] = useState<any[]>([]);
-  const [captains, setCaptains] = useState<any[]>([]);
+  const { data: departure, isLoading: loadingData } = useQuery({
+    queryKey: ['departure', id],
+    queryFn: () => getDepartureById(id),
+    enabled: !isNew,
+  })
 
-  // Form states
-  const [journeyId, setJourneyId] = useState("");
-  const [departureDate, setDepartureDate] = useState("");
-  const [returnDate, setReturnDate] = useState("");
-  const [basePrice, setBasePrice] = useState("");
-  const [captainId, setCaptainId] = useState("");
-  const [busId, setBusId] = useState("");
-  const [pickupLocation, setPickupLocation] = useState("");
-  const [dropLocation, setDropLocation] = useState("");
-  const [isPublished, setIsPublished] = useState(false);
-  const [notes, setNotes] = useState("");
+  const { data: journeys = [] } = useQuery({
+    queryKey: ['journeys_dropdown'],
+    queryFn: async () => {
+      const { supabase } = await import('@/lib/supabase')
+      const { data } = await supabase.from('journeys').select('id, name')
+      return data ?? []
+    },
+  })
 
-  // Dynamic Pricing Tiers
-  const [pricingTiers, setPricingTiers] = useState<any[]>([]);
+  const { data: buses = [] } = useQuery({
+    queryKey: ['buses_dropdown'],
+    queryFn: getAllBuses,
+  })
 
-  // Fetch dropdown arrays
-  const fetchDropdowns = async () => {
-    try {
-      const [journeysRes, busesRes, captainsRes] = await Promise.all([
-        supabase.from("journeys").select("id, name"),
-        supabase.from("buses").select("id, name, total_seats"),
-        supabase.from("admins").select("id, email").eq("role", "TRIP_MANAGER")
-      ]);
+  const { data: hotels = [] } = useQuery({
+    queryKey: ['hotels_dropdown'],
+    queryFn: getAllHotels,
+  })
 
-      setJourneys(journeysRes.data || []);
-      setBuses(busesRes.data || []);
-      setCaptains(captainsRes.data || []);
-    } catch (err: any) {
-      console.error(err.message);
-    }
-  };
+  const { data: captains = [] } = useQuery({
+    queryKey: ['captains_dropdown'],
+    queryFn: getAllTripCaptains,
+  })
 
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors },
+    reset,
+  } = useForm<DepartureFormValues>({
+    resolver: zodResolver(departureSchema),
+    defaultValues: {
+      status: 'UPCOMING',
+      is_visible: true,
+      total_seats: 20,
+    },
+  })
+
+  // Load existing data
   useEffect(() => {
-    fetchDropdowns();
-  }, []);
-
-  // Fetch departure by ID
-  useEffect(() => {
-    if (!isNew) {
-      const loadDeparture = async () => {
-        setLoading(true);
-        try {
-          const { data, error } = await supabase
-            .from("departures")
-            .select("*")
-            .eq("id", id)
-            .single();
-
-          if (error) throw error;
-          if (data) {
-            setJourneyId(data.journey_id || "");
-            setDepartureDate(data.departure_date || "");
-            setReturnDate(data.return_date || "");
-            setBasePrice(data.base_price?.toString() || "");
-            setCaptainId(data.trip_captain_id || "");
-            setIsPublished(data.is_published ?? false);
-            setPickupLocation(data.pickup_location || "");
-            setDropLocation(data.drop_location || "");
-            setNotes(data.notes || "");
-
-            // Fetch linked transport to get the bus_id
-            const { data: transportData } = await supabase
-              .from("departure_transport")
-              .select("bus_id")
-              .eq("departure_id", id)
-              .single();
-
-            if (transportData) {
-              setBusId(transportData.bus_id || "");
-            }
-
-            // Fetch pricing tiers
-            const { data: tiers } = await supabase
-              .from("pricing_tiers")
-              .select("*")
-              .eq("departure_id", id)
-              .order("display_order");
-
-            setPricingTiers(tiers || []);
-          }
-        } catch (err: any) {
-          toast.error(err.message || "Failed to load departure details");
-        } finally {
-          setLoading(false);
-        }
-      };
-      loadDeparture();
+    if (departure) {
+      reset({
+        journey_id: departure.journey_id,
+        trip_captain_id: departure.trip_captain_id ?? '',
+        bus_id: departure.bus_id ?? '',
+        hotel_id: departure.hotel_id ?? '',
+        departure_date: departure.departure_date,
+        return_date: departure.return_date,
+        total_seats: departure.total_seats,
+        base_price: departure.base_price,
+        dynamic_price: departure.dynamic_price ?? undefined,
+        discount_amount: departure.discount_amount ?? 0,
+        discount_type: (departure.discount_type as 'PERCENTAGE' | 'FLAT') ?? undefined,
+        pickup_location: departure.pickup_location ?? '',
+        drop_location: departure.drop_location ?? '',
+        notes: departure.notes ?? '',
+        status: departure.status ? (departure.status.toUpperCase().trim() as any) : 'UPCOMING',
+        is_visible: departure.is_visible,
+      })
+      setPricingTiers((departure.pricing_tiers as any[])?.map(t => ({
+        tier_name: t.tier_name,
+        price: t.price,
+        seats_limit: t.seats_limit ?? undefined
+      })) ?? [])
     }
-  }, [id, isNew]);
+  }, [departure, reset])
 
-  const handleAddTier = () => {
-    setPricingTiers([
-      ...pricingTiers,
-      { tier_name: "", price: "", seats_threshold: "" }
-    ]);
-  };
+  const saveMutation = useMutation({
+    mutationFn: async (values: DepartureFormValues) => {
+      const payload = {
+        ...values,
+        status: (values.status || 'UPCOMING').toUpperCase().trim(),
+        trip_captain_id: values.trip_captain_id || null,
+        bus_id: values.bus_id || null,
+        hotel_id: values.hotel_id || null,
+        discount_type: values.discount_type || null,
+        created_by: admin?.id ?? null,
+        updated_by: admin?.id ?? null,
+      }
 
-  const handleTierChange = (index: number, field: string, value: any) => {
-    setPricingTiers(pricingTiers.map((t, i) => i === index ? { ...t, [field]: value } : t));
-  };
-
-  const handleRemoveTier = (index: number) => {
-    setPricingTiers(pricingTiers.filter((_, i) => i !== index));
-  };
-
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!journeyId) {
-      toast.error("Please select a Journey Package");
-      return;
-    }
-    setSaving(true);
-
-    try {
-      const departurePayload = {
-        journey_id: journeyId,
-        departure_date: departureDate,
-        return_date: returnDate,
-        base_price: parseFloat(basePrice),
-        trip_captain_id: captainId || null,
-        is_published: isPublished,
-        pickup_location: pickupLocation,
-        drop_location: dropLocation,
-        notes,
-      };
-
-      let departureId = id;
-
-      // 1. Save or Update Departure
+      let savedDep
       if (isNew) {
-        const { data, error } = await supabase
-          .from("departures")
-          .insert([departurePayload])
-          .select("id")
-          .single();
-
-        if (error) throw error;
-        departureId = data.id;
+        savedDep = await createDeparture({
+          ...payload,
+          available_seats: values.total_seats,
+          booked_seats: 0,
+        })
       } else {
-        const { error } = await supabase
-          .from("departures")
-          .update(departurePayload)
-          .eq("id", id);
-
-        if (error) throw error;
+        savedDep = await updateDeparture(id, payload)
       }
 
-      // 2. Save Bus Assignment (departure_transport)
-      if (busId) {
-        // Upsert transport details
-        const transportPayload = {
-          departure_id: departureId,
-          bus_id: busId,
-        };
-
-        const { error: transportErr } = await supabase
-          .from("departure_transport")
-          .upsert([transportPayload], { onConflict: "departure_id" });
-
-        if (transportErr) throw transportErr;
-      }
-
-      // 3. Save Dynamic Pricing Tiers
-      // Delete old ones first
-      if (!isNew) {
-        await supabase.from("pricing_tiers").delete().eq("departure_id", departureId);
-      }
-
+      // Sync dynamic pricing tiers
+      const { supabase } = await import('@/lib/supabase')
+      await supabase.from('pricing_tiers').delete().eq('departure_id', savedDep.id)
       if (pricingTiers.length > 0) {
-        const tiersToInsert = pricingTiers.map((t, idx) => ({
-          departure_id: departureId,
-          tier_name: t.tier_name,
-          price: parseFloat(t.price),
-          seats_threshold: t.seats_threshold ? parseInt(t.seats_threshold) : null,
-          display_order: idx,
-        }));
-
-        const { error: tierErr } = await supabase.from("pricing_tiers").insert(tiersToInsert);
-        if (tierErr) throw tierErr;
+        const { error } = await supabase.from('pricing_tiers').insert(
+          pricingTiers.map((t, index) => ({
+            departure_id: savedDep.id,
+            tier_name: t.tier_name,
+            price: t.price,
+            seats_limit: t.seats_limit ?? null,
+            sort_order: index,
+          }))
+        )
+        if (error) throw new Error(error.message)
       }
 
-      toast.success("Departure configured successfully");
-      navigate({ to: "/admin/departures" });
-    } catch (err: any) {
-      toast.error(err.message || "Failed to save departure date");
-    } finally {
-      setSaving(false);
-    }
-  };
+      // Initialize/regenerate seat inventory if bus is assigned/changed
+      if (payload.bus_id && (isNew || departure?.bus_id !== payload.bus_id)) {
+        await generateSeatInventory(savedDep.id, payload.bus_id)
+      }
 
-  if (loading) {
+      return savedDep
+    },
+    onSuccess: (dep) => {
+      qc.invalidateQueries({ queryKey: ['departures_list'] })
+      qc.invalidateQueries({ queryKey: ['departure', id] })
+      toast.success(isNew ? 'Departure date created!' : 'Departure configuration updated!')
+      if (isNew) navigate({ to: '/admin/departures/$id', params: { id: dep.id } })
+    },
+    onError: (err: Error) => toast.error(err.message),
+  })
+
+  const onInvalid = (errors: any) => {
+    console.error('Validation errors:', errors)
+    const errList = Object.entries(errors)
+    if (errList.length > 0) {
+      const [field, err] = errList[0]
+      const msg = (err as any)?.message || 'Invalid value'
+      toast.error(`Validation Error (${field}): ${msg}`)
+    } else {
+      toast.error('Please check the form for errors.')
+    }
+  }
+
+  if (!isNew && loadingData) {
     return (
-      <div className="py-20 flex flex-col items-center justify-center gap-3">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-sm text-muted-foreground">Loading details...</p>
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
       </div>
-    );
+    )
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Button variant="outline" size="icon" onClick={() => navigate({ to: "/admin/departures" })}>
+    <div className="space-y-6 max-w-4xl">
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex items-center gap-4"
+      >
+        <Button variant="ghost" size="icon" onClick={() => navigate({ to: '/admin/departures' })}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <div>
-          <h1 className="text-2xl font-bold font-poppins text-foreground">
-            {isNew ? "Add Departure Date" : "Configure Departure"}
+        <div className="flex-1">
+          <h1 className="text-xl font-bold font-poppins">
+            {isNew ? 'New Departure' : 'Edit Departure'}
           </h1>
         </div>
-      </div>
+        <Button
+          onClick={handleSubmit((v) => saveMutation.mutate(v), onInvalid)}
+          disabled={saveMutation.isPending}
+          className="gap-1.5"
+        >
+          {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          {isNew ? 'Create Departure' : 'Save Changes'}
+        </Button>
+      </motion.div>
 
-      <form onSubmit={handleSave} className="space-y-6">
-        <Tabs defaultValue="general" className="w-full">
-          <TabsList className="bg-muted border border-border w-full justify-start overflow-x-auto rounded-xl">
-            <TabsTrigger value="general">Date & Assignments</TabsTrigger>
-            <TabsTrigger value="pricing">Dynamic Pricing</TabsTrigger>
-          </TabsList>
+      <Tabs defaultValue="basic" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="basic">Date & Assignments</TabsTrigger>
+          <TabsTrigger value="pricing">Dynamic Pricing</TabsTrigger>
+          <TabsTrigger value="rules">Visits & Notes</TabsTrigger>
+        </TabsList>
 
-          <TabsContent value="general" className="bg-white p-6 rounded-xl border border-border mt-4 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <Label>Journey Package</Label>
-                <Select value={journeyId} onValueChange={setJourneyId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Package" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {journeys.map(j => (
-                      <SelectItem key={j.id} value={j.id}>{j.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+        {/* BASIC */}
+        <TabsContent value="basic" className="space-y-4">
+          <Card>
+            <CardContent className="pt-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label>Journey Package *</Label>
+                  <Select
+                    value={watch('journey_id') ?? ''}
+                    onValueChange={(v) => setValue('journey_id', v, { shouldDirty: true })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select package" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {journeys.map((j) => (
+                        <SelectItem key={j.id} value={j.id}>{j.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.journey_id && <p className="text-xs text-destructive">{errors.journey_id.message}</p>}
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Trip Captain</Label>
+                  <Select
+                    value={watch('trip_captain_id') ?? ''}
+                    onValueChange={(v) => setValue('trip_captain_id', v, { shouldDirty: true })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select captain" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      {captains.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>{c.full_name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div className="space-y-1">
-                <Label htmlFor="base">Base Price (INR)</Label>
-                <Input id="base" type="number" value={basePrice} onChange={e => setBasePrice(e.target.value)} required placeholder="8999" />
-              </div>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <Label htmlFor="dep">Departure Date</Label>
-                <Input id="dep" type="date" value={departureDate} onChange={e => setDepartureDate(e.target.value)} required />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label>Departure Date *</Label>
+                  <Input type="date" {...register('departure_date')} />
+                  {errors.departure_date && <p className="text-xs text-destructive">{errors.departure_date.message}</p>}
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Return Date *</Label>
+                  <Input type="date" {...register('return_date')} />
+                  {errors.return_date && <p className="text-xs text-destructive">{errors.return_date.message}</p>}
+                </div>
               </div>
-              <div className="space-y-1">
-                <Label htmlFor="ret">Return Date</Label>
-                <Input id="ret" type="date" value={returnDate} onChange={e => setReturnDate(e.target.value)} required />
-              </div>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <Label>Assign Bus (Layout & Capacity)</Label>
-                <Select value={busId} onValueChange={setBusId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Bus" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {buses.map(b => (
-                      <SelectItem key={b.id} value={b.id}>{b.name} ({b.total_seats} seats)</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label>Assign Vehicle (Seat Inventory)</Label>
+                  <Select
+                    value={watch('bus_id') ?? ''}
+                    onValueChange={(v) => {
+                      setValue('bus_id', v, { shouldDirty: true })
+                      const total = buses.find((b) => b.id === v)?.total_seats ?? 20
+                      setValue('total_seats', total, { shouldDirty: true })
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select bus layout" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      {buses.map((b) => (
+                        <SelectItem key={b.id} value={b.id}>{b.name} ({b.total_seats} seats)</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Assign Hotel</Label>
+                  <Select
+                    value={watch('hotel_id') ?? ''}
+                    onValueChange={(v) => setValue('hotel_id', v, { shouldDirty: true })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select hotel" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      {hotels.map((h) => (
+                        <SelectItem key={h.id} value={h.id}>{h.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div className="space-y-1">
-                <Label>Trip Captain</Label>
-                <Select value={captainId} onValueChange={setCaptainId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Captain" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {captains.map(c => (
-                      <SelectItem key={c.id} value={c.id}>{c.email}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label>Base Price (₹) *</Label>
+                  <Input type="number" {...register('base_price', { valueAsNumber: true })} />
+                  {errors.base_price && <p className="text-xs text-destructive">{errors.base_price.message}</p>}
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Capacity (Seats)</Label>
+                  <Input type="number" {...register('total_seats', { valueAsNumber: true })} />
+                </div>
               </div>
-            </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <Label htmlFor="pickup">Departure Pickup Point</Label>
-                <Input id="pickup" value={pickupLocation} onChange={e => setPickupLocation(e.target.value)} placeholder="e.g. Kashmiri Gate, 8:00 PM" />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="drop">Departure Drop Point</Label>
-                <Input id="drop" value={dropLocation} onChange={e => setDropLocation(e.target.value)} placeholder="e.g. Kashmiri Gate, Delhi" />
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <Label htmlFor="notes">Internal Notes</Label>
-              <Textarea id="notes" rows={3} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Driver contact details, special setup instructions..." />
-            </div>
-
-            <div className="flex items-center space-x-2 pt-4">
-              <Switch id="is-pub" checked={isPublished} onCheckedChange={setIsPublished} />
-              <Label htmlFor="is-pub">Publish this departure date immediately</Label>
-            </div>
-          </TabsContent>
-
-          {/* Dynamic Pricing Tiers */}
-          <TabsContent value="pricing" className="bg-white p-6 rounded-xl border border-border mt-4 space-y-4">
-            <div className="flex justify-between items-center border-b border-border pb-3">
-              <div>
-                <h3 className="text-sm font-semibold">Dynamic Pricing Rules</h3>
-                <p className="text-xs text-muted-foreground">Define Early Bird rates or Peak pricing modifiers.</p>
-              </div>
-              <Button type="button" variant="outline" size="sm" onClick={handleAddTier} className="gap-1 text-xs">
-                <Plus className="h-3 w-3" /> Add Tier
-              </Button>
-            </div>
-
-            {pricingTiers.length === 0 ? (
-              <p className="text-xs text-muted-foreground italic text-center py-4">No dynamic pricing rules configured. Will default to base price.</p>
-            ) : (
-              <div className="space-y-4">
-                {pricingTiers.map((tier, index) => (
-                  <div key={index} className="p-4 border border-border rounded-lg bg-muted/15 space-y-3 relative">
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveTier(index)}
-                      className="absolute top-2 right-2 text-destructive hover:bg-destructive/10 p-1.5 rounded-md"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="space-y-1">
-                        <Label>Tier Name</Label>
-                        <Input value={tier.tier_name} onChange={e => handleTierChange(index, "tier_name", e.target.value)} required placeholder="e.g. Early Bird, Last 5 seats" />
-                      </div>
-                      <div className="space-y-1">
-                        <Label>Price (INR)</Label>
-                        <Input type="number" value={tier.price} onChange={e => handleTierChange(index, "price", e.target.value)} required placeholder="e.g. 7999" />
-                      </div>
-                      <div className="space-y-1">
-                        <Label>Seats Threshold (Optional)</Label>
-                        <Input type="number" value={tier.seats_threshold} onChange={e => handleTierChange(index, "seats_threshold", e.target.value)} placeholder="e.g. first 5 seats" />
-                      </div>
-                    </div>
+        {/* PRICING */}
+        <TabsContent value="pricing" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm font-semibold flex items-center justify-between">
+                Dynamic Pricing Tiers
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setPricingTiers([...pricingTiers, { tier_name: '', price: 0 }])}
+                >
+                  <Plus className="h-3.5 w-3.5 mr-1" /> Add Tier
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {pricingTiers.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">No dynamic pricing tiers set.</p>
+              )}
+              {pricingTiers.map((tier, i) => (
+                <div key={i} className="flex items-center gap-3 p-3 border rounded-lg bg-muted/20">
+                  <div className="flex-1 grid grid-cols-3 gap-3">
+                    <Input
+                      value={tier.tier_name}
+                      onChange={(e) => setPricingTiers(pricingTiers.map((t, j) => j === i ? { ...t, tier_name: e.target.value } : t))}
+                      placeholder="e.g. Early Bird"
+                    />
+                    <Input
+                      type="number"
+                      value={tier.price || ''}
+                      onChange={(e) => setPricingTiers(pricingTiers.map((t, j) => j === i ? { ...t, price: Number(e.target.value) } : t))}
+                      placeholder="Price (₹)"
+                    />
+                    <Input
+                      type="number"
+                      value={tier.seats_limit || ''}
+                      onChange={(e) => setPricingTiers(pricingTiers.map((t, j) => j === i ? { ...t, seats_limit: e.target.value ? Number(e.target.value) : undefined } : t))}
+                      placeholder="Seats limit (optional)"
+                    />
                   </div>
-                ))}
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="text-destructive hover:text-destructive"
+                    onClick={() => setPricingTiers(pricingTiers.filter((_, j) => j !== i))}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-        <div className="flex justify-end pt-4">
-          <Button type="submit" disabled={saving} className="bg-primary hover:bg-primary/90 px-8 gap-2">
-            {saving ? (
-              <><Loader2 className="h-4 w-4 animate-spin" /> Saving...</>
-            ) : (
-              <><Save className="h-4 w-4" /> Save Configuration</>
-            )}
-          </Button>
-        </div>
-      </form>
+        {/* RULES & NOTES */}
+        <TabsContent value="rules" className="space-y-4">
+          <Card>
+            <CardContent className="pt-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label>Pickup Location Override</Label>
+                  <Input {...register('pickup_location')} placeholder="e.g. Kashmere Gate, Metro Station Gate 1" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Drop Location Override</Label>
+                  <Input {...register('drop_location')} placeholder="e.g. Kashmere Gate, Delhi" />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Internal Notes</Label>
+                <Textarea {...register('notes')} placeholder="Captain details, special notes for sales staff..." rows={4} />
+              </div>
+
+              <div className="flex items-center justify-between border-t pt-4">
+                <div>
+                  <Label>Publish Departure</Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">Allow public to book this date</p>
+                </div>
+                <Switch
+                  checked={watch('is_visible')}
+                  onCheckedChange={(v) => setValue('is_visible', v, { shouldDirty: true })}
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Trip Status</Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">Control execution stage of departure</p>
+                </div>
+                <Select
+                  value={watch('status')}
+                  onValueChange={(v) => setValue('status', v as DepartureFormValues['status'], { shouldDirty: true })}
+                >
+                  <SelectTrigger className="w-36">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="UPCOMING">Upcoming</SelectItem>
+                    <SelectItem value="ONGOING">Ongoing</SelectItem>
+                    <SelectItem value="COMPLETED">Completed</SelectItem>
+                    <SelectItem value="SOLD_OUT">Sold Out</SelectItem>
+                    <SelectItem value="CLOSED">Closed</SelectItem>
+                    <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
-  );
+  )
 }

@@ -1,72 +1,9 @@
-import { Reveal } from "./Reveal";
-import { Star, Quote, MapPin } from "lucide-react";
-
-interface Review {
-  name: string;
-  avatar: string;
-  location: string;
-  trip: string;
-  rating: number;
-  text: string;
-  date: string;
-}
-
-const reviews: Review[] = [
-  {
-    name: "Priya Sharma",
-    avatar: "https://i.pravatar.cc/80?img=47",
-    location: "Delhi NCR",
-    trip: "Manali Weekend Escape",
-    rating: 5,
-    text: "Honestly didn't expect this level of planning from an Indian travel company. The Trip Captain knew every hidden café and scenic stop. I've already booked Jibhi with them.",
-    date: "June 2025",
-  },
-  {
-    name: "Arjun Mehta",
-    avatar: "https://i.pravatar.cc/80?img=68",
-    location: "Mumbai",
-    trip: "Chopta & Tungnath Trek",
-    rating: 5,
-    text: "The trek was perfectly paced — not too rushed, not too slow. The campfire night at Chopta with strangers-turned-friends was the highlight of my year. Will come back for Spiti.",
-    date: "May 2025",
-  },
-  {
-    name: "Sneha Reddy",
-    avatar: "https://i.pravatar.cc/80?img=45",
-    location: "Bangalore",
-    trip: "Jibhi & Tirthan Valley",
-    rating: 5,
-    text: "Traveled solo as a woman and felt 100% safe the entire time. The wooden cottage stay was dreamy. The group bonded so well that we have a separate WhatsApp group now!",
-    date: "April 2025",
-  },
-  {
-    name: "Rohan Kapoor",
-    avatar: "https://i.pravatar.cc/80?img=12",
-    location: "Chandigarh",
-    trip: "McLeod Ganj & Bir Billing",
-    rating: 5,
-    text: "The paragliding at Bir was unreal. But what made this trip special was the tempo traveller ride — music, chai stops, and views you can't get on a flight. Premium experience at fair pricing.",
-    date: "March 2025",
-  },
-  {
-    name: "Ananya Gupta",
-    avatar: "https://i.pravatar.cc/80?img=32",
-    location: "Jaipur",
-    trip: "Udaipur Heritage Ride",
-    rating: 5,
-    text: "The haveli stay was gorgeous. Our Trip Captain took us to a local pottery village that isn't on Google Maps. This is what authentic travel looks like. Highly recommend Nomadik.",
-    date: "February 2025",
-  },
-  {
-    name: "Vikram Singh",
-    avatar: "https://i.pravatar.cc/80?img=60",
-    location: "Pune",
-    trip: "Manali Weekend Escape",
-    rating: 4,
-    text: "Great vibes, amazing group. Only suggestion — the Manali old town walk could have been longer. Everything else was top notch. Already eyeing the Chopta trek next.",
-    date: "January 2025",
-  },
-];
+import { useQuery } from '@tanstack/react-query'
+import { motion } from 'motion/react'
+import { Reveal } from './Reveal'
+import { Star, Quote, MapPin, Loader2 } from 'lucide-react'
+import { getApprovedReviews } from '@/lib/queries/cms'
+import type { ApprovedReview } from '@/lib/queries/cms'
 
 function StarRating({ rating }: { rating: number }) {
   return (
@@ -74,14 +11,65 @@ function StarRating({ rating }: { rating: number }) {
       {Array.from({ length: 5 }).map((_, i) => (
         <Star
           key={i}
-          className={`h-3.5 w-3.5 ${i < rating ? "fill-gold text-gold" : "text-border"}`}
+          className={`h-3.5 w-3.5 ${i < rating ? 'fill-gold text-gold' : 'text-border'}`}
         />
       ))}
     </div>
-  );
+  )
+}
+
+function ReviewSkeleton() {
+  return (
+    <div className="h-full rounded-3xl bg-white border border-border p-7 animate-pulse">
+      <div className="h-6 w-6 bg-muted rounded mb-3" />
+      <div className="space-y-2 flex-1">
+        <div className="h-3 bg-muted rounded w-full" />
+        <div className="h-3 bg-muted rounded w-5/6" />
+        <div className="h-3 bg-muted rounded w-4/6" />
+      </div>
+      <div className="mt-4 mb-4">
+        <div className="h-6 bg-muted rounded-full w-32" />
+      </div>
+      <div className="flex items-center gap-3 border-t border-border pt-4">
+        <div className="h-10 w-10 rounded-full bg-muted" />
+        <div className="space-y-1.5">
+          <div className="h-3 bg-muted rounded w-24" />
+          <div className="h-2.5 bg-muted rounded w-32" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Fallback avatar — initials based
+function Avatar({ name }: { name: string }) {
+  const initials = name
+    .split(' ')
+    .slice(0, 2)
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase()
+
+  const colors = [
+    'bg-blue-500', 'bg-purple-500', 'bg-emerald-500',
+    'bg-amber-500', 'bg-rose-500', 'bg-indigo-500',
+  ]
+  const color = colors[name.charCodeAt(0) % colors.length]
+
+  return (
+    <div className={`h-10 w-10 rounded-full ${color} flex items-center justify-center border-2 border-gold/20 flex-shrink-0`}>
+      <span className="text-white text-xs font-bold">{initials}</span>
+    </div>
+  )
 }
 
 export function Testimonials() {
+  const { data: reviews = [], isLoading } = useQuery({
+    queryKey: ['reviews', 'approved'],
+    queryFn: () => getApprovedReviews(6),
+    staleTime: 1000,
+  })
+
   return (
     <section id="testimonials" className="py-24 bg-muted/30">
       <div className="mx-auto max-w-7xl px-5">
@@ -109,44 +97,63 @@ export function Testimonials() {
           </div>
         </Reveal>
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {reviews.map((r, i) => (
-            <Reveal key={r.name} delay={i}>
-              <article className="group h-full rounded-3xl bg-white border border-border p-7 shadow-soft hover:border-gold/30 hover:shadow-gold/10 transition-all duration-300 flex flex-col">
-                {/* Quote icon */}
-                <Quote className="h-6 w-6 text-gold/30 mb-3 shrink-0" />
+        {isLoading ? (
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, i) => <ReviewSkeleton key={i} />)}
+          </div>
+        ) : reviews.length === 0 ? (
+          <div className="text-center py-16 text-muted-foreground">
+            <Star className="h-8 w-8 mx-auto mb-3 text-border" />
+            <p className="text-sm">Reviews will appear here once approved by admin.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {reviews.map((r, i) => (
+              <Reveal key={r.id} delay={i}>
+                <article className="group h-full rounded-3xl bg-white border border-border p-7 shadow-soft hover:border-gold/30 hover:shadow-gold/10 transition-all duration-300 flex flex-col">
+                  {/* Quote icon */}
+                  <Quote className="h-6 w-6 text-gold/30 mb-3 shrink-0" />
 
-                {/* Review text */}
-                <p className="text-sm text-foreground/80 leading-relaxed font-sans flex-1">
-                  "{r.text}"
-                </p>
+                  {/* Review text */}
+                  <p className="text-sm text-foreground/80 leading-relaxed font-sans flex-1">
+                    "{r.content}"
+                  </p>
 
-                {/* Trip tag */}
-                <div className="mt-4 mb-4">
-                  <span className="inline-flex items-center gap-1 rounded-full bg-accent/10 px-3 py-1 text-[10px] font-poppins font-semibold text-accent">
-                    <MapPin className="h-3 w-3" />
-                    {r.trip}
-                  </span>
-                </div>
+                  {/* Trip tag */}
+                  {r.journeys?.name && (
+                    <div className="mt-4 mb-4">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-accent/10 px-3 py-1 text-[10px] font-poppins font-semibold text-accent">
+                        <MapPin className="h-3 w-3" />
+                        {r.journeys.name}
+                      </span>
+                    </div>
+                  )}
 
-                {/* Reviewer info */}
-                <div className="flex items-center gap-3 border-t border-border pt-4">
-                  <img
-                    src={r.avatar}
-                    alt={r.name}
-                    className="h-10 w-10 rounded-full object-cover border-2 border-gold/20"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-primary truncate">{r.name}</p>
-                    <p className="text-[10px] text-muted-foreground">{r.location} · {r.date}</p>
+                  {/* Reviewer info */}
+                  <div className="flex items-center gap-3 border-t border-border pt-4 mt-auto">
+                    <Avatar name={r.author_name} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-primary truncate flex items-center gap-1.5">
+                        {r.author_name}
+                        {r.is_verified && (
+                          <span className="text-[9px] bg-emerald-100 text-emerald-700 rounded-full px-1.5 py-0.5 font-semibold">
+                            Verified
+                          </span>
+                        )}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {r.trip_date && `${r.trip_date} · `}
+                        <StarRating rating={r.rating} />
+                      </p>
+                    </div>
+                    <StarRating rating={r.rating} />
                   </div>
-                  <StarRating rating={r.rating} />
-                </div>
-              </article>
-            </Reveal>
-          ))}
-        </div>
+                </article>
+              </Reveal>
+            ))}
+          </div>
+        )}
       </div>
     </section>
-  );
+  )
 }

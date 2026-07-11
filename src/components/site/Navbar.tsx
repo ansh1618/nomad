@@ -6,7 +6,10 @@ import { triggerNomadikPlanner } from "./TripPlannerDialog";
 import { triggerNomadikAuth } from "./AuthModal";
 import { useAuth } from "./AuthContext";
 import { cn } from "@/lib/utils";
-import logoImg from "@/assets/logo.jpg";
+import logoFallback from "@/assets/logo.jpg";
+import { useQuery } from "@tanstack/react-query";
+import { getSiteSettings, getNavItems } from "@/lib/queries/cms";
+import { BRAND } from "@/config/brand";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -15,19 +18,36 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 
-const navLinks = [
-  { label: "Destinations", href: "/#destinations", isAnchor: true },
-  { label: "Journeys", href: "/#packages", isAnchor: true },
-  { label: "Stories", href: "/stories", isAnchor: false },
-  { label: "About", href: "/about", isAnchor: false },
-  { label: "Contact", href: "/contact", isAnchor: false },
-];
-
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
+
+  // 1. Fetch site settings
+  const { data: settings } = useQuery({
+    queryKey: ["site_settings"],
+    queryFn: getSiteSettings,
+    staleTime: 1000,
+  });
+
+  // 2. Fetch custom nav items from DB
+  const { data: dbNavLinks = [] } = useQuery({
+    queryKey: ["nav_items"],
+    queryFn: getNavItems,
+    staleTime: 1000,
+  });
+
+  // Default hardcoded links if DB is empty
+  const defaultNavLinks = [
+    { label: "Destinations", href: "/#destinations", is_external: false },
+    { label: "Journeys", href: "/#packages", is_external: false },
+    { label: "Stories", href: "/stories", is_external: false },
+    { label: "About", href: "/about", is_external: false },
+    { label: "Contact", href: "/contact", is_external: false },
+  ];
+
+  const activeLinks = dbNavLinks.length > 0 ? dbNavLinks : defaultNavLinks;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -41,6 +61,10 @@ export function Navbar() {
     return profile.full_name.trim().split(" ")[0];
   };
 
+  const logoUrl = settings?.logo_url || logoFallback;
+  const companyName = settings?.company_name || BRAND.name;
+  const companyFullName = settings?.company_tagline || BRAND.fullName;
+
   return (
     <header
       className={cn(
@@ -52,7 +76,7 @@ export function Navbar() {
         {/* Brand Logo Lockup */}
         <Link to="/" className="flex items-center gap-3 group">
           <div className="relative h-12 w-12 overflow-hidden rounded-xl border border-white/20 shadow-soft transition-transform duration-300 group-hover:scale-105">
-            <img src={logoImg} alt="Nomadik Logo Mark" className="h-full w-full object-cover" />
+            <img src={logoUrl} alt="Nomadik Logo Mark" className="h-full w-full object-cover" />
           </div>
           <div className="flex flex-col text-left">
             <span
@@ -61,31 +85,37 @@ export function Navbar() {
                 scrolled ? "text-primary" : "text-white",
               )}
             >
-              Nomadik
+              {companyName}
             </span>
             <span className="text-[9px] font-sans font-bold tracking-widest uppercase leading-none mt-1.5 text-accent">
-              The Nomadik Traveller
+              {companyFullName}
             </span>
           </div>
         </Link>
 
         {/* Desktop Links */}
         <ul className="hidden items-center gap-8 lg:flex">
-          {navLinks.map((l) => (
-            <li key={l.label}>
-              {l.isAnchor ? (
-                <a
-                  href={l.href}
-                  className={cn(
-                    "relative text-xs font-poppins font-semibold uppercase tracking-wider transition-colors after:absolute after:-bottom-1.5 after:left-0 after:h-0.5 after:w-0 after:bg-gold after:transition-all hover:after:w-full",
-                    scrolled ? "text-foreground/80 hover:text-primary" : "text-white/90 hover:text-white",
-                  )}
-                >
-                  {l.label}
-                </a>
-              ) : (
+          {activeLinks.map((l, i) => {
+            const isAnchor = l.href.startsWith("/#") || l.href.startsWith("#");
+            if (isAnchor || l.is_external) {
+              return (
+                <li key={i}>
+                  <a
+                    href={l.href}
+                    className={cn(
+                      "relative text-xs font-poppins font-semibold uppercase tracking-wider transition-colors after:absolute after:-bottom-1.5 after:left-0 after:h-0.5 after:w-0 after:bg-gold after:transition-all hover:after:w-full",
+                      scrolled ? "text-foreground/80 hover:text-primary" : "text-white/90 hover:text-white",
+                    )}
+                  >
+                    {l.label}
+                  </a>
+                </li>
+              );
+            }
+            return (
+              <li key={i}>
                 <Link
-                  to={l.href}
+                  to={l.href as any}
                   className={cn(
                     "relative text-xs font-poppins font-semibold uppercase tracking-wider transition-colors after:absolute after:-bottom-1.5 after:left-0 after:h-0.5 after:w-0 after:bg-gold after:transition-all hover:after:w-full",
                     scrolled ? "text-foreground/80 hover:text-primary" : "text-white/90 hover:text-white",
@@ -93,9 +123,9 @@ export function Navbar() {
                 >
                   {l.label}
                 </Link>
-              )}
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ul>
 
         {/* Action CTAs */}
@@ -160,8 +190,8 @@ export function Navbar() {
             </>
           )}
 
-          <Button variant={scrolled ? "default" : "hero"} size="lg" onClick={() => triggerNomadikPlanner()}>
-            Get Free Quote
+          <Button variant={scrolled ? "default" : "hero"} size="lg" asChild>
+            <Link to="/destinations">Book Now</Link>
           </Button>
         </div>
 
@@ -182,27 +212,33 @@ export function Navbar() {
       {open && (
         <div className="glass mx-4 mt-3 animate-scale-in rounded-2xl p-5 shadow-elegant lg:hidden">
           <ul className="flex flex-col gap-1">
-            {navLinks.map((l) => (
-              <li key={l.label}>
-                {l.isAnchor ? (
-                  <a
-                    href={l.href}
-                    onClick={() => setOpen(false)}
-                    className="block rounded-lg px-3 py-2.5 text-xs font-poppins font-semibold uppercase tracking-wider text-foreground/80 hover:bg-secondary/10 hover:text-primary"
-                  >
-                    {l.label}
-                  </a>
-                ) : (
+            {activeLinks.map((l, i) => {
+              const isAnchor = l.href.startsWith("/#") || l.href.startsWith("#");
+              if (isAnchor || l.is_external) {
+                return (
+                  <li key={i}>
+                    <a
+                      href={l.href}
+                      onClick={() => setOpen(false)}
+                      className="block rounded-lg px-3 py-2.5 text-xs font-poppins font-semibold uppercase tracking-wider text-foreground/80 hover:bg-secondary/10 hover:text-primary"
+                    >
+                      {l.label}
+                    </a>
+                  </li>
+                );
+              }
+              return (
+                <li key={i}>
                   <Link
-                    to={l.href}
+                    to={l.href as any}
                     onClick={() => setOpen(false)}
                     className="block rounded-lg px-3 py-2.5 text-xs font-poppins font-semibold uppercase tracking-wider text-foreground/80 hover:bg-secondary/10 hover:text-primary"
                   >
                     {l.label}
                   </Link>
-                )}
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
           
           <div className="flex flex-col gap-3.5 mt-4 border-t border-border/40 pt-4">
@@ -236,8 +272,8 @@ export function Navbar() {
                 </Button>
               </div>
             )}
-            <Button variant="hero" className="w-full" onClick={() => { setOpen(false); triggerNomadikPlanner(); }}>
-              Get Free Quote
+            <Button variant="hero" className="w-full" asChild onClick={() => setOpen(false)}>
+              <Link to="/destinations">Book Now</Link>
             </Button>
           </div>
         </div>
@@ -245,3 +281,4 @@ export function Navbar() {
     </header>
   );
 }
+

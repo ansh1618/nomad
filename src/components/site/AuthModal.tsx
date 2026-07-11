@@ -158,7 +158,7 @@ export function AuthModal() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="max-w-md bg-background border border-border overflow-hidden p-0 rounded-2xl shadow-elegant glass">
+      <DialogContent className="max-w-md bg-background border border-border overflow-hidden p-0 rounded-2xl shadow-elegant glass flex flex-col max-h-[95vh]">
         <div className="bg-ocean py-6 px-6 text-white relative">
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl pointer-events-none" />
           <DialogHeader>
@@ -168,14 +168,14 @@ export function AuthModal() {
               {mode === "forgot" && "Reset Password"}
             </DialogTitle>
             <DialogDescription className="text-white/80 font-sans text-xs mt-1">
-              {mode === "login" && "Access your personalized Nomadik travels & conyoy statistics."}
+              {mode === "login" && "Access your personalized Nomadik travels & convoy statistics."}
               {mode === "signup" && "Join the premium tribe of road-trip and group travel explorers."}
               {mode === "forgot" && "Provide your email to receive a password reset link."}
             </DialogDescription>
           </DialogHeader>
         </div>
 
-        <div className="p-6 space-y-4">
+        <div className="p-6 space-y-4 overflow-y-auto flex-1">
           {mode === "login" && (
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-1.5">

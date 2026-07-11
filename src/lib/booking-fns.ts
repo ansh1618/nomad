@@ -9,7 +9,7 @@ import { z } from "zod";
 const lockInventorySchema = z.object({
   departureId: z.string().uuid(),
   inventoryIds: z.array(z.string().uuid()),
-  userId: z.string().uuid(),
+  userId: z.string().uuid().nullable().optional(),
 });
 
 export const lockInventoryFn = createServerFn({ method: "POST" })
@@ -23,7 +23,7 @@ export const lockInventoryFn = createServerFn({ method: "POST" })
     const { error } = await supabase.rpc("lock_inventory", {
       p_departure_id: departureId,
       p_inventory_ids: inventoryIds,
-      p_user_id: userId,
+      p_user_id: userId || null,
     });
 
     if (error) {
@@ -45,7 +45,7 @@ export const lockInventoryFn = createServerFn({ method: "POST" })
         .from("departure_inventory")
         .update({
           status: "LOCKED",
-          locked_by: userId,
+          locked_by: userId || null,
           locked_at: new Date().toISOString(),
           locked_until: lockedUntil,
         })
@@ -65,7 +65,7 @@ export const lockInventoryFn = createServerFn({ method: "POST" })
 // ==========================================
 
 const createBookingSchema = z.object({
-  userId: z.string().uuid(),
+  userId: z.string().uuid().nullable().optional(),
   departureId: z.string().uuid(),
   travellers: z.array(z.any()),
   baseAmount: z.number(),
@@ -84,7 +84,7 @@ export const createBookingFn = createServerFn({ method: "POST" })
     const { data: booking, error: bookingError } = await supabase
       .from("bookings")
       .insert({
-        user_id: data.userId,
+        user_id: data.userId || null,
         departure_id: data.departureId,
         status: "PAYMENT_PENDING",
         traveller_count: data.travellers.length,
@@ -178,7 +178,7 @@ const verifyPaymentSchema = z.object({
   paymentId: z.string(),
   orderId: z.string(),
   signature: z.string(),
-  userId: z.string(),
+  userId: z.string().uuid().nullable().optional(),
 });
 
 export const verifyRazorpayPaymentFn = createServerFn({ method: "POST" })
@@ -186,7 +186,7 @@ export const verifyRazorpayPaymentFn = createServerFn({ method: "POST" })
     verifyPaymentSchema.parse(data)
   )
   .handler(async ({ data }) => {
-    const { bookingId, paymentId, signature, userId } = data;
+    const { bookingId, paymentId, signature } = data;
 
     // Production signature verification — uncomment once Razorpay keys are set:
     // const crypto = await import("crypto");
@@ -205,11 +205,22 @@ export const verifyRazorpayPaymentFn = createServerFn({ method: "POST" })
 
     if (bookingErr) throw new Error("Failed to confirm booking.");
 
-    await supabase
-      .from("departure_inventory")
-      .update({ status: "BOOKED", booking_id: bookingId })
-      .eq("locked_by", userId)
-      .eq("status", "LOCKED");
+    // Update assigned inventory directly by matching traveler assignments
+    const { data: travellers } = await supabase
+      .from("booking_travellers")
+      .select("assigned_seat_id, assigned_room_id")
+      .eq("booking_id", bookingId);
+
+    const inventoryIds = (travellers ?? [])
+      .map((t: any) => t.assigned_seat_id || t.assigned_room_id)
+      .filter(Boolean);
+
+    if (inventoryIds.length > 0) {
+      await supabase
+        .from("departure_inventory")
+        .update({ status: "BOOKED", booking_id: bookingId })
+        .in("id", inventoryIds);
+    }
 
     await supabase
       .from("payments")

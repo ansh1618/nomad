@@ -38,6 +38,13 @@ import {
   Activity,
   LogOut,
   Mountain,
+  UserCog,
+  Receipt,
+  Wallet,
+  Shield,
+  TrendingDown,
+  Globe,
+  Megaphone,
 } from "lucide-react";
 
 const NAV_SECTIONS = [
@@ -45,6 +52,8 @@ const NAV_SECTIONS = [
     label: "Overview",
     items: [
       { title: "Dashboard", href: "/admin", icon: LayoutDashboard },
+      { title: "Live Trips (Ops)", href: "/admin/live-trips", icon: ClipboardList },
+      { title: "Trip Calendar", href: "/admin/trip-calendar", icon: CalendarDays },
     ],
   },
   {
@@ -53,6 +62,15 @@ const NAV_SECTIONS = [
       { title: "Destinations", href: "/admin/destinations", icon: MapPin },
       { title: "Packages", href: "/admin/packages", icon: Package },
       { title: "Departures", href: "/admin/departures", icon: CalendarDays },
+    ],
+  },
+  {
+    label: "Website Builder",
+    items: [
+      { title: "Website Builder", href: "/admin/website", icon: Globe },
+      { title: "FAQ Builder", href: "/admin/website/faqs", icon: MessageSquare },
+      { title: "Announcement Bar", href: "/admin/website/announcement", icon: Megaphone },
+      { title: "SEO Manager", href: "/admin/website/seo", icon: Settings },
     ],
   },
   {
@@ -73,9 +91,23 @@ const NAV_SECTIONS = [
     ],
   },
   {
+    label: "Finance",
+    items: [
+      { title: "Payments", href: "/admin/payments", icon: CreditCard },
+      { title: "Invoices", href: "/admin/invoices", icon: Receipt },
+      { title: "Expenses", href: "/admin/expenses", icon: TrendingDown },
+      { title: "Coupons", href: "/admin/coupons", icon: TicketPercent },
+    ],
+  },
+  {
+    label: "People",
+    items: [
+      { title: "Employees", href: "/admin/employees", icon: UserCog },
+    ],
+  },
+  {
     label: "Marketing",
     items: [
-      { title: "Coupons", href: "/admin/coupons", icon: TicketPercent },
       { title: "Reviews", href: "/admin/reviews", icon: Star },
       { title: "Blog", href: "/admin/blog", icon: FileText },
       { title: "Banners", href: "/admin/banners", icon: PanelTop },
@@ -87,9 +119,9 @@ const NAV_SECTIONS = [
     items: [
       { title: "Media Library", href: "/admin/media", icon: Image },
       { title: "Analytics", href: "/admin/analytics", icon: BarChart3 },
-      { title: "Payments", href: "/admin/payments", icon: CreditCard },
       { title: "Activity Log", href: "/admin/activity", icon: Activity },
       { title: "Settings", href: "/admin/settings", icon: Settings },
+      { title: "Super Admin", href: "/admin/super-admin", icon: Shield },
     ],
   },
 ];

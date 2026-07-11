@@ -111,7 +111,7 @@ export function TripPlannerDialog() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="max-w-xl bg-background border border-border overflow-hidden p-0 rounded-2xl">
+      <DialogContent className="max-w-xl bg-background border border-border overflow-hidden p-0 rounded-2xl max-h-[95vh] flex flex-col">
         <div className="bg-ocean py-8 px-6 text-white relative">
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl pointer-events-none" />
           <DialogHeader>
@@ -154,7 +154,7 @@ export function TripPlannerDialog() {
           </button>
         </div>
 
-        <div className="p-6">
+        <div className="p-6 overflow-y-auto flex-1">
           {submitted ? (
             <div className="flex flex-col items-center justify-center py-10 text-center animate-fade-in">
               <CheckCircle2 className="h-16 w-16 text-secondary animate-bounce" />
