@@ -11,6 +11,7 @@ import {
   Loader2,
   Mountain,
   ShieldCheck,
+  CheckCircle2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -18,9 +19,10 @@ import { Calendar } from '@/components/ui/calendar'
 import { getPackageBySlug, getRelatedPackages } from '@/lib/queries/packages'
 import { getUpcomingDepartures } from '@/lib/queries/departures'
 import { getApprovedReviews } from '@/lib/queries/admin'
-import { supabase } from '@/lib/supabase'
 import type { Departure, ItineraryDay } from '@/types/supabase'
 import { toast } from 'sonner'
+import { validateCoupon } from '@/lib/booking-api'
+import { createGuestBookingFn } from '@/lib/booking-fns'
 
 interface JourneyDetailTemplateProps {
   slug: string
@@ -49,7 +51,9 @@ export function JourneyDetailTemplate({ slug }: JourneyDetailTemplateProps) {
   const [age, setAge] = useState('')
   const [gender, setGender] = useState('')
   const [guardianNumber, setGuardianNumber] = useState('')
+  const [aadharFile, setAadharFile] = useState<File | null>(null)
   const [aadharFileName, setAadharFileName] = useState('')
+  const [profileFile, setProfileFile] = useState<File | null>(null)
   const [profileFileName, setProfileFileName] = useState('')
   const [referredBy, setReferredBy] = useState('')
   const [howHeard, setHowHeard] = useState('')
@@ -62,6 +66,9 @@ export function JourneyDetailTemplate({ slug }: JourneyDetailTemplateProps) {
   // Step 4 final package choices & coupon
   const [sharingType, setSharingType] = useState<'double' | 'triple' | 'quad'>('quad')
   const [paymentSchedule, setPaymentSchedule] = useState<'full' | 'slot'>('full')
+  // Coupon applied state
+  const [appliedCouponId, setAppliedCouponId] = useState<string | null>(null)
+  const [couponValidating, setCouponValidating] = useState(false)
   const [couponCode, setCouponCode] = useState('')
   const [couponApplied, setCouponApplied] = useState(false)
   const [discountAmount, setDiscountAmount] = useState(0)
@@ -74,6 +81,11 @@ export function JourneyDetailTemplate({ slug }: JourneyDetailTemplateProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [bookingSuccess, setBookingSuccess] = useState(false)
   const [successBookingId, setSuccessBookingId] = useState('')
+
+  // Payment initiation state
+  const [paymentSessionId, setPaymentSessionId] = useState('')
+  const [pendingBookingId, setPendingBookingId] = useState('')
+  const [pendingBookingRef, setPendingBookingRef] = useState('')
 
   const { data: journey, isLoading } = useQuery({
     queryKey: ['package', slug],
@@ -201,6 +213,8 @@ export function JourneyDetailTemplate({ slug }: JourneyDetailTemplateProps) {
     if (!address.trim()) errors.address = 'Address is required'
     if (!age.trim() || isNaN(Number(age)) || Number(age) <= 0) errors.age = 'Valid Age is required'
     if (!gender) errors.gender = 'Gender selection is required'
+    if (!aadharFile) errors.aadhar = 'Aadhar Card Photo is required'
+    if (!profileFile) errors.profile = 'Profile Photo is required'
 
     if (Object.keys(errors).length > 0) {
       setStep2Errors(errors)
@@ -211,13 +225,27 @@ export function JourneyDetailTemplate({ slug }: JourneyDetailTemplateProps) {
     setBookingStep(3)
   }
 
-  const handleApplyCoupon = () => {
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return
+    setCouponValidating(true)
     setCouponError('')
-    if (couponCode.toUpperCase() === 'NOMAD20' || couponCode.toUpperCase() === 'WANDER') {
-      setDiscountAmount(500)
-      setCouponApplied(true)
-    } else {
-      setCouponError('Invalid coupon code')
+    try {
+      const result = await validateCoupon(couponCode, priceBeforeDiscount)
+      if (result.valid) {
+        setDiscountAmount(result.discountAmount)
+        setCouponApplied(true)
+        setAppliedCouponId(result.couponId ?? null)
+        toast.success(result.message)
+      } else {
+        setCouponError(result.message)
+        setCouponApplied(false)
+        setDiscountAmount(0)
+        setAppliedCouponId(null)
+      }
+    } catch {
+      setCouponError('Failed to validate coupon. Please try again.')
+    } finally {
+      setCouponValidating(false)
     }
   }
 
@@ -228,58 +256,111 @@ export function JourneyDetailTemplate({ slug }: JourneyDetailTemplateProps) {
     }
     setTermsError(false)
     setIsSubmitting(true)
+
     try {
-      // Create random booking ID
-      const bookingRef = 'NM-' + Math.floor(100000 + Math.random() * 900000)
+      // 1. Upload traveler documents to Supabase Storage
+      let aadharUrl: string | null = null
+      let profileUrl: string | null = null
 
-      // Insert booking record into Supabase
-      const { data: newBooking, error: bookingErr } = await supabase
-        .from('bookings')
-        .insert({
-          booking_id: bookingRef,
-          journey_id: journey!.id,
-          departure_id: selectedDeparture?.id || null,
-          status: paymentSchedule === 'full' ? 'CONFIRMED' : 'CREATED',
-          booking_status: 'Confirmed',
-          payment_status: paymentSchedule === 'full' ? 'Successful' : 'Pending',
-          total_amount: finalPrice,
-          amount_paid: payableNow,
-          discount_amount: discountAmount,
-          customer_name: fullName,
-          email: email,
-          phone: phone,
-          travel_date: selectedDeparture?.departure_date || null,
-          travellers_count: 1,
-          amount: basePrice,
-        })
-        .select('id')
-        .single()
+      if (aadharFile && profileFile) {
+        const { uploadTravelerDocuments } = await import('@/lib/storage-fns')
+        const uploadRes = await uploadTravelerDocuments(aadharFile, profileFile, `temp-${Date.now()}`)
+        aadharUrl = uploadRes.aadharUrl
+        profileUrl = uploadRes.profileUrl
+      }
 
-      if (bookingErr || !newBooking) throw bookingErr || new Error("Failed to insert booking")
+      // 2. Submit booking securely via server-side function
+      const response = await createGuestBookingFn({
+        data: {
+          fullName,
+          email: email || '',
+          phone,
+          isWhatsapp,
+          address: address || undefined,
+          age: age || undefined,
+          gender: gender || 'MALE',
+          guardianNumber: guardianNumber || undefined,
+          aadharUrl: aadharUrl ?? undefined,
+          profileUrl: profileUrl ?? undefined,
+          referredBy: referredBy || undefined,
+          howHeard: howHeard || undefined,
+          sharingType,
+          seatPreference: seatPreference !== 'none' ? seatPreference : 'NONE',
+          paymentSchedule,
+          couponId: appliedCouponId ?? undefined,
+          discountAmount,
+          priceBeforeDiscount,
+          departureId: selectedDeparture?.id ?? undefined,
+          journeyId: journey?.id ?? undefined,
+          specialRequests: specialRequests || undefined,
+        }
+      })
 
-      // Insert traveller details
-      const { error: travellerErr } = await supabase
-        .from('booking_travellers')
-        .insert({
-          booking_id: newBooking.id,
-          full_name: fullName,
-          phone: phone,
-          gender: (gender || 'MALE').toUpperCase(),
-          age: Number(age),
-          room_sharing: (sharingType || 'TRIPLE').toUpperCase(),
-          seat_number: (seatPreference || 'WINDOW').toUpperCase(),
-        })
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to create booking on the server.')
+      }
 
-      if (travellerErr) throw travellerErr
+      setPendingBookingId(response.bookingId)
+      setPendingBookingRef(response.bookingRef)
+      setPaymentSessionId(response.paymentSessionId)
+      setBookingStep(5) // Show payment / verification screen
 
-      setSuccessBookingId(bookingRef)
-      setBookingSuccess(true)
-      setBookingStep(5)
+      // 3. Load Cashfree SDK and open payment modal
+      await loadCashfreeAndPay(response.paymentSessionId, response.bookingRef)
+
     } catch (e: any) {
-      console.error('Failed to save booking:', e)
-      toast.error(e.message || 'Failed to save booking. Please try again.')
+      console.error('Booking failed:', e)
+      toast.error(e.message || 'Failed to create booking. Please try again.')
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  /**
+   * Dynamically load Cashfree JS SDK and open Drop-in checkout.
+   * On payment success, navigate to booking success page.
+   * Frontend does NOT update booking status — webhook does that.
+   */
+  const loadCashfreeAndPay = async (sessionId: string, bookingRef: string) => {
+    try {
+      // Load Cashfree SDK dynamically
+      if (!document.getElementById('cashfree-sdk')) {
+        await new Promise<void>((resolve, reject) => {
+          const script = document.createElement('script')
+          script.id = 'cashfree-sdk'
+          script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js'
+          script.onload = () => resolve()
+          script.onerror = () => reject(new Error('Failed to load Cashfree SDK'))
+          document.head.appendChild(script)
+        })
+      }
+
+      const cashfree = (window as any).Cashfree({
+        mode: (import.meta.env.VITE_CASHFREE_ENVIRONMENT ?? 'SANDBOX').toLowerCase() === 'production'
+          ? 'production'
+          : 'sandbox',
+      })
+
+      cashfree.checkout({
+        paymentSessionId: sessionId,
+        redirectTarget: '_modal',
+      }).then((result: any) => {
+        if (result.error) {
+          toast.error('Payment failed: ' + result.error.message)
+          setIsSubmitting(false)
+          setBookingStep(4) // Go back to review step
+        } else if (result.paymentDetails) {
+          // Payment initiated — navigate to success/verify page
+          // Webhook will confirm the booking
+          navigate({ to: '/booking/success', search: { booking_id: pendingBookingId } })
+        }
+      }).catch((err: any) => {
+        toast.error('Payment error: ' + err.message)
+        setBookingStep(4)
+      })
+    } catch (err: any) {
+      toast.error('Could not load payment gateway: ' + err.message)
+      setBookingStep(4)
     }
   }
 
@@ -734,13 +815,19 @@ export function JourneyDetailTemplate({ slug }: JourneyDetailTemplateProps) {
                       <label className="text-[9px] font-poppins font-bold uppercase tracking-wider text-muted-foreground block">
                         Aadhar Card Photo *
                       </label>
-                      <div className="flex items-center gap-2 border border-[#E4E2DA] rounded-lg p-2 bg-[#F8F7F3]/30">
+                      <div className={`flex items-center gap-2 border rounded-lg p-2 bg-[#F8F7F3]/30 ${step2Errors.aadhar ? 'border-[#E53E3E]' : 'border-[#E4E2DA]'}`}>
                         <label className="bg-white border border-[#E4E2DA] rounded px-3 py-1.5 text-[10px] font-semibold font-poppins cursor-pointer shrink-0 hover:bg-[#F8F7F3]">
                           Choose File
                           <input
                             type="file"
                             accept="image/*,.pdf"
-                            onChange={(e) => setAadharFileName(e.target.files?.[0]?.name || '')}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0]
+                              if (file) {
+                                setAadharFile(file)
+                                setAadharFileName(file.name)
+                              }
+                            }}
                             className="hidden"
                           />
                         </label>
@@ -748,19 +835,26 @@ export function JourneyDetailTemplate({ slug }: JourneyDetailTemplateProps) {
                           {aadharFileName || 'No file chosen'}
                         </span>
                       </div>
+                      {step2Errors.aadhar && <p className="text-[10px] text-[#E53E3E] font-poppins">{step2Errors.aadhar}</p>}
                     </div>
 
                     <div className="space-y-1">
                       <label className="text-[9px] font-poppins font-bold uppercase tracking-wider text-muted-foreground block">
                         Profile Photo *
                       </label>
-                      <div className="flex items-center gap-2 border border-[#E4E2DA] rounded-lg p-2 bg-[#F8F7F3]/30">
+                      <div className={`flex items-center gap-2 border rounded-lg p-2 bg-[#F8F7F3]/30 ${step2Errors.profile ? 'border-[#E53E3E]' : 'border-[#E4E2DA]'}`}>
                         <label className="bg-white border border-[#E4E2DA] rounded px-3 py-1.5 text-[10px] font-semibold font-poppins cursor-pointer shrink-0 hover:bg-[#F8F7F3]">
                           Choose File
                           <input
                             type="file"
                             accept="image/*"
-                            onChange={(e) => setProfileFileName(e.target.files?.[0]?.name || '')}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0]
+                              if (file) {
+                                setProfileFile(file)
+                                setProfileFileName(file.name)
+                              }
+                            }}
                             className="hidden"
                           />
                         </label>
@@ -768,6 +862,7 @@ export function JourneyDetailTemplate({ slug }: JourneyDetailTemplateProps) {
                           {profileFileName || 'No file chosen'}
                         </span>
                       </div>
+                      {step2Errors.profile && <p className="text-[10px] text-[#E53E3E] font-poppins">{step2Errors.profile}</p>}
                       <p className="text-[8px] text-muted-foreground font-poppins leading-tight">A clear photo of the traveller (Max 2MB)</p>
                     </div>
                   </div>
@@ -1012,9 +1107,21 @@ export function JourneyDetailTemplate({ slug }: JourneyDetailTemplateProps) {
                   {/* BILLING DISPLAY BOX */}
                   <div className="border border-[#E4E2DA] rounded-xl p-4 space-y-3 bg-white">
                     <div className="flex justify-between items-center text-xs font-poppins text-muted-foreground">
-                      <span>Base Amount (1 traveler)</span>
-                      <span className="font-semibold text-primary">₹{priceBeforeDiscount.toLocaleString('en-IN')}</span>
+                      <span>Base Package ({sharingType.toUpperCase()} Sharing)</span>
+                      <span className="font-medium text-slate-700">₹{sharingPrice.toLocaleString('en-IN')}</span>
                     </div>
+                    {transportType === 'sleeper' && (
+                      <div className="flex justify-between items-center text-xs font-poppins text-muted-foreground">
+                        <span>Luxury Volvo Sleeper Add-on</span>
+                        <span className="font-medium text-slate-700">+₹1,000</span>
+                      </div>
+                    )}
+                    {couponApplied && (
+                      <div className="flex justify-between items-center text-xs font-poppins text-emerald-600 font-medium">
+                        <span>Coupon Discount</span>
+                        <span>-₹{discountAmount.toLocaleString('en-IN')}</span>
+                      </div>
+                    )}
                     <div className="border-t border-[#E4E2DA] pt-2.5 flex justify-between items-center">
                       <span className="text-xs font-bold text-primary font-poppins">Total Payable</span>
                       <span className="text-lg font-bold text-[#E53E3E] font-poppins">

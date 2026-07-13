@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { DataTable, exportToCSV } from '@/components/admin/DataTable'
 import type { ColumnDef } from '@tanstack/react-table'
 import { getBookings } from '@/lib/queries/bookings'
+import { useRealtimeBookings } from '@/hooks/use-realtime-bookings'
 import type { Booking } from '@/types/supabase'
 import {
   MoreHorizontal,
@@ -45,6 +46,7 @@ const STATUS_BADGE: Record<string, string> = {
 }
 
 type BookingWithJoins = Booking & {
+  customers?: { name: string; phone: string; email: string | null }
   users?: { full_name: string; phone: string }
   departures?: { departure_date: string; journeys?: { name: string } }
 }
@@ -57,6 +59,9 @@ function BookingsPage() {
   const [sortBy, setSortBy] = useState('created_at')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const [statusFilter, setStatusFilter] = useState('')
+
+  // Subscribe to realtime booking changes — no polling needed
+  useRealtimeBookings()
 
   const { data: result, isLoading } = useQuery({
     queryKey: ['bookings_list', page, pageSize, search, sortBy, sortDir, statusFilter],
@@ -76,15 +81,17 @@ function BookingsPage() {
     exportToCSV(
       bookings.map((b) => ({
         booking_id: b.booking_id ?? b.id,
-        customer: b.users?.full_name ?? '',
-        phone: b.users?.phone ?? '',
+        customer: b.customers?.name ?? b.users?.full_name ?? '',
+        phone: b.customers?.phone ?? b.users?.phone ?? '',
+        email: b.customers?.email ?? '',
         package: b.departures?.journeys?.name ?? '',
         departure_date: b.departures?.departure_date ?? '',
         travellers: b.traveller_count,
         total: b.total_amount,
         paid: b.amount_paid,
         balance: b.balance_due,
-        status: b.status,
+        booking_status: b.booking_status ?? b.status,
+        payment_status: b.payment_status,
         created: b.created_at,
       })),
       'bookings'
@@ -102,14 +109,20 @@ function BookingsPage() {
       ),
     },
     {
-      accessorKey: 'users.full_name',
+      accessorKey: 'customers.name',
       header: 'Customer',
-      cell: ({ row }) => (
-        <div>
-          <p className="text-sm font-medium">{row.original.users?.full_name ?? '—'}</p>
-          <p className="text-xs text-muted-foreground">{row.original.users?.phone ?? ''}</p>
-        </div>
-      ),
+      cell: ({ row }) => {
+        const name = row.original.customers?.name ?? row.original.users?.full_name ?? '—'
+        const phone = row.original.customers?.phone ?? row.original.users?.phone ?? ''
+        const email = row.original.customers?.email ?? ''
+        return (
+          <div>
+            <p className="text-sm font-semibold">{name}</p>
+            <p className="text-xs text-muted-foreground">{phone}</p>
+            {email && <p className="text-xs text-muted-foreground truncate max-w-[140px]">{email}</p>}
+          </div>
+        )
+      },
     },
     {
       accessorKey: 'departures.journeys.name',
@@ -151,13 +164,34 @@ function BookingsPage() {
       ),
     },
     {
-      accessorKey: 'status',
-      header: 'Status',
-      cell: ({ row }) => (
-        <Badge className={`${STATUS_BADGE[row.original.status] ?? 'bg-gray-100 text-gray-700'} border-0 text-xs font-semibold`}>
-          {row.original.status.replace(/_/g, ' ')}
-        </Badge>
-      ),
+      accessorKey: 'booking_status',
+      header: 'Booking',
+      cell: ({ row }) => {
+        const s = row.original.booking_status ?? row.original.status
+        return (
+          <Badge className={`${STATUS_BADGE[s] ?? 'bg-gray-100 text-gray-700'} border-0 text-xs font-semibold`}>
+            {s?.replace(/_/g, ' ')}
+          </Badge>
+        )
+      },
+    },
+    {
+      accessorKey: 'payment_status',
+      header: 'Payment',
+      cell: ({ row }) => {
+        const ps = row.original.payment_status
+        const colors: Record<string, string> = {
+          SUCCESS: 'bg-emerald-100 text-emerald-700',
+          PENDING: 'bg-amber-100 text-amber-700',
+          FAILED: 'bg-red-100 text-red-700',
+          REFUNDED: 'bg-blue-100 text-blue-700',
+        }
+        return ps ? (
+          <Badge className={`${colors[ps] ?? 'bg-gray-100 text-gray-700'} border-0 text-xs font-semibold`}>
+            {ps}
+          </Badge>
+        ) : null
+      },
     },
     {
       accessorKey: 'created_at',
@@ -199,7 +233,13 @@ function BookingsPage() {
         className="flex items-center justify-between"
       >
         <div>
-          <h1 className="text-2xl font-bold font-poppins">Bookings</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold font-poppins">Bookings</h1>
+            <span className="flex items-center gap-1 text-xs text-emerald-600 font-poppins font-semibold bg-emerald-50 px-2 py-0.5 rounded-full">
+              <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+              Live
+            </span>
+          </div>
           <p className="text-sm text-muted-foreground mt-0.5">
             {result?.total ?? 0} booking{(result?.total ?? 0) !== 1 ? 's' : ''} total
           </p>

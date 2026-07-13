@@ -73,17 +73,8 @@ async function uploadFile(
     throw new Error(`Upload failed: ${uploadError.message}`);
   }
 
-  // 4. Generate a signed URL valid for 1 year
-  const { data: signedData, error: signError } = await supabase.storage
-    .from(BUCKET)
-    .createSignedUrl(filePath, 365 * 24 * 3600);
-
-  if (signError || !signedData?.signedUrl) {
-    throw new Error(`Failed to generate signed URL: ${signError?.message}`);
-  }
-
   return {
-    url: signedData.signedUrl,
+    url: filePath,
     path: filePath,
   };
 }

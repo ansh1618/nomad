@@ -1,6 +1,6 @@
 // ==========================================
-// NOMADIK ERP — COMPLETE SUPABASE TYPES (v6)
-// Generated from schema_erp_v6.sql
+// NOMADIK ERP — COMPLETE SUPABASE TYPES (v7)
+// Updated for Production Booking System (migration_v15)
 // ==========================================
 
 export type Json =
@@ -457,14 +457,79 @@ export interface Coupon {
   updated_at: string
 }
 
+// ── Customer (CRM-ready, linked to bookings) ──────────────────
+export interface Customer {
+  id: string
+  name: string
+  email: string | null
+  phone: string
+  whatsapp: string | null
+  gender: string | null
+  date_of_birth: string | null
+  city: string | null
+  state: string | null
+  address: string | null
+  referral_source: string | null
+  total_bookings: number
+  total_spent: number
+  last_booking_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type CustomerInsert = Omit<Customer, 'id' | 'created_at' | 'updated_at' | 'total_bookings' | 'total_spent' | 'last_booking_at'>
+
+// ── Transaction (raw gateway response log) ────────────────────
+export interface Transaction {
+  id: string
+  booking_id: string
+  gateway: string
+  order_id: string | null
+  gateway_payment_id: string | null
+  amount: number
+  currency: string
+  status: string
+  gateway_response: Json | null
+  ip_address: string | null
+  created_at: string
+}
+
+// ── Booking Timeline (activity log) ──────────────────────────
+export interface BookingTimeline {
+  id: string
+  booking_id: string
+  event: string
+  description: string | null
+  actor: string
+  actor_id: string | null
+  metadata: Json | null
+  created_at: string
+}
+
+// ── Notification ──────────────────────────────────────────────
+export interface Notification {
+  id: string
+  recipient_type: string
+  recipient_id: string | null
+  title: string
+  message: string
+  type: string
+  related_booking_id: string | null
+  is_read: boolean
+  created_at: string
+}
+
 export interface Booking {
   id: string
   booking_id: string | null
-  user_id: string
+  user_id: string | null
+  customer_id: string | null
   departure_id: string
   journey_id: string | null
   coupon_id: string | null
   status: BookingState
+  booking_status: string
+  payment_status: string
   traveller_count: number
   base_amount: number
   addon_amount: number
@@ -476,10 +541,15 @@ export interface Booking {
   total_amount: number
   amount_paid: number
   balance_due: number
+  cashfree_order_id: string | null
+  cashfree_payment_id: string | null
+  transaction_id: string | null
   razorpay_order_id: string | null
   razorpay_payment_id: string | null
   razorpay_signature: string | null
   room_preference: string | null
+  room_sharing: string | null
+  seat_preference: string | null
   food_preference: string | null
   special_requests: string | null
   internal_notes: string | null
@@ -490,12 +560,14 @@ export interface Booking {
   created_at: string
   updated_at: string
   // joined
+  customers?: Partial<Customer>
   users?: Partial<SiteUser>
   departures?: Partial<Departure> & {
     journeys?: Partial<Journey>
   }
   booking_travellers?: BookingTraveller[]
   payments?: Payment[]
+  booking_timeline?: BookingTimeline[]
 }
 
 export interface BookingTraveller {
@@ -511,6 +583,12 @@ export interface BookingTraveller {
   aadhaar_number: string | null
   passport_number: string | null
   food_preference: string | null
+  seat_preference: string | null
+  room_sharing: string | null
+  address: string | null
+  guardian_number: string | null
+  heard_from: string | null
+  referred_by: string | null
   medical_conditions: string | null
   emergency_contact_name: string | null
   emergency_contact_phone: string | null

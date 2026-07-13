@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { supabase } from '@/lib/supabase'
 import { motion } from 'motion/react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -151,6 +152,28 @@ function BookingDetailPage() {
   })
 
   const b = booking as FullBooking | null
+
+  const handleViewDocument = async (path: string) => {
+    try {
+      if (path.startsWith('http://') || path.startsWith('https://')) {
+        window.open(path, '_blank', 'noreferrer')
+        return
+      }
+      
+      const { data, error } = await supabase.storage
+        .from('traveler_documents')
+        .createSignedUrl(path, 300)
+        
+      if (error || !data?.signedUrl) {
+        throw error || new Error('Failed to generate signed URL')
+      }
+      
+      window.open(data.signedUrl, '_blank', 'noreferrer')
+    } catch (err: any) {
+      console.error('Error opening document:', err)
+      toast.error('Failed to open document: ' + err.message)
+    }
+  }
 
   // Initialize Edit Form when details modal opens
   useEffect(() => {
@@ -481,6 +504,16 @@ function BookingDetailPage() {
                       {traveller.room_sharing && <span>Sharing: {traveller.room_sharing}</span>}
                       {traveller.seat_number && <span>Seat: {traveller.seat_number}</span>}
                       {traveller.food_preference && <span>Food: {traveller.food_preference}</span>}
+                      {traveller.aadhaar_doc_url && (
+                        <span className="flex items-center gap-1">
+                          Aadhar: <button type="button" onClick={() => handleViewDocument(traveller.aadhaar_doc_url!)} className="text-primary hover:underline font-semibold inline-flex items-center gap-0.5">View Doc <span className="text-[10px]">↗</span></button>
+                        </span>
+                      )}
+                      {traveller.photo_url && (
+                        <span className="flex items-center gap-1">
+                          Photo: <button type="button" onClick={() => handleViewDocument(traveller.photo_url!)} className="text-primary hover:underline font-semibold inline-flex items-center gap-0.5">View Photo <span className="text-[10px]">↗</span></button>
+                        </span>
+                      )}
                     </div>
                   </div>
                   <Button
@@ -911,6 +944,40 @@ function BookingDetailPage() {
                   placeholder="Veg / Non-Veg / Special requirements"
                   className="mt-1.5"
                 />
+              </div>
+
+              <div className="pt-3 border-t space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Traveler Documents</Label>
+                <div className="grid grid-cols-2 gap-4 text-xs">
+                  <div>
+                    <span className="block font-medium text-slate-500">Aadhar Card:</span>
+                    {selectedTraveler?.aadhaar_doc_url ? (
+                      <button
+                        type="button"
+                        onClick={() => handleViewDocument(selectedTraveler.aadhaar_doc_url!)}
+                        className="text-primary hover:underline font-semibold inline-flex items-center gap-0.5 mt-1"
+                      >
+                        View Document <span className="text-[10px]">↗</span>
+                      </button>
+                    ) : (
+                      <span className="text-muted-foreground italic mt-1 block">Not uploaded</span>
+                    )}
+                  </div>
+                  <div>
+                    <span className="block font-medium text-slate-500">Profile Photo:</span>
+                    {selectedTraveler?.photo_url ? (
+                      <button
+                        type="button"
+                        onClick={() => handleViewDocument(selectedTraveler.photo_url!)}
+                        className="text-primary hover:underline font-semibold inline-flex items-center gap-0.5 mt-1"
+                      >
+                        View Photo <span className="text-[10px]">↗</span>
+                      </button>
+                    ) : (
+                      <span className="text-muted-foreground italic mt-1 block">Not uploaded</span>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
 

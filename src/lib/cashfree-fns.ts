@@ -80,57 +80,62 @@ export type SavePendingBookingInput = z.infer<typeof savePendingBookingSchema>;
 export const savePendingBookingFn = createServerFn({ method: "POST" })
   .validator((data: SavePendingBookingInput) => savePendingBookingSchema.parse(data))
   .handler(async ({ data }) => {
-    const { data: booking, error } = await supabase
-      .from("bookings")
-      .insert({
-        trip_id: data.tripId,
-        trip_date_id: data.tripDateId,
-        departure_date: data.departureDate,
-        custom_date: data.isCustomDate,
+    try {
+      const { data: booking, error } = await supabase
+        .from("bookings")
+        .insert({
+          trip_id: data.tripId,
+          trip_date_id: data.tripDateId,
+          departure_date: data.departureDate,
+          custom_date: data.isCustomDate,
 
-        full_name: data.fullName,
-        email: data.email,
-        phone: data.phone,
-        whatsapp_same: data.whatsappSame,
-        whatsapp_number: data.whatsappNumber,
-        address: data.address,
-        age: data.age,
-        gender: data.gender,
-        guardian_number: data.guardianNumber,
-        aadhar_url: data.aadharUrl,
-        profile_url: data.profileUrl,
-        referred_by: data.referredBy,
-        heard_from: data.heardFrom,
+          full_name: data.fullName,
+          email: data.email,
+          phone: data.phone,
+          whatsapp_same: data.whatsappSame,
+          whatsapp_number: data.whatsappNumber,
+          address: data.address,
+          age: data.age,
+          gender: data.gender,
+          guardian_number: data.guardianNumber,
+          aadhar_url: data.aadharUrl,
+          profile_url: data.profileUrl,
+          referred_by: data.referredBy,
+          heard_from: data.heardFrom,
 
-        is_solo: data.isSolo,
+          is_solo: data.isSolo,
 
-        room_sharing: data.roomSharing,
-        coupon_code: data.couponCode,
-        coupon_id: data.couponId,
-        base_amount: data.baseAmount,
-        discount_amount: data.discountAmount,
-        total_payable: data.totalPayable,
-        payment_schedule: data.paymentSchedule,
-        deposit_amount: data.depositAmount,
-        balance_due: data.balanceDue,
-        special_requests: data.specialRequests,
-        terms_accepted: data.termsAccepted,
-        terms_accepted_at: data.termsAccepted ? new Date().toISOString() : null,
+          room_sharing: data.roomSharing,
+          coupon_code: data.couponCode,
+          coupon_id: data.couponId,
+          base_amount: data.baseAmount,
+          discount_amount: data.discountAmount,
+          total_payable: data.totalPayable,
+          payment_schedule: data.paymentSchedule,
+          deposit_amount: data.depositAmount,
+          balance_due: data.balanceDue,
+          special_requests: data.specialRequests,
+          terms_accepted: data.termsAccepted,
+          terms_accepted_at: data.termsAccepted ? new Date().toISOString() : null,
 
-        payment_status: "Pending",
-        booking_status: "Draft",
-      })
-      .select("id, booking_id")
-      .single();
+          payment_status: "PENDING",
+          booking_status: "PENDING",
+        })
+        .select("id, booking_id")
+        .single();
 
-    if (error || !booking) {
-      throw new Error(`Failed to create booking: ${error?.message}`);
+      if (error || !booking) {
+        throw new Error(`Failed to create booking: ${error?.message}`);
+      }
+
+      return {
+        success: true as const,
+        bookingId: booking.id as string,
+        bookingRef: (booking as any).booking_id as string,
+      };
+    } catch (e: any) {
+      return { success: false as const, error: e.message || "Unknown error" };
     }
-
-    return {
-      bookingId: booking.id as string,
-      bookingRef: (booking as any).booking_id as string,
-    };
   });
 
 
@@ -150,13 +155,11 @@ export const createCashfreeOrderFn = createServerFn({ method: "POST" })
     createCashfreeOrderSchema.parse(data)
   )
   .handler(async ({ data }) => {
-    const orderId = `NM_${data.bookingRef}_${Date.now()}`;
+    try {
+      const orderId = `NM_${data.bookingRef}_${Date.now()}`;
 
-    // Call Cashfree API
-    const response = await fetch(`${CASHFREE_API_BASE}/orders`, {
-      method: "POST",
-      headers: CASHFREE_HEADERS,
-      body: JSON.stringify({
+      const endpoint = `${CASHFREE_API_BASE}/orders`;
+      const requestBody = {
         order_id: orderId,
         order_amount: data.amount,
         order_currency: "INR",
@@ -171,27 +174,53 @@ export const createCashfreeOrderFn = createServerFn({ method: "POST" })
           notify_url: `${process.env.VITE_APP_URL ?? "http://localhost:3000"}/api/cashfree/webhook`,
         },
         order_note: `Nomadik Booking ${data.bookingRef}`,
-      }),
-    });
+      };
 
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      throw new Error(`Cashfree order creation failed: ${JSON.stringify(err)}`);
+      // Call Cashfree API
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: CASHFREE_HEADERS,
+        body: JSON.stringify(requestBody),
+      });
+
+      const contentType = response.headers.get("content-type") || "";
+      const isHtml = contentType.includes("text/html");
+
+      if (!response.ok) {
+        const responseBodyStr = await response.text();
+        console.error(`\n=== API ERROR LOG ===\nEndpoint: ${endpoint}\nStatus: ${response.status}\nRequest: ${JSON.stringify(requestBody)}\nResponse: ${responseBodyStr}\n=====================\n`);
+        
+        if (isHtml) {
+          throw new Error(`Cashfree API returned an HTML error page (Status ${response.status}). Gateway may be down.`);
+        }
+        
+        let errJson = {};
+        try { errJson = JSON.parse(responseBodyStr); } catch(e) {}
+        throw new Error(`Cashfree order creation failed: ${responseBodyStr}`);
+      }
+
+      if (isHtml) {
+        const htmlBody = await response.text();
+        throw new Error(`Cashfree returned HTML on a successful status. Body: ${htmlBody.slice(0, 100)}...`);
+      }
+
+      const orderData = await response.json();
+      const paymentSessionId: string = orderData.payment_session_id;
+
+      // Save Cashfree order ID to booking
+      await supabase
+        .from("bookings")
+        .update({ cashfree_order_id: orderId })
+        .eq("id", data.bookingId);
+
+      return {
+        success: true as const,
+        orderId,
+        paymentSessionId,   // Pass this to Cashfree SDK on the frontend
+      };
+    } catch (e: any) {
+      return { success: false as const, error: e.message || "Unknown error" };
     }
-
-    const orderData = await response.json();
-    const paymentSessionId: string = orderData.payment_session_id;
-
-    // Save Cashfree order ID to booking
-    await supabase
-      .from("bookings")
-      .update({ cashfree_order_id: orderId })
-      .eq("id", data.bookingId);
-
-    return {
-      orderId,
-      paymentSessionId,   // Pass this to Cashfree SDK on the frontend
-    };
   });
 
 
@@ -207,50 +236,65 @@ export const verifyPaymentFn = createServerFn({ method: "POST" })
     verifyPaymentSchema.parse(data)
   )
   .handler(async ({ data }) => {
-    // Check order status from Cashfree
-    const response = await fetch(
-      `${CASHFREE_API_BASE}/orders/${data.orderId}`,
-      { method: "GET", headers: CASHFREE_HEADERS }
-    );
+    try {
+      // Check order status from Cashfree
+      const endpoint = `${CASHFREE_API_BASE}/orders/${data.orderId}`;
+      const response = await fetch(endpoint, { method: "GET", headers: CASHFREE_HEADERS });
 
-    if (!response.ok) {
-      throw new Error("Failed to verify payment status with Cashfree");
+      const contentType = response.headers.get("content-type") || "";
+      const isHtml = contentType.includes("text/html");
+
+      if (!response.ok) {
+        const responseBodyStr = await response.text();
+        console.error(`\n=== API ERROR LOG ===\nEndpoint: ${endpoint}\nStatus: ${response.status}\nRequest: GET\nResponse: ${responseBodyStr}\n=====================\n`);
+        if (isHtml) {
+          throw new Error(`Cashfree API returned an HTML error page (Status ${response.status}). Gateway may be down.`);
+        }
+        throw new Error(`Failed to verify payment status with Cashfree: ${responseBodyStr}`);
+      }
+
+      if (isHtml) {
+        const htmlBody = await response.text();
+        throw new Error(`Cashfree returned HTML on a successful status. Body: ${htmlBody.slice(0, 100)}...`);
+      }
+
+      const orderData = await response.json();
+      const orderStatus: string = orderData.order_status; // PAID | ACTIVE | EXPIRED
+
+      if (orderStatus === "PAID") {
+        const cfPaymentId = orderData.cf_order_id?.toString() ?? "";
+
+        await supabase
+          .from("bookings")
+          .update({
+            payment_status: "SUCCESS",
+            booking_status: "CONFIRMED",
+            cashfree_payment_id: cfPaymentId,
+            transaction_id: cfPaymentId,
+          })
+          .eq("id", data.bookingId);
+
+        // Decrement available seats
+        await supabase.rpc("decrement_trip_date_seats", {
+          p_booking_id: data.bookingId,
+        }).maybeSingle();
+
+        return { success: true as const, status: "PAID", bookingId: data.bookingId };
+      }
+
+      if (orderStatus === "EXPIRED" || orderStatus === "CANCELLED") {
+        await supabase
+          .from("bookings")
+          .update({ payment_status: "FAILED", booking_status: "CANCELLED" })
+          .eq("id", data.bookingId);
+
+        return { success: true as const, status: "FAILED", bookingId: data.bookingId };
+      }
+
+      return { success: true as const, status: "PENDING", bookingId: data.bookingId };
+    } catch (e: any) {
+      return { success: false as const, error: e.message || "Unknown error" };
     }
-
-    const orderData = await response.json();
-    const orderStatus: string = orderData.order_status; // PAID | ACTIVE | EXPIRED
-
-    if (orderStatus === "PAID") {
-      const cfPaymentId = orderData.cf_order_id?.toString() ?? "";
-
-      await supabase
-        .from("bookings")
-        .update({
-          payment_status: "Successful",
-          booking_status: "Confirmed",
-          cashfree_payment_id: cfPaymentId,
-          transaction_id: cfPaymentId,
-        })
-        .eq("id", data.bookingId);
-
-      // Decrement available seats
-      await supabase.rpc("decrement_trip_date_seats", {
-        p_booking_id: data.bookingId,
-      }).maybeSingle();
-
-      return { status: "PAID", bookingId: data.bookingId };
-    }
-
-    if (orderStatus === "EXPIRED" || orderStatus === "CANCELLED") {
-      await supabase
-        .from("bookings")
-        .update({ payment_status: "Failed", booking_status: "Cancelled" })
-        .eq("id", data.bookingId);
-
-      return { status: "FAILED", bookingId: data.bookingId };
-    }
-
-    return { status: "PENDING", bookingId: data.bookingId };
   });
 
 
@@ -266,49 +310,55 @@ export const validateCouponFn = createServerFn({ method: "POST" })
     validateCouponSchema.parse(data)
   )
   .handler(async ({ data }) => {
-    const { data: coupon, error } = await supabase
-      .from("coupons")
-      .select("id, code, discount_type, discount_value, min_amount, max_uses, used_count, valid_until")
-      .eq("code", data.code.toUpperCase().trim())
-      .eq("is_active", true)
-      .single();
+    try {
+      const { data: coupon, error } = await supabase
+        .from("coupons")
+        .select("id, code, discount_type, discount_value, min_amount, max_uses, used_count, valid_until")
+        .eq("code", data.code.toUpperCase().trim())
+        .eq("is_active", true)
+        .single();
 
-    if (error || !coupon) {
-      return { valid: false, message: "Invalid or expired coupon code." };
-    }
+      if (error || !coupon) {
+        return { success: true as const, valid: false, message: "Invalid or expired coupon code." };
+      }
 
-    // Check expiry
-    if (coupon.valid_until && new Date(coupon.valid_until) < new Date()) {
-      return { valid: false, message: "This coupon has expired." };
-    }
+      // Check expiry
+      if (coupon.valid_until && new Date(coupon.valid_until) < new Date()) {
+        return { success: true as const, valid: false, message: "This coupon has expired." };
+      }
 
-    // Check usage limit
-    if (coupon.max_uses !== null && coupon.used_count >= coupon.max_uses) {
-      return { valid: false, message: "This coupon has reached its usage limit." };
-    }
+      // Check usage limit
+      if (coupon.max_uses !== null && coupon.used_count >= coupon.max_uses) {
+        return { success: true as const, valid: false, message: "This coupon has reached its usage limit." };
+      }
 
-    // Check minimum amount
-    if (data.baseAmount < (coupon.min_amount ?? 0)) {
+      // Check minimum amount
+      if (data.baseAmount < (coupon.min_amount ?? 0)) {
+        return {
+          success: true as const,
+          valid: false,
+          message: `Minimum order amount of ₹${coupon.min_amount} required for this coupon.`,
+        };
+      }
+
+      // Calculate discount
+      let discountAmount = 0;
+      if (coupon.discount_type === "PERCENT") {
+        discountAmount = Math.round((data.baseAmount * coupon.discount_value) / 100);
+      } else {
+        discountAmount = coupon.discount_value;
+      }
+
+      discountAmount = Math.min(discountAmount, data.baseAmount); // Cap at full amount
+
       return {
-        valid: false,
-        message: `Minimum order amount of ₹${coupon.min_amount} required for this coupon.`,
+        success: true as const,
+        valid: true,
+        couponId: coupon.id as string,
+        discountAmount,
+        message: `Coupon applied! You save ₹${discountAmount.toLocaleString("en-IN")}.`,
       };
+    } catch (e: any) {
+      return { success: false as const, error: e.message || "Unknown error" };
     }
-
-    // Calculate discount
-    let discountAmount = 0;
-    if (coupon.discount_type === "PERCENT") {
-      discountAmount = Math.round((data.baseAmount * coupon.discount_value) / 100);
-    } else {
-      discountAmount = coupon.discount_value;
-    }
-
-    discountAmount = Math.min(discountAmount, data.baseAmount); // Cap at full amount
-
-    return {
-      valid: true,
-      couponId: coupon.id as string,
-      discountAmount,
-      message: `Coupon applied! You save ₹${discountAmount.toLocaleString("en-IN")}.`,
-    };
   });

@@ -1,120 +1,160 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { useState, useCallback } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { createFileRoute, Link } from '@tanstack/react-router'
+import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { motion } from 'motion/react'
+import { supabase } from '@/lib/supabase'
+import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { DataTable, exportToCSV } from '@/components/admin/DataTable'
-import type { ColumnDef } from '@tanstack/react-table'
-import { getCustomers } from '@/lib/queries/admin'
-import type { SiteUser } from '@/types/supabase'
 import {
   Users,
-  Compass,
-  CreditCard,
-  Mail,
+  IndianRupee,
   Phone,
+  Mail,
+  Calendar,
+  TrendingUp,
 } from 'lucide-react'
+import type { Customer } from '@/types/supabase'
+import { DataTable } from '@/components/admin/DataTable'
+import type { ColumnDef } from '@tanstack/react-table'
 
 export const Route = createFileRoute('/admin/customers')({
   component: CustomersPage,
 })
 
+async function getCustomers(params: {
+  page: number
+  pageSize: number
+  search?: string
+}) {
+  const { page, pageSize, search } = params
+  let query = supabase
+    .from('customers')
+    .select('*', { count: 'exact' })
+    .order('created_at', { ascending: false })
+    .range((page - 1) * pageSize, page * pageSize - 1)
+
+  if (search) {
+    query = query.or(`name.ilike.%${search}%,phone.ilike.%${search}%,email.ilike.%${search}%`)
+  }
+
+  const { data, error, count } = await query
+  if (error) throw new Error(error.message)
+  return {
+    data: (data ?? []) as Customer[],
+    total: count ?? 0,
+    totalPages: Math.ceil((count ?? 0) / pageSize),
+  }
+}
+
+async function getCustomerStats() {
+  const { data, error } = await supabase
+    .from('customers')
+    .select('total_bookings, total_spent')
+
+  if (error) return { total: 0, totalSpent: 0, repeatCustomers: 0 }
+  const total = data?.length ?? 0
+  const totalSpent = data?.reduce((s, c) => s + (c.total_spent ?? 0), 0) ?? 0
+  const repeatCustomers = data?.filter((c) => (c.total_bookings ?? 0) > 1).length ?? 0
+  return { total, totalSpent, repeatCustomers }
+}
+
 function CustomersPage() {
-  const qc = useQueryClient()
   const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(20)
+  const [pageSize] = useState(20)
   const [search, setSearch] = useState('')
-  const [sortBy, setSortBy] = useState('created_at')
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
 
   const { data: result, isLoading } = useQuery({
-    queryKey: ['customers_list', page, pageSize, search, sortBy, sortDir],
-    queryFn: () => getCustomers({ page, pageSize, search, sortBy, sortDir }),
+    queryKey: ['customers_list', page, pageSize, search],
+    queryFn: () => getCustomers({ page, pageSize, search }),
     placeholderData: (prev) => prev,
+  })
+
+  const { data: stats } = useQuery({
+    queryKey: ['customer_stats'],
+    queryFn: getCustomerStats,
   })
 
   const customers = result?.data ?? []
 
-  const handleSort = useCallback((by: string, dir: 'asc' | 'desc') => {
-    setSortBy(by)
-    setSortDir(dir)
-  }, [])
-
-  const handleExport = () => {
-    exportToCSV(
-      customers.map((c) => ({
-        name: c.full_name,
-        email: c.email ?? '',
-        phone: c.phone,
-        city: c.city ?? '',
-        state: c.state ?? '',
-        wallet_balance: c.wallet_balance,
-        created_at: c.created_at,
-      })),
-      'customers'
-    )
-  }
-
-  const columns: ColumnDef<SiteUser>[] = [
+  const columns: ColumnDef<Customer>[] = [
     {
-      accessorKey: 'full_name',
-      header: 'Explorer Customer',
-      cell: ({ row }) => {
-        const c = row.original
-        return (
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shrink-0">
-              {c.full_name.slice(0, 2).toUpperCase()}
-            </div>
-            <div>
-              <p className="font-semibold text-sm">{c.full_name}</p>
-              {c.email && (
-                <p className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Mail className="h-3 w-3" /> {c.email}
-                </p>
-              )}
-            </div>
+      accessorKey: 'name',
+      header: 'Customer',
+      cell: ({ row }) => (
+        <div>
+          <p className="text-sm font-semibold">{row.original.name}</p>
+          <div className="flex items-center gap-1 mt-0.5">
+            <Phone className="h-3 w-3 text-muted-foreground" />
+            <p className="text-xs text-muted-foreground">{row.original.phone}</p>
           </div>
-        )
-      },
-    },
-    {
-      accessorKey: 'phone',
-      header: 'Phone Contact',
-      cell: ({ row }) => (
-        <span className="text-sm font-mono text-muted-foreground flex items-center gap-1">
-          <Phone className="h-3 w-3" />
-          {row.original.phone}
-        </span>
+          {row.original.email && (
+            <div className="flex items-center gap-1">
+              <Mail className="h-3 w-3 text-muted-foreground" />
+              <p className="text-xs text-muted-foreground truncate max-w-[160px]">{row.original.email}</p>
+            </div>
+          )}
+        </div>
       ),
     },
     {
-      accessorKey: 'wallet_balance',
-      header: 'Wallet Balance',
+      accessorKey: 'total_bookings',
+      header: 'Bookings',
       cell: ({ row }) => (
-        <span className="text-sm font-semibold text-emerald-600">
-          ₹{row.original.wallet_balance.toLocaleString('en-IN')}
-        </span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-sm font-bold text-primary">{row.original.total_bookings ?? 0}</span>
+          {(row.original.total_bookings ?? 0) > 1 && (
+            <Badge className="bg-purple-100 text-purple-700 border-0 text-[10px] font-bold px-1.5">
+              Repeat
+            </Badge>
+          )}
+        </div>
       ),
     },
     {
-      accessorKey: 'city',
-      header: 'Location',
-      cell: ({ row }) => {
-        const c = row.original
-        return (
-          <span className="text-xs text-muted-foreground">
-            {c.city ? `${c.city}${c.state ? `, ${c.state}` : ''}` : '—'}
-          </span>
-        )
-      },
+      accessorKey: 'total_spent',
+      header: 'Total Spent',
+      cell: ({ row }) => (
+        <div className="flex items-center gap-1 text-sm font-semibold">
+          <IndianRupee className="h-3.5 w-3.5 text-muted-foreground" />
+          {(row.original.total_spent ?? 0).toLocaleString('en-IN')}
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'last_booking_at',
+      header: 'Last Booking',
+      cell: ({ row }) => (
+        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+          <Calendar className="h-3 w-3" />
+          {row.original.last_booking_at
+            ? new Date(row.original.last_booking_at).toLocaleDateString('en-IN', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+              })
+            : '—'}
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'referral_source',
+      header: 'Source',
+      cell: ({ row }) => (
+        <span className="text-xs text-muted-foreground">
+          {row.original.referral_source ?? '—'}
+        </span>
+      ),
     },
     {
       accessorKey: 'created_at',
-      header: 'Joined Date',
+      header: 'Joined',
       cell: ({ row }) => (
         <span className="text-xs text-muted-foreground">
-          {new Date(row.original.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+          {new Date(row.original.created_at).toLocaleDateString('en-IN', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+          })}
         </span>
       ),
     },
@@ -128,14 +168,57 @@ function CustomersPage() {
         className="flex items-center justify-between"
       >
         <div>
-          <h1 className="text-2xl font-bold font-poppins">Customers CRM</h1>
+          <h1 className="text-2xl font-bold font-poppins">Customers</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {result?.total ?? 0} registered customer{(result?.total ?? 0) !== 1 ? 's' : ''} total
+            {result?.total ?? 0} total customers
           </p>
         </div>
       </motion.div>
 
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
+      {stats && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.1 }}
+          className="grid grid-cols-3 gap-4"
+        >
+          <div className="bg-white rounded-xl border border-[#E4E2DA] p-4 flex items-center gap-4">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <Users className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold font-poppins">{stats.total.toLocaleString('en-IN')}</p>
+              <p className="text-xs text-muted-foreground">Total Customers</p>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl border border-[#E4E2DA] p-4 flex items-center gap-4">
+            <div className="w-10 h-10 rounded-xl bg-[#C8A96A]/10 flex items-center justify-center">
+              <IndianRupee className="h-5 w-5 text-[#C8A96A]" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold font-poppins">
+                ₹{stats.totalSpent >= 100000
+                  ? `${(stats.totalSpent / 100000).toFixed(1)}L`
+                  : stats.totalSpent.toLocaleString('en-IN')}
+              </p>
+              <p className="text-xs text-muted-foreground">Total Revenue</p>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl border border-[#E4E2DA] p-4 flex items-center gap-4">
+            <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">
+              <TrendingUp className="h-5 w-5 text-purple-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold font-poppins">{stats.repeatCustomers}</p>
+              <p className="text-xs text-muted-foreground">Repeat Customers</p>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
         <DataTable
           data={customers}
           columns={columns}
@@ -144,14 +227,12 @@ function CustomersPage() {
           pageSize={pageSize}
           totalPages={result?.totalPages ?? 1}
           isLoading={isLoading}
-          searchPlaceholder="Search customer profiles..."
+          searchPlaceholder="Search by name, phone, or email..."
           onPageChange={setPage}
-          onPageSizeChange={(s) => { setPageSize(s); setPage(1) }}
+          onPageSizeChange={() => {}}
           onSearch={(s) => { setSearch(s); setPage(1) }}
-          onSort={handleSort}
-          onRefresh={() => qc.invalidateQueries({ queryKey: ['customers_list'] })}
-          onExportCSV={handleExport}
-          emptyMessage="No customers profiles found."
+          onSort={() => {}}
+          emptyMessage="No customers yet. Customers appear here after their first booking."
         />
       </motion.div>
     </div>

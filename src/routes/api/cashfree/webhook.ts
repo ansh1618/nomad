@@ -1,25 +1,26 @@
 /**
- * cashfree-webhook.ts
+ * Cashfree Webhook Handler
+ * Mount at: /api/cashfree/webhook
  *
- * TanStack Start API route to receive Cashfree payment webhooks.
- * Mount this at: /api/cashfree/webhook
+ * Flow:
+ *  1. Verify HMAC-SHA256 signature
+ *  2. Extract order + payment data
+ *  3. Find booking by cashfree_order_id
+ *  4. Call confirmBookingAfterPayment (atomic update)
+ *  5. Send email confirmation (async, fire-and-forget)
+ *  6. Return HTTP 200
  *
- * Cashfree sends a POST request with the payment status after every
- * payment attempt. This endpoint:
- *  1. Verifies the webhook signature (HMAC-SHA256)
- *  2. Updates the booking payment_status in Supabase
- *  3. Returns HTTP 200 to acknowledge receipt
- *
- * Setup in Cashfree Dashboard:
- *  Developers → Webhooks → Add Webhook URL:
- *  https://yourdomain.com/api/cashfree/webhook
+ * Security: Uses service role key (server-only). Never exposes to frontend.
  */
 
+// @ts-ignore
 import { createAPIFileRoute } from "@tanstack/react-start/api";
 import { createClient } from "@supabase/supabase-js";
 import { createHmac } from "crypto";
+import { confirmBookingAfterPayment } from "@/lib/booking-api";
+import { sendBookingConfirmationEmail } from "@/lib/email";
 
-// Use service role key for webhook (bypasses RLS) — keep this server-only!
+// Service role client (bypasses RLS) — server-only!
 const supabaseAdmin = createClient(
   process.env.VITE_SUPABASE_URL ?? "",
   process.env.SUPABASE_SERVICE_ROLE_KEY ?? ""
@@ -29,9 +30,8 @@ export const APIRoute = createAPIFileRoute("/api/cashfree/webhook")({
   POST: async ({ request }) => {
     try {
       const rawBody = await request.text();
-      const body = JSON.parse(rawBody);
 
-      // ── 1. Verify Signature ────────────────────────────────────────────────
+      // ── 1. Verify Signature ─────────────────────────────────────
       const timestamp = request.headers.get("x-webhook-timestamp");
       const receivedSignature = request.headers.get("x-webhook-signature");
 
@@ -39,21 +39,22 @@ export const APIRoute = createAPIFileRoute("/api/cashfree/webhook")({
         return new Response("Missing signature headers", { status: 401 });
       }
 
-      const signaturePayload = timestamp + rawBody;
       const expectedSignature = createHmac(
         "sha256",
         process.env.CASHFREE_SECRET_KEY ?? ""
       )
-        .update(signaturePayload)
+        .update(timestamp + rawBody)
         .digest("base64");
 
       if (expectedSignature !== receivedSignature) {
-        console.error("[Webhook] Invalid signature");
+        console.error("[Webhook] ❌ Invalid signature");
         return new Response("Invalid signature", { status: 401 });
       }
 
-      // ── 2. Extract Event Data ──────────────────────────────────────────────
-      const eventType: string = body.type; // e.g. "PAYMENT_SUCCESS_WEBHOOK"
+      const body = JSON.parse(rawBody);
+
+      // ── 2. Extract Event Data ────────────────────────────────────
+      const eventType: string = body.type;
       const order = body.data?.order;
       const payment = body.data?.payment;
 
@@ -61,62 +62,100 @@ export const APIRoute = createAPIFileRoute("/api/cashfree/webhook")({
         return new Response("No order_id in payload", { status: 400 });
       }
 
-      const orderId: string = order.order_id;
-      console.log(`[Webhook] Event: ${eventType} | Order: ${orderId}`);
+      const cashfreeOrderId: string = order.order_id;
+      console.log(`[Webhook] Event: ${eventType} | Order: ${cashfreeOrderId}`);
 
-      // ── 3. Find Booking by Cashfree Order ID ──────────────────────────────
+      // ── 3. Find Booking ──────────────────────────────────────────
       const { data: booking, error: fetchError } = await supabaseAdmin
         .from("bookings")
-        .select("id, booking_id, payment_status")
-        .eq("cashfree_order_id", orderId)
+        .select("id, booking_id, booking_status, customer_id, total_amount")
+        .eq("cashfree_order_id", cashfreeOrderId)
         .single();
 
       if (fetchError || !booking) {
-        console.error("[Webhook] Booking not found for order:", orderId);
-        // Return 200 anyway to prevent Cashfree from retrying
+        console.error("[Webhook] Booking not found for order:", cashfreeOrderId);
+        // Return 200 to prevent Cashfree retrying
         return new Response("Booking not found", { status: 200 });
       }
 
-      // Skip if already processed (idempotency)
-      if (booking.payment_status === "Successful") {
-        return new Response("Already processed", { status: 200 });
+      // ── 4. Handle Payment Success ────────────────────────────────
+      if (eventType === "PAYMENT_SUCCESS_WEBHOOK") {
+        const cashfreePaymentId = payment?.cf_payment_id?.toString() ?? "";
+        const amountPaid = Number(payment?.payment_amount ?? booking.total_amount ?? 0);
+
+        await confirmBookingAfterPayment(
+          {
+            bookingId: booking.id,
+            cashfreeOrderId,
+            cashfreePaymentId,
+            amountPaid,
+            gatewayResponse: body,
+          },
+          supabaseAdmin as any
+        );
+
+        console.log(`[Webhook] ✅ Booking confirmed: ${booking.booking_id}`);
+
+        // Send email confirmation (async, don't block response)
+        if (booking.customer_id) {
+          const { data: customer } = await supabaseAdmin
+            .from("customers")
+            .select("name, email, phone")
+            .eq("id", booking.customer_id)
+            .single();
+
+          if (customer?.email) {
+            sendBookingConfirmationEmail({
+              customerName: customer.name,
+              customerEmail: customer.email,
+              bookingId: booking.booking_id ?? booking.id,
+              amountPaid,
+            }).catch((err) =>
+              console.error("[Webhook] Email send failed:", err)
+            );
+          }
+        }
       }
 
-      // ── 4. Update Booking Based on Event ──────────────────────────────────
-      const paymentId = payment?.cf_payment_id?.toString() ?? "";
-
-      if (eventType === "PAYMENT_SUCCESS_WEBHOOK") {
-        await supabaseAdmin
-          .from("bookings")
-          .update({
-            payment_status: "Successful",
-            booking_status: "Confirmed",
-            cashfree_payment_id: paymentId,
-            transaction_id: paymentId,
-          })
-          .eq("id", booking.id);
-
-        console.log(`[Webhook] ✅ Payment confirmed: ${booking.booking_id}`);
-
-        // TODO: Send confirmation WhatsApp/email here
-        // await sendBookingConfirmationEmail(booking.id);
-
-      } else if (
+      // ── 5. Handle Payment Failure ────────────────────────────────
+      else if (
         eventType === "PAYMENT_FAILED_WEBHOOK" ||
         eventType === "PAYMENT_USER_DROPPED_WEBHOOK"
       ) {
+        // Update booking back to PENDING (not cancelled — allow retry)
         await supabaseAdmin
           .from("bookings")
           .update({
-            payment_status: "Failed",
-            booking_status: "Cancelled",
+            booking_status: "PENDING",
+            payment_status: "FAILED",
+            updated_at: new Date().toISOString(),
           })
           .eq("id", booking.id);
+
+        // Log transaction failure
+        await supabaseAdmin.from("transactions").insert({
+          booking_id: booking.id,
+          gateway: "cashfree",
+          order_id: cashfreeOrderId,
+          gateway_payment_id: payment?.cf_payment_id?.toString() ?? null,
+          amount: booking.total_amount ?? 0,
+          currency: "INR",
+          status: "FAILED",
+          gateway_response: body,
+        });
+
+        // Add timeline event
+        await supabaseAdmin.from("booking_timeline").insert({
+          booking_id: booking.id,
+          event: "PAYMENT_FAILED",
+          description: "Payment attempt failed or dropped by user",
+          actor: "SYSTEM",
+          metadata: { order_id: cashfreeOrderId },
+        });
 
         console.log(`[Webhook] ❌ Payment failed: ${booking.booking_id}`);
       }
 
-      // Cashfree expects HTTP 200 to stop retrying
       return new Response(JSON.stringify({ received: true }), {
         status: 200,
         headers: { "Content-Type": "application/json" },

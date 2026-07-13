@@ -11,7 +11,8 @@ import type {
 
 const BOOKING_SELECT = `
   *,
-  users(id, full_name, phone, email, avatar_url, wallet_balance),
+  customers(id, name, email, phone, total_bookings, total_spent),
+  users(id, full_name, phone, email, avatar_url),
   departures(
     id, departure_date, return_date, base_price, available_seats,
     journeys(id, slug, name, hero_banner, duration),
@@ -20,8 +21,8 @@ const BOOKING_SELECT = `
   ),
   booking_travellers(*),
   payments(*),
-  coupons(id, code, discount_type, discount_value),
-  invoices(id, invoice_number, pdf_url, status)
+  booking_timeline(id, event, description, actor, created_at),
+  coupons(id, code, discount_type, discount_value)
 `
 
 // ==========================================
@@ -30,22 +31,41 @@ const BOOKING_SELECT = `
 export async function getBookings(
   params: PaginationParams & {
     status?: string
+    bookingStatus?: string
+    paymentStatus?: string
     departureId?: string
     userId?: string
     fromDate?: string
     toDate?: string
   } = {}
 ): Promise<PaginatedResult<Booking>> {
-  const { page = 1, pageSize = 20, search, sortBy = 'created_at', sortDir = 'desc', status, departureId, userId, fromDate, toDate } = params
+  const {
+    page = 1,
+    pageSize = 20,
+    search,
+    sortBy = 'created_at',
+    sortDir = 'desc',
+    status,
+    bookingStatus,
+    paymentStatus,
+    departureId,
+    userId,
+    fromDate,
+    toDate,
+  } = params
 
   let query = supabase.from('bookings').select(BOOKING_SELECT, { count: 'exact' })
 
   if (status) query = query.eq('status', status)
+  if (bookingStatus) query = query.eq('booking_status', bookingStatus)
+  if (paymentStatus) query = query.eq('payment_status', paymentStatus)
   if (departureId) query = query.eq('departure_id', departureId)
   if (userId) query = query.eq('user_id', userId)
   if (fromDate) query = query.gte('created_at', fromDate)
   if (toDate) query = query.lte('created_at', toDate)
   if (search) {
+    // Search by booking_id or customer will be done client-side via data filter
+    // since customers is a join table
     query = query.or(`booking_id.ilike.%${search}%`)
   }
 

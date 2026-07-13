@@ -25,6 +25,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as JourneysJourneyIdRouteImport } from './routes/journeys/$journeyId'
 import { Route as DestinationsSlugRouteImport } from './routes/destinations_.$slug'
+import { Route as BookingSuccessRouteImport } from './routes/booking.success'
 import { Route as BookJourneyIdRouteImport } from './routes/book.$journeyId'
 import { Route as AdminWebsiteRouteImport } from './routes/admin/website'
 import { Route as AdminTripCalendarRouteImport } from './routes/admin/trip-calendar'
@@ -141,6 +142,11 @@ const JourneysJourneyIdRoute = JourneysJourneyIdRouteImport.update({
 const DestinationsSlugRoute = DestinationsSlugRouteImport.update({
   id: '/destinations_/$slug',
   path: '/destinations/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BookingSuccessRoute = BookingSuccessRouteImport.update({
+  id: '/booking/success',
+  path: '/booking/success',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BookJourneyIdRoute = BookJourneyIdRouteImport.update({
@@ -372,6 +378,7 @@ export interface FileRoutesByFullPath {
   '/admin/trip-calendar': typeof AdminTripCalendarRoute
   '/admin/website': typeof AdminWebsiteRoute
   '/book/$journeyId': typeof BookJourneyIdRoute
+  '/booking/success': typeof BookingSuccessRoute
   '/destinations/$slug': typeof DestinationsSlugRoute
   '/journeys/$journeyId': typeof JourneysJourneyIdRoute
   '/admin/': typeof AdminIndexRoute
@@ -426,6 +433,7 @@ export interface FileRoutesByTo {
   '/admin/trip-calendar': typeof AdminTripCalendarRoute
   '/admin/website': typeof AdminWebsiteRoute
   '/book/$journeyId': typeof BookJourneyIdRoute
+  '/booking/success': typeof BookingSuccessRoute
   '/destinations/$slug': typeof DestinationsSlugRoute
   '/journeys/$journeyId': typeof JourneysJourneyIdRoute
   '/admin': typeof AdminIndexRoute
@@ -482,6 +490,7 @@ export interface FileRoutesById {
   '/admin/trip-calendar': typeof AdminTripCalendarRoute
   '/admin/website': typeof AdminWebsiteRoute
   '/book/$journeyId': typeof BookJourneyIdRoute
+  '/booking/success': typeof BookingSuccessRoute
   '/destinations_/$slug': typeof DestinationsSlugRoute
   '/journeys/$journeyId': typeof JourneysJourneyIdRoute
   '/admin/': typeof AdminIndexRoute
@@ -539,6 +548,7 @@ export interface FileRouteTypes {
     | '/admin/trip-calendar'
     | '/admin/website'
     | '/book/$journeyId'
+    | '/booking/success'
     | '/destinations/$slug'
     | '/journeys/$journeyId'
     | '/admin/'
@@ -593,6 +603,7 @@ export interface FileRouteTypes {
     | '/admin/trip-calendar'
     | '/admin/website'
     | '/book/$journeyId'
+    | '/booking/success'
     | '/destinations/$slug'
     | '/journeys/$journeyId'
     | '/admin'
@@ -648,6 +659,7 @@ export interface FileRouteTypes {
     | '/admin/trip-calendar'
     | '/admin/website'
     | '/book/$journeyId'
+    | '/booking/success'
     | '/destinations_/$slug'
     | '/journeys/$journeyId'
     | '/admin/'
@@ -676,6 +688,7 @@ export interface RootRouteChildren {
   StoriesRoute: typeof StoriesRoute
   UdaipurRoute: typeof UdaipurRoute
   BookJourneyIdRoute: typeof BookJourneyIdRoute
+  BookingSuccessRoute: typeof BookingSuccessRoute
   DestinationsSlugRoute: typeof DestinationsSlugRoute
   JourneysJourneyIdRoute: typeof JourneysJourneyIdRoute
 }
@@ -792,6 +805,13 @@ declare module '@tanstack/react-router' {
       path: '/destinations/$slug'
       fullPath: '/destinations/$slug'
       preLoaderRoute: typeof DestinationsSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/booking/success': {
+      id: '/booking/success'
+      path: '/booking/success'
+      fullPath: '/booking/success'
+      preLoaderRoute: typeof BookingSuccessRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/book/$journeyId': {
@@ -1153,6 +1173,7 @@ const rootRouteChildren: RootRouteChildren = {
   StoriesRoute: StoriesRoute,
   UdaipurRoute: UdaipurRoute,
   BookJourneyIdRoute: BookJourneyIdRoute,
+  BookingSuccessRoute: BookingSuccessRoute,
   DestinationsSlugRoute: DestinationsSlugRoute,
   JourneysJourneyIdRoute: JourneysJourneyIdRoute,
 }
