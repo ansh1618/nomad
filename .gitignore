@@ -32,4 +32,13 @@ dist-ssr
 *.sw?
 
 .vercel
-.env*
+
+# Environment files — NEVER commit real secrets
+.env
+.env.local
+.env.production
+.env.production.local
+.env.development
+.env.development.local
+.env.*
+!.env.example
