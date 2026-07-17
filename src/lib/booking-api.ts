@@ -233,7 +233,7 @@ export async function validateCoupon(
  */
 export async function confirmBookingAfterPayment(
   input: ConfirmBookingInput,
-  adminClient: ReturnType<typeof import('@supabase/supabase-js')['createClient']>
+  adminClient: any
 ): Promise<void> {
   const { bookingId, cashfreeOrderId, cashfreePaymentId, amountPaid, gatewayResponse } = input
 

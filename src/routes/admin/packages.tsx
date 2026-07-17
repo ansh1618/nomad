@@ -21,6 +21,7 @@ import {
   archivePackage,
   bulkDeletePackages,
   bulkUpdatePackagesStatus,
+  duplicatePackage,
 } from '@/lib/queries/packages'
 import type { Journey } from '@/types/supabase'
 import { toast } from 'sonner'
@@ -36,6 +37,7 @@ import {
   Loader2,
   Star,
   Calendar,
+  Copy,
 } from 'lucide-react'
 import {
   AlertDialog,
@@ -103,6 +105,15 @@ function PackagesPage() {
   const archiveMutation = useMutation({
     mutationFn: archivePackage,
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['packages'] }); toast.success('Package archived') },
+    onError: (err: Error) => toast.error(err.message),
+  })
+
+  const duplicateMutation = useMutation({
+    mutationFn: duplicatePackage,
+    onSuccess: (newPkg) => {
+      qc.invalidateQueries({ queryKey: ['packages'] })
+      toast.success(`Duplicated successfully as DRAFT: ${newPkg.name}`)
+    },
     onError: (err: Error) => toast.error(err.message),
   })
 
@@ -256,6 +267,14 @@ function PackagesPage() {
                 <Link to="/admin/packages/$id" params={{ id: p.id }}>
                   <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
                 </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => duplicateMutation.mutate(p.id)} disabled={duplicateMutation.isPending}>
+                {duplicateMutation.isPending ? (
+                  <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
+                ) : (
+                  <Copy className="h-3.5 w-3.5 mr-2" />
+                )}
+                Duplicate
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <a href={`/packages/${p.slug}`} target="_blank" rel="noreferrer">

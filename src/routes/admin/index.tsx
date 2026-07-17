@@ -213,7 +213,7 @@ function AdminDashboard() {
         <div>
           <h1 className="text-2xl font-bold font-poppins">Dashboard</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Welcome back, <span className="font-medium text-foreground">{admin?.full_name ?? admin?.email?.split('@')[0] ?? 'Admin'}</span>. Here's what's happening today.
+            Welcome back, <span className="font-medium text-foreground">{admin?.email?.split('@')[0] ?? 'Admin'}</span>. Here's what's happening today.
           </p>
         </div>
         <div className="flex gap-2">

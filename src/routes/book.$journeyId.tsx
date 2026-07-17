@@ -9,7 +9,7 @@ const fetchActiveDepartures = async (journeyId: string) => {
   try {
     const { data, error } = await supabase
       .from("departures")
-      .select("id, departure_date, base_price, available_seats, status")
+      .select("id, departure_date, return_date, base_price, available_seats, status")
       .eq("journey_id", journeyId)
       .neq("status", "CANCELLED")
       .gte("departure_date", today)
@@ -19,6 +19,7 @@ const fetchActiveDepartures = async (journeyId: string) => {
       return data.map(d => ({
         id: d.id,
         date: d.departure_date,
+        returnDate: d.return_date || d.departure_date,
         basePrice: Number(d.base_price),
         availableSeats: d.available_seats || 20
       }));
@@ -30,7 +31,7 @@ const fetchActiveDepartures = async (journeyId: string) => {
   // Fallback to trip_batches
   const { data: legacyData, error: legacyError } = await supabase
     .from("trip_batches")
-    .select("id, departure_date, price, remaining_seats")
+    .select("id, departure_date, return_date, price, remaining_seats")
     .eq("journey_id", journeyId)
     .neq("status", "CANCELLED")
     .gte("departure_date", today)
@@ -41,6 +42,7 @@ const fetchActiveDepartures = async (journeyId: string) => {
   return legacyData.map(d => ({
     id: d.id,
     date: d.departure_date,
+    returnDate: d.return_date || d.departure_date,
     basePrice: Number(d.price || 0),
     availableSeats: d.remaining_seats || 20
   }));

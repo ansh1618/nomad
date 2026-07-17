@@ -11,12 +11,54 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Bell, Moon, Sun, Search, LogOut, User, Settings } from "lucide-react";
-import { useState } from "react";
+import { Bell, Moon, Sun, Search, LogOut, User, Settings, CheckCircle2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
+import { useRealtimeNotifications } from "@/hooks/use-realtime-bookings";
+import { toast } from "sonner";
 
 export function AdminHeader() {
   const { admin, signOut } = useAdminAuth();
   const [isDark, setIsDark] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+
+  const unreadCount = notifications.filter((n) => !n.is_read).length;
+
+  const loadNotifications = async () => {
+    const { data } = await supabase
+      .from("notifications")
+      .select("*")
+      .eq("recipient_type", "ADMIN")
+      .order("created_at", { ascending: false })
+      .limit(10);
+    if (data) setNotifications(data);
+  };
+
+  useEffect(() => {
+    loadNotifications();
+  }, []);
+
+  useRealtimeNotifications((title, message) => {
+    toast.success(`${title}: ${message}`);
+    loadNotifications();
+  });
+
+  const markAllAsRead = async () => {
+    const unreadIds = notifications.filter((n) => !n.is_read).map((n) => n.id);
+    if (unreadIds.length === 0) return;
+
+    const { error } = await supabase
+      .from("notifications")
+      .update({ is_read: true })
+      .in("id", unreadIds);
+
+    if (error) {
+      toast.error(error.message);
+    } else {
+      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+      toast.success("All notifications marked as read");
+    }
+  };
 
   const toggleDarkMode = () => {
     setIsDark(!isDark);
@@ -50,10 +92,52 @@ export function AdminHeader() {
         </Button>
 
         {/* Notifications */}
-        <Button variant="ghost" size="icon" className="h-9 w-9 relative">
-          <Bell className="h-4 w-4" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full" />
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-9 w-9 relative">
+              <Bell className="h-4 w-4" />
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 min-w-[16px] h-4 bg-destructive rounded-full text-[9px] font-bold text-white flex items-center justify-center px-1">
+                  {unreadCount}
+                </span>
+              )}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-80 p-0 max-h-[80vh] overflow-y-auto bg-white border">
+            <div className="flex items-center justify-between p-3 border-b border-border bg-muted/10">
+              <span className="text-xs font-bold font-poppins">Admin Alerts</span>
+              {unreadCount > 0 && (
+                <button
+                  type="button"
+                  onClick={markAllAsRead}
+                  className="text-[10px] text-primary hover:underline font-semibold flex items-center gap-0.5"
+                >
+                  <CheckCircle2 className="h-3 w-3" /> Mark all read
+                </button>
+              )}
+            </div>
+            {notifications.length === 0 ? (
+              <div className="p-6 text-center text-xs text-muted-foreground">
+                No notifications yet.
+              </div>
+            ) : (
+              <div className="divide-y divide-border">
+                {notifications.map((notif) => (
+                  <div key={notif.id} className={`p-3 text-left space-y-1 text-xs transition-colors ${!notif.is_read ? 'bg-primary/5' : ''}`}>
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="font-semibold text-primary">{notif.title}</p>
+                      {!notif.is_read && <span className="w-1.5 h-1.5 bg-destructive rounded-full mt-1 shrink-0" />}
+                    </div>
+                    <p className="text-muted-foreground leading-relaxed">{notif.message}</p>
+                    <p className="text-[10px] text-muted-foreground/60 font-mono">
+                      {new Date(notif.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         <Separator orientation="vertical" className="h-6" />
 

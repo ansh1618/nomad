@@ -114,8 +114,28 @@ export function BookingWizard({ journey, departures }: { journey: any; departure
             </div>
             <div className="flex justify-between items-center">
               <span className="text-white/70">Departure</span>
-              <span className="font-semibold">
-                {departures.find(d => d.id === bookingData.departureId)?.date || "Not selected"}
+              <span className="font-semibold text-right">
+                {(() => {
+                  const dep = departures.find(d => d.id === bookingData.departureId)
+                  if (!dep) return "Not selected"
+                  const start = new Date(dep.date)
+                  let end = dep.returnDate ? new Date(dep.returnDate) : null
+
+                  const durationDays = journey.duration_days || 3
+                  if (!end || isNaN(end.getTime()) || end.getTime() === start.getTime() || end.getFullYear() > 2100) {
+                    end = new Date(start)
+                    end.setDate(start.getDate() + Math.max(0, durationDays - 1))
+                  }
+
+                  const startDay = start.getDate()
+                  const endDay = end.getDate()
+                  const startMonth = start.toLocaleDateString('en-US', { month: 'short' })
+                  const endMonth = end.toLocaleDateString('en-US', { month: 'short' })
+                  if (startMonth === endMonth) {
+                    return `${startDay} - ${endDay} ${startMonth}`
+                  }
+                  return `${startDay} ${startMonth} - ${endDay} ${endMonth}`
+                })()}
               </span>
             </div>
             <div className="flex justify-between items-center">

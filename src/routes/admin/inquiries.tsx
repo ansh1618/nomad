@@ -30,7 +30,6 @@ import {
   Loader2,
   Calendar,
   CheckCircle,
-  TrendingRight,
   Info,
   Trash2,
   UserCheck,
@@ -186,7 +185,7 @@ function InquiriesPage() {
 
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      await updateInquiry(id, { status })
+      await updateInquiry(id, { status: status as any })
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['inquiries_leads'] })
@@ -208,8 +207,11 @@ function InquiriesPage() {
       phone,
       destination_id: destId || null,
       message: message || null,
-      status: 'NEW',
-    })
+      status: 'NEW' as any,
+      source: 'MANUAL',
+      priority: 'MEDIUM',
+      traveller_count: 1,
+    } as any)
   }
 
   const moveForward = (lead: InquiryWithJoins) => {

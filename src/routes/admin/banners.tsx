@@ -70,7 +70,7 @@ function BannersPage() {
     formState: { errors },
     reset,
   } = useForm<BannerValues>({
-    resolver: zodResolver(bannerSchema),
+    resolver: zodResolver(bannerSchema) as any,
     defaultValues: {
       placement: 'HERO',
       is_active: true,
@@ -266,7 +266,7 @@ function BannersPage() {
             <DialogTitle className="font-poppins">{editingId ? 'Edit Block / Banner' : 'Create Block / Banner'}</DialogTitle>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit((v) => saveMutation.mutate(v))} className="p-6 space-y-4 flex-1">
+          <form onSubmit={handleSubmit((v) => saveMutation.mutate(v as any))} className="p-6 space-y-4 flex-1">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label>Placement Type</Label>

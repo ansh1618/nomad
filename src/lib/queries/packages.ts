@@ -41,7 +41,11 @@ function normalizeItineraryDays(days: any[]): ItineraryDay[] {
 const JOURNEY_SELECT = `
   *,
   destinations(id, slug, name, state, country, hero_image),
-  itinerary_days(*)
+  itinerary_days(*),
+  package_faqs(id, display_order, faq_library(*)),
+  custom_package_faqs(*),
+  transport(*),
+  accommodation(*)
 `
 
 const JOURNEY_LIST_SELECT = `
@@ -215,6 +219,36 @@ export async function getPackageBySlug(slug: string): Promise<Journey | null> {
     )
   }
 
+  // Fetch transport separately if not present
+  if (!journey.transport) {
+    try {
+      const { data: trans, error: transError } = await supabase
+        .from('transport')
+        .select('*')
+        .eq('package_id', journey.id)
+      if (!transError && trans) {
+        journey = { ...journey, transport: trans as any[] }
+      }
+    } catch (e) {
+      console.warn('[getPackageBySlug] Could not fetch transport separately:', e)
+    }
+  }
+
+  // Fetch accommodation separately if not present
+  if (!journey.accommodation) {
+    try {
+      const { data: acc, error: accError } = await supabase
+        .from('accommodation')
+        .select('*')
+        .eq('package_id', journey.id)
+      if (!accError && acc) {
+        journey = { ...journey, accommodation: acc as any[] }
+      }
+    } catch (e) {
+      console.warn('[getPackageBySlug] Could not fetch accommodation separately:', e)
+    }
+  }
+
   const j = journey as any
   if (j.price && !journey.starting_price) journey = { ...journey, starting_price: Number(j.price) }
   if (j.gallery?.length > 0 && !journey.hero_banner) journey = { ...journey, hero_banner: j.gallery[0] }
@@ -298,6 +332,36 @@ export async function getPackageById(id: string): Promise<Journey | null> {
       (a: ItineraryDay, b: ItineraryDay) =>
         (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.day_number - b.day_number
     )
+  }
+
+  // Fetch transport separately if not present
+  if (!journey.transport) {
+    try {
+      const { data: trans, error: transError } = await supabase
+        .from('transport')
+        .select('*')
+        .eq('package_id', journey.id)
+      if (!transError && trans) {
+        journey = { ...journey, transport: trans as any[] }
+      }
+    } catch (e) {
+      console.warn('[getPackageById] Could not fetch transport separately:', e)
+    }
+  }
+
+  // Fetch accommodation separately if not present
+  if (!journey.accommodation) {
+    try {
+      const { data: acc, error: accError } = await supabase
+        .from('accommodation')
+        .select('*')
+        .eq('package_id', journey.id)
+      if (!accError && acc) {
+        journey = { ...journey, accommodation: acc as any[] }
+      }
+    } catch (e) {
+      console.warn('[getPackageById] Could not fetch accommodation separately:', e)
+    }
   }
 
   // Legacy price/banner compat
@@ -640,4 +704,66 @@ export async function getPackageRevisions(journeyId: string) {
 
   if (error) throw new Error(error.message)
   return data ?? []
+}
+
+// ==========================================
+// DUPLICATE PACKAGE
+// ==========================================
+export async function duplicatePackage(id: string): Promise<Journey> {
+  const original = await getPackageById(id)
+  if (!original) throw new Error('Package not found')
+
+  const uniqueSuffix = Math.random().toString(36).substring(2, 6)
+  const newSlug = `${original.slug}-copy-${uniqueSuffix}`
+  const newName = `${original.name} (Copy)`
+
+  const {
+    id: _,
+    created_at: _2,
+    updated_at: _3,
+    avg_rating: _4,
+    review_count: _5,
+    booking_count: _6,
+    itinerary_days: originalDays,
+    destinations: _7,
+    trip_captains: _8,
+    ...rest
+  } = original as any
+
+  const payload = {
+    ...rest,
+    name: newName,
+    slug: newSlug,
+    status: 'DRAFT',
+    is_published: false,
+    is_featured: false,
+  }
+
+  const { data: newJourney, error: insertError } = await supabase
+    .from('journeys')
+    .insert(payload)
+    .select('*')
+    .single()
+
+  if (insertError) throw new Error(`Failed to create duplicate package: ${insertError.message}`)
+
+  if (originalDays && originalDays.length > 0) {
+    const daysToInsert = originalDays.map((day: any) => {
+      const { id: _dId, created_at: _dC, updated_at: _dU, journey_id: _dJ, ...dayRest } = day
+      return {
+        ...dayRest,
+        journey_id: newJourney.id,
+      }
+    })
+
+    const { error: daysError } = await supabase
+      .from('itinerary_days')
+      .insert(daysToInsert)
+
+    if (daysError) {
+      console.warn('Failed to duplicate itinerary days:', daysError.message)
+    }
+  }
+
+  return newJourney as Journey
 }

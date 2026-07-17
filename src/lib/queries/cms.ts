@@ -642,3 +642,97 @@ export async function getPublishedStories(limit = 6): Promise<PublishedStory[]> 
   if (error) throw new Error(error.message)
   return (data ?? []) as PublishedStory[]
 }
+
+// ============================================================
+// Master FAQ Library API Helpers
+// ============================================================
+
+export interface FaqLibraryParams {
+  page?: number
+  pageSize?: number
+  search?: string
+  category?: string
+  sortBy?: string
+  sortDir?: 'asc' | 'desc'
+}
+
+export async function getFaqLibrary(params: FaqLibraryParams = {}) {
+  const { page = 1, pageSize = 20, search, category, sortBy = 'created_at', sortDir = 'desc' } = params
+
+  let query = supabase.from('faq_library').select('*', { count: 'exact' })
+
+  if (search) {
+    query = query.or(`question.ilike.%${search}%,answer.ilike.%${search}%`)
+  }
+  if (category) {
+    query = query.eq('category', category)
+  }
+
+  query = query.order(sortBy, { ascending: sortDir === 'asc' })
+  query = query.range((page - 1) * pageSize, page * pageSize - 1)
+
+  const { data, error, count } = await query
+  if (error) {
+    if (error.code === 'PGRST205' || error.message.includes('faq_library')) {
+      console.warn("faq_library schema table doesn't exist yet, returning empty preset.");
+      return { data: [], total: 0, page, pageSize, totalPages: 0 }
+    }
+    throw new Error(error.message)
+  }
+
+  // Count usage in packages
+  const { data: mappings } = await supabase.from('package_faqs').select('faq_id')
+  const mappingCounts = (mappings || []).reduce((acc: Record<string, number>, curr: any) => {
+    acc[curr.faq_id] = (acc[curr.faq_id] || 0) + 1
+    return acc
+  }, {})
+
+  const enrichedData = (data || []).map((faq: any) => ({
+    ...faq,
+    used_count: mappingCounts[faq.id] || 0
+  }))
+
+  return {
+    data: enrichedData,
+    total: count ?? 0,
+    page,
+    pageSize,
+    totalPages: Math.ceil((count ?? 0) / pageSize),
+  }
+}
+
+export async function getFaqLibraryPresets() {
+  const { data, error } = await supabase.from('faq_library').select('*').eq('status', 'active')
+  if (error) return []
+  return data
+}
+
+export async function createLibraryFaq(data: any) {
+  const { data: faq, error } = await supabase
+    .from('faq_library')
+    .insert(data)
+    .select()
+    .single()
+  if (error) throw new Error(error.message)
+  return faq
+}
+
+export async function updateLibraryFaq(id: string, data: any) {
+  const { data: faq, error } = await supabase
+    .from('faq_library')
+    .update(data)
+    .eq('id', id)
+    .select()
+    .single()
+  if (error) throw new Error(error.message)
+  return faq
+}
+
+export async function deleteLibraryFaq(id: string) {
+  const { error } = await supabase
+    .from('faq_library')
+    .delete()
+    .eq('id', id)
+  if (error) throw new Error(error.message)
+  return true
+}

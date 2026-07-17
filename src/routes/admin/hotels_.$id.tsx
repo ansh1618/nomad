@@ -93,7 +93,7 @@ function HotelFormPage() {
     formState: { errors },
     reset,
   } = useForm<HotelFormValues>({
-    resolver: zodResolver(hotelSchema),
+    resolver: zodResolver(hotelSchema) as any,
     defaultValues: {
       star_rating: 3,
       check_in_time: '14:00',
@@ -122,7 +122,7 @@ function HotelFormPage() {
         is_active: hotel.is_active,
         notes: hotel.notes ?? '',
       })
-      setGallery((hotel.gallery as string[]) ?? [])
+      setGallery((hotel.gallery as any[])?.map((item) => typeof item === 'string' ? item : item.url || '') ?? [])
       setAmenities(hotel.amenities ?? [])
       setRooms((hotel.hotel_rooms as any[])?.map(r => ({
         id: r.id,
@@ -139,16 +139,21 @@ function HotelFormPage() {
       const payload = {
         ...values,
         destination_id: values.destination_id || null,
-        gallery,
+        gallery: gallery.map((url) => ({ url })),
         amenities,
         created_by: admin?.id ?? null,
+        location: null,
+        slug: values.name.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').trim(),
+        latitude: null,
+        longitude: null,
+        meal_plans: [],
       }
 
       let savedHotel
       if (isNew) {
-        savedHotel = await createHotel(payload)
+        savedHotel = await createHotel(payload as any)
       } else {
-        savedHotel = await updateHotel(id, payload)
+        savedHotel = await updateHotel(id, payload as any)
       }
 
       // Sync Rooms
@@ -241,7 +246,7 @@ function HotelFormPage() {
           </h1>
         </div>
         <Button
-          onClick={handleSubmit((v) => saveMutation.mutate(v), onInvalid)}
+          onClick={handleSubmit((v) => saveMutation.mutate(v as any), onInvalid)}
           disabled={saveMutation.isPending}
           className="gap-1.5"
         >

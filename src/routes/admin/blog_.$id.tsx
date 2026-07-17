@@ -12,6 +12,7 @@ import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ImageField } from '@/components/admin/MediaPicker'
 import { toast } from 'sonner'
 import {
@@ -34,7 +35,9 @@ const blogSchema = z.object({
   excerpt: z.string().optional(),
   content: z.string().min(10, 'Content is required'),
   featured_image: z.string().optional(),
+  category: z.string().min(1, 'Category is required'),
   is_published: z.boolean().default(false),
+  is_featured: z.boolean().default(false),
   seo_title: z.string().optional(),
   seo_description: z.string().optional(),
 })
@@ -62,9 +65,11 @@ function BlogFormPage() {
     formState: { errors },
     reset,
   } = useForm<BlogFormValues>({
-    resolver: zodResolver(blogSchema),
+    resolver: zodResolver(blogSchema) as any,
     defaultValues: {
       is_published: false,
+      is_featured: false,
+      category: 'SOLO TRAVEL',
     },
   })
 
@@ -77,7 +82,9 @@ function BlogFormPage() {
         excerpt: blog.excerpt ?? '',
         content: blog.content,
         featured_image: blog.featured_image ?? '',
+        category: blog.category || 'SOLO TRAVEL',
         is_published: blog.is_published,
+        is_featured: blog.is_featured || false,
         seo_title: blog.seo?.title ?? '',
         seo_description: blog.seo?.description ?? '',
       })
@@ -99,12 +106,13 @@ function BlogFormPage() {
         ...rest,
         seo: seo_title || seo_description ? { title: seo_title, description: seo_description } : null,
         author_id: admin?.id ?? null,
+        gallery: blog?.gallery || [],
       }
 
       if (isNew) {
         return createBlog(payload as Parameters<typeof createBlog>[0])
       }
-      return updateBlog(id, payload)
+      return updateBlog(id, payload as Parameters<typeof updateBlog>[1])
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['blogs_list'] })
@@ -162,7 +170,7 @@ function BlogFormPage() {
             </a>
           )}
           <Button
-            onClick={handleSubmit((v) => saveMutation.mutate(v), onInvalid)}
+            onClick={handleSubmit((v) => saveMutation.mutate(v as any), onInvalid)}
             disabled={saveMutation.isPending}
             className="gap-1.5"
           >
@@ -172,7 +180,7 @@ function BlogFormPage() {
         </div>
       </motion.div>
 
-      <form onSubmit={handleSubmit((v) => saveMutation.mutate(v), onInvalid)} className="space-y-6">
+      <form onSubmit={handleSubmit((v) => saveMutation.mutate(v as any), onInvalid)} className="space-y-6">
         <Tabs defaultValue="basic" className="space-y-6">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="basic">Article Details</TabsTrigger>
@@ -203,6 +211,35 @@ function BlogFormPage() {
                 <div className="space-y-1.5">
                   <Label>Excerpt / Summary</Label>
                   <Textarea {...register('excerpt')} placeholder="A short 1-2 sentence description shown in blog grid cards..." rows={3} />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label>Category *</Label>
+                    <Select
+                      value={watch('category') || 'SOLO TRAVEL'}
+                      onValueChange={(v) => setValue('category', v, { shouldDirty: true })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {["SOLO TRAVEL", "ADVENTURE", "HIGH ALTITUDE", "NATURE", "COMMUNITY", "TIPS & GUIDES"].map((cat) => (
+                          <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5 flex items-center justify-between pt-6 px-2">
+                    <div>
+                      <Label>Featured Article</Label>
+                      <p className="text-[10px] text-muted-foreground">Showcase as banner at top of stories page</p>
+                    </div>
+                    <Switch
+                      checked={watch('is_featured')}
+                      onCheckedChange={(v) => setValue('is_featured', v, { shouldDirty: true })}
+                    />
+                  </div>
                 </div>
 
                 <ImageField

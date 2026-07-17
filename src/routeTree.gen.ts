@@ -9,27 +9,34 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as UdaipurRouteImport } from './routes/udaipur'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as StoriesRouteImport } from './routes/stories'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
-import { Route as McleodganjRouteImport } from './routes/mcleodganj'
-import { Route as ManaliRouteImport } from './routes/manali'
-import { Route as JibhiRouteImport } from './routes/jibhi'
+import { Route as SignupRouteImport } from './routes/signup'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as ExplorerRouteImport } from './routes/explorer'
 import { Route as DestinationsRouteImport } from './routes/destinations'
 import { Route as ContactRouteImport } from './routes/contact'
-import { Route as ChoptaTungnathRouteImport } from './routes/chopta-tungnath'
+import { Route as CancellationRouteImport } from './routes/cancellation'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as AboutRouteImport } from './routes/about'
+import { Route as SlugRouteImport } from './routes/$slug'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as StoriesSlugRouteImport } from './routes/stories_.$slug'
 import { Route as JourneysJourneyIdRouteImport } from './routes/journeys/$journeyId'
 import { Route as DestinationsSlugRouteImport } from './routes/destinations_.$slug'
 import { Route as BookingSuccessRouteImport } from './routes/booking.success'
 import { Route as BookJourneyIdRouteImport } from './routes/book.$journeyId'
+import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
 import { Route as AdminWebsiteRouteImport } from './routes/admin/website'
 import { Route as AdminTripCalendarRouteImport } from './routes/admin/trip-calendar'
 import { Route as AdminSuperAdminRouteImport } from './routes/admin/super-admin'
+import { Route as AdminStoriesRouteImport } from './routes/admin/stories'
 import { Route as AdminSettingsRouteImport } from './routes/admin/settings'
 import { Route as AdminSeatsRouteImport } from './routes/admin/seats'
 import { Route as AdminRoomsRouteImport } from './routes/admin/rooms'
@@ -40,15 +47,18 @@ import { Route as AdminNotificationsRouteImport } from './routes/admin/notificat
 import { Route as AdminMediaRouteImport } from './routes/admin/media'
 import { Route as AdminLoginRouteImport } from './routes/admin/login'
 import { Route as AdminLiveTripsRouteImport } from './routes/admin/live-trips'
+import { Route as AdminItineraryPdfsRouteImport } from './routes/admin/itinerary-pdfs'
 import { Route as AdminInvoicesRouteImport } from './routes/admin/invoices'
 import { Route as AdminInquiriesRouteImport } from './routes/admin/inquiries'
 import { Route as AdminHotelsRouteImport } from './routes/admin/hotels'
+import { Route as AdminFaqsRouteImport } from './routes/admin/faqs'
 import { Route as AdminExpensesRouteImport } from './routes/admin/expenses'
 import { Route as AdminEmployeesRouteImport } from './routes/admin/employees'
 import { Route as AdminDestinationsRouteImport } from './routes/admin/destinations'
 import { Route as AdminDeparturesRouteImport } from './routes/admin/departures'
 import { Route as AdminCustomersRouteImport } from './routes/admin/customers'
 import { Route as AdminCouponsRouteImport } from './routes/admin/coupons'
+import { Route as AdminCommunityRouteImport } from './routes/admin/community'
 import { Route as AdminBusesRouteImport } from './routes/admin/buses'
 import { Route as AdminBookingsRouteImport } from './routes/admin/bookings'
 import { Route as AdminBlogRouteImport } from './routes/admin/blog'
@@ -56,6 +66,7 @@ import { Route as AdminBannersRouteImport } from './routes/admin/banners'
 import { Route as AdminAnalyticsRouteImport } from './routes/admin/analytics'
 import { Route as AdminActivityRouteImport } from './routes/admin/activity'
 import { Route as AdminWebsiteSectionRouteImport } from './routes/admin/website_.$section'
+import { Route as AdminStoriesIdRouteImport } from './routes/admin/stories_.$id'
 import { Route as AdminPackagesIdRouteImport } from './routes/admin/packages_.$id'
 import { Route as AdminHotelsIdRouteImport } from './routes/admin/hotels_.$id'
 import { Route as AdminDestinationsIdRouteImport } from './routes/admin/destinations_.$id'
@@ -63,10 +74,11 @@ import { Route as AdminDeparturesIdRouteImport } from './routes/admin/departures
 import { Route as AdminBusesIdRouteImport } from './routes/admin/buses_.$id'
 import { Route as AdminBookingsIdRouteImport } from './routes/admin/bookings_.$id'
 import { Route as AdminBlogIdRouteImport } from './routes/admin/blog_.$id'
+import { Route as AccountItinerarySlugRouteImport } from './routes/account_.itinerary.$slug'
 
-const UdaipurRoute = UdaipurRouteImport.update({
-  id: '/udaipur',
-  path: '/udaipur',
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StoriesRoute = StoriesRouteImport.update({
@@ -79,19 +91,34 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
-const McleodganjRoute = McleodganjRouteImport.update({
-  id: '/mcleodganj',
-  path: '/mcleodganj',
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ManaliRoute = ManaliRouteImport.update({
-  id: '/manali',
-  path: '/manali',
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
-const JibhiRoute = JibhiRouteImport.update({
-  id: '/jibhi',
-  path: '/jibhi',
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExplorerRoute = ExplorerRouteImport.update({
+  id: '/explorer',
+  path: '/explorer',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DestinationsRoute = DestinationsRouteImport.update({
@@ -104,9 +131,9 @@ const ContactRoute = ContactRouteImport.update({
   path: '/contact',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ChoptaTungnathRoute = ChoptaTungnathRouteImport.update({
-  id: '/chopta-tungnath',
-  path: '/chopta-tungnath',
+const CancellationRoute = CancellationRouteImport.update({
+  id: '/cancellation',
+  path: '/cancellation',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -124,6 +151,11 @@ const AboutRoute = AboutRouteImport.update({
   path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SlugRoute = SlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -133,6 +165,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AdminRoute,
+} as any)
+const StoriesSlugRoute = StoriesSlugRouteImport.update({
+  id: '/stories_/$slug',
+  path: '/stories/$slug',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const JourneysJourneyIdRoute = JourneysJourneyIdRouteImport.update({
   id: '/journeys/$journeyId',
@@ -154,6 +191,11 @@ const BookJourneyIdRoute = BookJourneyIdRouteImport.update({
   path: '/book/$journeyId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/auth/callback',
+  path: '/auth/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminWebsiteRoute = AdminWebsiteRouteImport.update({
   id: '/website',
   path: '/website',
@@ -167,6 +209,11 @@ const AdminTripCalendarRoute = AdminTripCalendarRouteImport.update({
 const AdminSuperAdminRoute = AdminSuperAdminRouteImport.update({
   id: '/super-admin',
   path: '/super-admin',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminStoriesRoute = AdminStoriesRouteImport.update({
+  id: '/stories',
+  path: '/stories',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminSettingsRoute = AdminSettingsRouteImport.update({
@@ -219,6 +266,11 @@ const AdminLiveTripsRoute = AdminLiveTripsRouteImport.update({
   path: '/live-trips',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminItineraryPdfsRoute = AdminItineraryPdfsRouteImport.update({
+  id: '/itinerary-pdfs',
+  path: '/itinerary-pdfs',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminInvoicesRoute = AdminInvoicesRouteImport.update({
   id: '/invoices',
   path: '/invoices',
@@ -232,6 +284,11 @@ const AdminInquiriesRoute = AdminInquiriesRouteImport.update({
 const AdminHotelsRoute = AdminHotelsRouteImport.update({
   id: '/hotels',
   path: '/hotels',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminFaqsRoute = AdminFaqsRouteImport.update({
+  id: '/faqs',
+  path: '/faqs',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminExpensesRoute = AdminExpensesRouteImport.update({
@@ -262,6 +319,11 @@ const AdminCustomersRoute = AdminCustomersRouteImport.update({
 const AdminCouponsRoute = AdminCouponsRouteImport.update({
   id: '/coupons',
   path: '/coupons',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCommunityRoute = AdminCommunityRouteImport.update({
+  id: '/community',
+  path: '/community',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminBusesRoute = AdminBusesRouteImport.update({
@@ -299,6 +361,11 @@ const AdminWebsiteSectionRoute = AdminWebsiteSectionRouteImport.update({
   path: '/website/$section',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminStoriesIdRoute = AdminStoriesIdRouteImport.update({
+  id: '/stories_/$id',
+  path: '/stories/$id',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminPackagesIdRoute = AdminPackagesIdRouteImport.update({
   id: '/packages_/$id',
   path: '/packages/$id',
@@ -334,36 +401,48 @@ const AdminBlogIdRoute = AdminBlogIdRouteImport.update({
   path: '/blog/$id',
   getParentRoute: () => AdminRoute,
 } as any)
+const AccountItinerarySlugRoute = AccountItinerarySlugRouteImport.update({
+  id: '/account_/itinerary/$slug',
+  path: '/account/itinerary/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/$slug': typeof SlugRoute
   '/about': typeof AboutRoute
   '/account': typeof AccountRoute
   '/admin': typeof AdminRouteWithChildren
-  '/chopta-tungnath': typeof ChoptaTungnathRoute
+  '/cancellation': typeof CancellationRoute
   '/contact': typeof ContactRoute
   '/destinations': typeof DestinationsRoute
-  '/jibhi': typeof JibhiRoute
-  '/manali': typeof ManaliRoute
-  '/mcleodganj': typeof McleodganjRoute
+  '/explorer': typeof ExplorerRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/login': typeof LoginRoute
+  '/privacy': typeof PrivacyRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/stories': typeof StoriesRoute
-  '/udaipur': typeof UdaipurRoute
+  '/terms': typeof TermsRoute
   '/admin/activity': typeof AdminActivityRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/banners': typeof AdminBannersRoute
   '/admin/blog': typeof AdminBlogRoute
   '/admin/bookings': typeof AdminBookingsRoute
   '/admin/buses': typeof AdminBusesRoute
+  '/admin/community': typeof AdminCommunityRoute
   '/admin/coupons': typeof AdminCouponsRoute
   '/admin/customers': typeof AdminCustomersRoute
   '/admin/departures': typeof AdminDeparturesRoute
   '/admin/destinations': typeof AdminDestinationsRoute
   '/admin/employees': typeof AdminEmployeesRoute
   '/admin/expenses': typeof AdminExpensesRoute
+  '/admin/faqs': typeof AdminFaqsRoute
   '/admin/hotels': typeof AdminHotelsRoute
   '/admin/inquiries': typeof AdminInquiriesRoute
   '/admin/invoices': typeof AdminInvoicesRoute
+  '/admin/itinerary-pdfs': typeof AdminItineraryPdfsRoute
   '/admin/live-trips': typeof AdminLiveTripsRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/media': typeof AdminMediaRoute
@@ -374,14 +453,18 @@ export interface FileRoutesByFullPath {
   '/admin/rooms': typeof AdminRoomsRoute
   '/admin/seats': typeof AdminSeatsRoute
   '/admin/settings': typeof AdminSettingsRoute
+  '/admin/stories': typeof AdminStoriesRoute
   '/admin/super-admin': typeof AdminSuperAdminRoute
   '/admin/trip-calendar': typeof AdminTripCalendarRoute
   '/admin/website': typeof AdminWebsiteRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/book/$journeyId': typeof BookJourneyIdRoute
   '/booking/success': typeof BookingSuccessRoute
   '/destinations/$slug': typeof DestinationsSlugRoute
   '/journeys/$journeyId': typeof JourneysJourneyIdRoute
+  '/stories/$slug': typeof StoriesSlugRoute
   '/admin/': typeof AdminIndexRoute
+  '/account/itinerary/$slug': typeof AccountItinerarySlugRoute
   '/admin/blog/$id': typeof AdminBlogIdRoute
   '/admin/bookings/$id': typeof AdminBookingsIdRoute
   '/admin/buses/$id': typeof AdminBusesIdRoute
@@ -389,36 +472,44 @@ export interface FileRoutesByFullPath {
   '/admin/destinations/$id': typeof AdminDestinationsIdRoute
   '/admin/hotels/$id': typeof AdminHotelsIdRoute
   '/admin/packages/$id': typeof AdminPackagesIdRoute
+  '/admin/stories/$id': typeof AdminStoriesIdRoute
   '/admin/website/$section': typeof AdminWebsiteSectionRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/$slug': typeof SlugRoute
   '/about': typeof AboutRoute
   '/account': typeof AccountRoute
-  '/chopta-tungnath': typeof ChoptaTungnathRoute
+  '/cancellation': typeof CancellationRoute
   '/contact': typeof ContactRoute
   '/destinations': typeof DestinationsRoute
-  '/jibhi': typeof JibhiRoute
-  '/manali': typeof ManaliRoute
-  '/mcleodganj': typeof McleodganjRoute
+  '/explorer': typeof ExplorerRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/login': typeof LoginRoute
+  '/privacy': typeof PrivacyRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/stories': typeof StoriesRoute
-  '/udaipur': typeof UdaipurRoute
+  '/terms': typeof TermsRoute
   '/admin/activity': typeof AdminActivityRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/banners': typeof AdminBannersRoute
   '/admin/blog': typeof AdminBlogRoute
   '/admin/bookings': typeof AdminBookingsRoute
   '/admin/buses': typeof AdminBusesRoute
+  '/admin/community': typeof AdminCommunityRoute
   '/admin/coupons': typeof AdminCouponsRoute
   '/admin/customers': typeof AdminCustomersRoute
   '/admin/departures': typeof AdminDeparturesRoute
   '/admin/destinations': typeof AdminDestinationsRoute
   '/admin/employees': typeof AdminEmployeesRoute
   '/admin/expenses': typeof AdminExpensesRoute
+  '/admin/faqs': typeof AdminFaqsRoute
   '/admin/hotels': typeof AdminHotelsRoute
   '/admin/inquiries': typeof AdminInquiriesRoute
   '/admin/invoices': typeof AdminInvoicesRoute
+  '/admin/itinerary-pdfs': typeof AdminItineraryPdfsRoute
   '/admin/live-trips': typeof AdminLiveTripsRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/media': typeof AdminMediaRoute
@@ -429,14 +520,18 @@ export interface FileRoutesByTo {
   '/admin/rooms': typeof AdminRoomsRoute
   '/admin/seats': typeof AdminSeatsRoute
   '/admin/settings': typeof AdminSettingsRoute
+  '/admin/stories': typeof AdminStoriesRoute
   '/admin/super-admin': typeof AdminSuperAdminRoute
   '/admin/trip-calendar': typeof AdminTripCalendarRoute
   '/admin/website': typeof AdminWebsiteRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/book/$journeyId': typeof BookJourneyIdRoute
   '/booking/success': typeof BookingSuccessRoute
   '/destinations/$slug': typeof DestinationsSlugRoute
   '/journeys/$journeyId': typeof JourneysJourneyIdRoute
+  '/stories/$slug': typeof StoriesSlugRoute
   '/admin': typeof AdminIndexRoute
+  '/account/itinerary/$slug': typeof AccountItinerarySlugRoute
   '/admin/blog/$id': typeof AdminBlogIdRoute
   '/admin/bookings/$id': typeof AdminBookingsIdRoute
   '/admin/buses/$id': typeof AdminBusesIdRoute
@@ -444,38 +539,46 @@ export interface FileRoutesByTo {
   '/admin/destinations/$id': typeof AdminDestinationsIdRoute
   '/admin/hotels/$id': typeof AdminHotelsIdRoute
   '/admin/packages/$id': typeof AdminPackagesIdRoute
+  '/admin/stories/$id': typeof AdminStoriesIdRoute
   '/admin/website/$section': typeof AdminWebsiteSectionRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/$slug': typeof SlugRoute
   '/about': typeof AboutRoute
   '/account': typeof AccountRoute
   '/admin': typeof AdminRouteWithChildren
-  '/chopta-tungnath': typeof ChoptaTungnathRoute
+  '/cancellation': typeof CancellationRoute
   '/contact': typeof ContactRoute
   '/destinations': typeof DestinationsRoute
-  '/jibhi': typeof JibhiRoute
-  '/manali': typeof ManaliRoute
-  '/mcleodganj': typeof McleodganjRoute
+  '/explorer': typeof ExplorerRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/login': typeof LoginRoute
+  '/privacy': typeof PrivacyRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/stories': typeof StoriesRoute
-  '/udaipur': typeof UdaipurRoute
+  '/terms': typeof TermsRoute
   '/admin/activity': typeof AdminActivityRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/banners': typeof AdminBannersRoute
   '/admin/blog': typeof AdminBlogRoute
   '/admin/bookings': typeof AdminBookingsRoute
   '/admin/buses': typeof AdminBusesRoute
+  '/admin/community': typeof AdminCommunityRoute
   '/admin/coupons': typeof AdminCouponsRoute
   '/admin/customers': typeof AdminCustomersRoute
   '/admin/departures': typeof AdminDeparturesRoute
   '/admin/destinations': typeof AdminDestinationsRoute
   '/admin/employees': typeof AdminEmployeesRoute
   '/admin/expenses': typeof AdminExpensesRoute
+  '/admin/faqs': typeof AdminFaqsRoute
   '/admin/hotels': typeof AdminHotelsRoute
   '/admin/inquiries': typeof AdminInquiriesRoute
   '/admin/invoices': typeof AdminInvoicesRoute
+  '/admin/itinerary-pdfs': typeof AdminItineraryPdfsRoute
   '/admin/live-trips': typeof AdminLiveTripsRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/media': typeof AdminMediaRoute
@@ -486,14 +589,18 @@ export interface FileRoutesById {
   '/admin/rooms': typeof AdminRoomsRoute
   '/admin/seats': typeof AdminSeatsRoute
   '/admin/settings': typeof AdminSettingsRoute
+  '/admin/stories': typeof AdminStoriesRoute
   '/admin/super-admin': typeof AdminSuperAdminRoute
   '/admin/trip-calendar': typeof AdminTripCalendarRoute
   '/admin/website': typeof AdminWebsiteRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/book/$journeyId': typeof BookJourneyIdRoute
   '/booking/success': typeof BookingSuccessRoute
   '/destinations_/$slug': typeof DestinationsSlugRoute
   '/journeys/$journeyId': typeof JourneysJourneyIdRoute
+  '/stories_/$slug': typeof StoriesSlugRoute
   '/admin/': typeof AdminIndexRoute
+  '/account_/itinerary/$slug': typeof AccountItinerarySlugRoute
   '/admin/blog_/$id': typeof AdminBlogIdRoute
   '/admin/bookings_/$id': typeof AdminBookingsIdRoute
   '/admin/buses_/$id': typeof AdminBusesIdRoute
@@ -501,39 +608,47 @@ export interface FileRoutesById {
   '/admin/destinations_/$id': typeof AdminDestinationsIdRoute
   '/admin/hotels_/$id': typeof AdminHotelsIdRoute
   '/admin/packages_/$id': typeof AdminPackagesIdRoute
+  '/admin/stories_/$id': typeof AdminStoriesIdRoute
   '/admin/website_/$section': typeof AdminWebsiteSectionRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/$slug'
     | '/about'
     | '/account'
     | '/admin'
-    | '/chopta-tungnath'
+    | '/cancellation'
     | '/contact'
     | '/destinations'
-    | '/jibhi'
-    | '/manali'
-    | '/mcleodganj'
+    | '/explorer'
+    | '/forgot-password'
+    | '/login'
+    | '/privacy'
+    | '/reset-password'
+    | '/signup'
     | '/sitemap.xml'
     | '/stories'
-    | '/udaipur'
+    | '/terms'
     | '/admin/activity'
     | '/admin/analytics'
     | '/admin/banners'
     | '/admin/blog'
     | '/admin/bookings'
     | '/admin/buses'
+    | '/admin/community'
     | '/admin/coupons'
     | '/admin/customers'
     | '/admin/departures'
     | '/admin/destinations'
     | '/admin/employees'
     | '/admin/expenses'
+    | '/admin/faqs'
     | '/admin/hotels'
     | '/admin/inquiries'
     | '/admin/invoices'
+    | '/admin/itinerary-pdfs'
     | '/admin/live-trips'
     | '/admin/login'
     | '/admin/media'
@@ -544,14 +659,18 @@ export interface FileRouteTypes {
     | '/admin/rooms'
     | '/admin/seats'
     | '/admin/settings'
+    | '/admin/stories'
     | '/admin/super-admin'
     | '/admin/trip-calendar'
     | '/admin/website'
+    | '/auth/callback'
     | '/book/$journeyId'
     | '/booking/success'
     | '/destinations/$slug'
     | '/journeys/$journeyId'
+    | '/stories/$slug'
     | '/admin/'
+    | '/account/itinerary/$slug'
     | '/admin/blog/$id'
     | '/admin/bookings/$id'
     | '/admin/buses/$id'
@@ -559,36 +678,44 @@ export interface FileRouteTypes {
     | '/admin/destinations/$id'
     | '/admin/hotels/$id'
     | '/admin/packages/$id'
+    | '/admin/stories/$id'
     | '/admin/website/$section'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/$slug'
     | '/about'
     | '/account'
-    | '/chopta-tungnath'
+    | '/cancellation'
     | '/contact'
     | '/destinations'
-    | '/jibhi'
-    | '/manali'
-    | '/mcleodganj'
+    | '/explorer'
+    | '/forgot-password'
+    | '/login'
+    | '/privacy'
+    | '/reset-password'
+    | '/signup'
     | '/sitemap.xml'
     | '/stories'
-    | '/udaipur'
+    | '/terms'
     | '/admin/activity'
     | '/admin/analytics'
     | '/admin/banners'
     | '/admin/blog'
     | '/admin/bookings'
     | '/admin/buses'
+    | '/admin/community'
     | '/admin/coupons'
     | '/admin/customers'
     | '/admin/departures'
     | '/admin/destinations'
     | '/admin/employees'
     | '/admin/expenses'
+    | '/admin/faqs'
     | '/admin/hotels'
     | '/admin/inquiries'
     | '/admin/invoices'
+    | '/admin/itinerary-pdfs'
     | '/admin/live-trips'
     | '/admin/login'
     | '/admin/media'
@@ -599,14 +726,18 @@ export interface FileRouteTypes {
     | '/admin/rooms'
     | '/admin/seats'
     | '/admin/settings'
+    | '/admin/stories'
     | '/admin/super-admin'
     | '/admin/trip-calendar'
     | '/admin/website'
+    | '/auth/callback'
     | '/book/$journeyId'
     | '/booking/success'
     | '/destinations/$slug'
     | '/journeys/$journeyId'
+    | '/stories/$slug'
     | '/admin'
+    | '/account/itinerary/$slug'
     | '/admin/blog/$id'
     | '/admin/bookings/$id'
     | '/admin/buses/$id'
@@ -614,37 +745,45 @@ export interface FileRouteTypes {
     | '/admin/destinations/$id'
     | '/admin/hotels/$id'
     | '/admin/packages/$id'
+    | '/admin/stories/$id'
     | '/admin/website/$section'
   id:
     | '__root__'
     | '/'
+    | '/$slug'
     | '/about'
     | '/account'
     | '/admin'
-    | '/chopta-tungnath'
+    | '/cancellation'
     | '/contact'
     | '/destinations'
-    | '/jibhi'
-    | '/manali'
-    | '/mcleodganj'
+    | '/explorer'
+    | '/forgot-password'
+    | '/login'
+    | '/privacy'
+    | '/reset-password'
+    | '/signup'
     | '/sitemap.xml'
     | '/stories'
-    | '/udaipur'
+    | '/terms'
     | '/admin/activity'
     | '/admin/analytics'
     | '/admin/banners'
     | '/admin/blog'
     | '/admin/bookings'
     | '/admin/buses'
+    | '/admin/community'
     | '/admin/coupons'
     | '/admin/customers'
     | '/admin/departures'
     | '/admin/destinations'
     | '/admin/employees'
     | '/admin/expenses'
+    | '/admin/faqs'
     | '/admin/hotels'
     | '/admin/inquiries'
     | '/admin/invoices'
+    | '/admin/itinerary-pdfs'
     | '/admin/live-trips'
     | '/admin/login'
     | '/admin/media'
@@ -655,14 +794,18 @@ export interface FileRouteTypes {
     | '/admin/rooms'
     | '/admin/seats'
     | '/admin/settings'
+    | '/admin/stories'
     | '/admin/super-admin'
     | '/admin/trip-calendar'
     | '/admin/website'
+    | '/auth/callback'
     | '/book/$journeyId'
     | '/booking/success'
     | '/destinations_/$slug'
     | '/journeys/$journeyId'
+    | '/stories_/$slug'
     | '/admin/'
+    | '/account_/itinerary/$slug'
     | '/admin/blog_/$id'
     | '/admin/bookings_/$id'
     | '/admin/buses_/$id'
@@ -670,36 +813,44 @@ export interface FileRouteTypes {
     | '/admin/destinations_/$id'
     | '/admin/hotels_/$id'
     | '/admin/packages_/$id'
+    | '/admin/stories_/$id'
     | '/admin/website_/$section'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  SlugRoute: typeof SlugRoute
   AboutRoute: typeof AboutRoute
   AccountRoute: typeof AccountRoute
   AdminRoute: typeof AdminRouteWithChildren
-  ChoptaTungnathRoute: typeof ChoptaTungnathRoute
+  CancellationRoute: typeof CancellationRoute
   ContactRoute: typeof ContactRoute
   DestinationsRoute: typeof DestinationsRoute
-  JibhiRoute: typeof JibhiRoute
-  ManaliRoute: typeof ManaliRoute
-  McleodganjRoute: typeof McleodganjRoute
+  ExplorerRoute: typeof ExplorerRoute
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
+  LoginRoute: typeof LoginRoute
+  PrivacyRoute: typeof PrivacyRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
+  SignupRoute: typeof SignupRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   StoriesRoute: typeof StoriesRoute
-  UdaipurRoute: typeof UdaipurRoute
+  TermsRoute: typeof TermsRoute
+  AuthCallbackRoute: typeof AuthCallbackRoute
   BookJourneyIdRoute: typeof BookJourneyIdRoute
   BookingSuccessRoute: typeof BookingSuccessRoute
   DestinationsSlugRoute: typeof DestinationsSlugRoute
   JourneysJourneyIdRoute: typeof JourneysJourneyIdRoute
+  StoriesSlugRoute: typeof StoriesSlugRoute
+  AccountItinerarySlugRoute: typeof AccountItinerarySlugRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/udaipur': {
-      id: '/udaipur'
-      path: '/udaipur'
-      fullPath: '/udaipur'
-      preLoaderRoute: typeof UdaipurRouteImport
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/stories': {
@@ -716,25 +867,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/mcleodganj': {
-      id: '/mcleodganj'
-      path: '/mcleodganj'
-      fullPath: '/mcleodganj'
-      preLoaderRoute: typeof McleodganjRouteImport
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/manali': {
-      id: '/manali'
-      path: '/manali'
-      fullPath: '/manali'
-      preLoaderRoute: typeof ManaliRouteImport
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/jibhi': {
-      id: '/jibhi'
-      path: '/jibhi'
-      fullPath: '/jibhi'
-      preLoaderRoute: typeof JibhiRouteImport
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/explorer': {
+      id: '/explorer'
+      path: '/explorer'
+      fullPath: '/explorer'
+      preLoaderRoute: typeof ExplorerRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/destinations': {
@@ -751,11 +923,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ContactRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/chopta-tungnath': {
-      id: '/chopta-tungnath'
-      path: '/chopta-tungnath'
-      fullPath: '/chopta-tungnath'
-      preLoaderRoute: typeof ChoptaTungnathRouteImport
+    '/cancellation': {
+      id: '/cancellation'
+      path: '/cancellation'
+      fullPath: '/cancellation'
+      preLoaderRoute: typeof CancellationRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -779,6 +951,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/$slug': {
+      id: '/$slug'
+      path: '/$slug'
+      fullPath: '/$slug'
+      preLoaderRoute: typeof SlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -792,6 +971,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/stories_/$slug': {
+      id: '/stories_/$slug'
+      path: '/stories/$slug'
+      fullPath: '/stories/$slug'
+      preLoaderRoute: typeof StoriesSlugRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/journeys/$journeyId': {
       id: '/journeys/$journeyId'
@@ -821,6 +1007,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BookJourneyIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth/callback': {
+      id: '/auth/callback'
+      path: '/auth/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/website': {
       id: '/admin/website'
       path: '/website'
@@ -840,6 +1033,13 @@ declare module '@tanstack/react-router' {
       path: '/super-admin'
       fullPath: '/admin/super-admin'
       preLoaderRoute: typeof AdminSuperAdminRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/stories': {
+      id: '/admin/stories'
+      path: '/stories'
+      fullPath: '/admin/stories'
+      preLoaderRoute: typeof AdminStoriesRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/settings': {
@@ -912,6 +1112,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminLiveTripsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/itinerary-pdfs': {
+      id: '/admin/itinerary-pdfs'
+      path: '/itinerary-pdfs'
+      fullPath: '/admin/itinerary-pdfs'
+      preLoaderRoute: typeof AdminItineraryPdfsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/invoices': {
       id: '/admin/invoices'
       path: '/invoices'
@@ -931,6 +1138,13 @@ declare module '@tanstack/react-router' {
       path: '/hotels'
       fullPath: '/admin/hotels'
       preLoaderRoute: typeof AdminHotelsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/faqs': {
+      id: '/admin/faqs'
+      path: '/faqs'
+      fullPath: '/admin/faqs'
+      preLoaderRoute: typeof AdminFaqsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/expenses': {
@@ -973,6 +1187,13 @@ declare module '@tanstack/react-router' {
       path: '/coupons'
       fullPath: '/admin/coupons'
       preLoaderRoute: typeof AdminCouponsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/community': {
+      id: '/admin/community'
+      path: '/community'
+      fullPath: '/admin/community'
+      preLoaderRoute: typeof AdminCommunityRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/buses': {
@@ -1024,6 +1245,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminWebsiteSectionRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/stories_/$id': {
+      id: '/admin/stories_/$id'
+      path: '/stories/$id'
+      fullPath: '/admin/stories/$id'
+      preLoaderRoute: typeof AdminStoriesIdRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/packages_/$id': {
       id: '/admin/packages_/$id'
       path: '/packages/$id'
@@ -1073,6 +1301,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminBlogIdRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/account_/itinerary/$slug': {
+      id: '/account_/itinerary/$slug'
+      path: '/account/itinerary/$slug'
+      fullPath: '/account/itinerary/$slug'
+      preLoaderRoute: typeof AccountItinerarySlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -1083,15 +1318,18 @@ interface AdminRouteChildren {
   AdminBlogRoute: typeof AdminBlogRoute
   AdminBookingsRoute: typeof AdminBookingsRoute
   AdminBusesRoute: typeof AdminBusesRoute
+  AdminCommunityRoute: typeof AdminCommunityRoute
   AdminCouponsRoute: typeof AdminCouponsRoute
   AdminCustomersRoute: typeof AdminCustomersRoute
   AdminDeparturesRoute: typeof AdminDeparturesRoute
   AdminDestinationsRoute: typeof AdminDestinationsRoute
   AdminEmployeesRoute: typeof AdminEmployeesRoute
   AdminExpensesRoute: typeof AdminExpensesRoute
+  AdminFaqsRoute: typeof AdminFaqsRoute
   AdminHotelsRoute: typeof AdminHotelsRoute
   AdminInquiriesRoute: typeof AdminInquiriesRoute
   AdminInvoicesRoute: typeof AdminInvoicesRoute
+  AdminItineraryPdfsRoute: typeof AdminItineraryPdfsRoute
   AdminLiveTripsRoute: typeof AdminLiveTripsRoute
   AdminLoginRoute: typeof AdminLoginRoute
   AdminMediaRoute: typeof AdminMediaRoute
@@ -1102,6 +1340,7 @@ interface AdminRouteChildren {
   AdminRoomsRoute: typeof AdminRoomsRoute
   AdminSeatsRoute: typeof AdminSeatsRoute
   AdminSettingsRoute: typeof AdminSettingsRoute
+  AdminStoriesRoute: typeof AdminStoriesRoute
   AdminSuperAdminRoute: typeof AdminSuperAdminRoute
   AdminTripCalendarRoute: typeof AdminTripCalendarRoute
   AdminWebsiteRoute: typeof AdminWebsiteRoute
@@ -1113,6 +1352,7 @@ interface AdminRouteChildren {
   AdminDestinationsIdRoute: typeof AdminDestinationsIdRoute
   AdminHotelsIdRoute: typeof AdminHotelsIdRoute
   AdminPackagesIdRoute: typeof AdminPackagesIdRoute
+  AdminStoriesIdRoute: typeof AdminStoriesIdRoute
   AdminWebsiteSectionRoute: typeof AdminWebsiteSectionRoute
 }
 
@@ -1123,15 +1363,18 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminBlogRoute: AdminBlogRoute,
   AdminBookingsRoute: AdminBookingsRoute,
   AdminBusesRoute: AdminBusesRoute,
+  AdminCommunityRoute: AdminCommunityRoute,
   AdminCouponsRoute: AdminCouponsRoute,
   AdminCustomersRoute: AdminCustomersRoute,
   AdminDeparturesRoute: AdminDeparturesRoute,
   AdminDestinationsRoute: AdminDestinationsRoute,
   AdminEmployeesRoute: AdminEmployeesRoute,
   AdminExpensesRoute: AdminExpensesRoute,
+  AdminFaqsRoute: AdminFaqsRoute,
   AdminHotelsRoute: AdminHotelsRoute,
   AdminInquiriesRoute: AdminInquiriesRoute,
   AdminInvoicesRoute: AdminInvoicesRoute,
+  AdminItineraryPdfsRoute: AdminItineraryPdfsRoute,
   AdminLiveTripsRoute: AdminLiveTripsRoute,
   AdminLoginRoute: AdminLoginRoute,
   AdminMediaRoute: AdminMediaRoute,
@@ -1142,6 +1385,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminRoomsRoute: AdminRoomsRoute,
   AdminSeatsRoute: AdminSeatsRoute,
   AdminSettingsRoute: AdminSettingsRoute,
+  AdminStoriesRoute: AdminStoriesRoute,
   AdminSuperAdminRoute: AdminSuperAdminRoute,
   AdminTripCalendarRoute: AdminTripCalendarRoute,
   AdminWebsiteRoute: AdminWebsiteRoute,
@@ -1153,6 +1397,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminDestinationsIdRoute: AdminDestinationsIdRoute,
   AdminHotelsIdRoute: AdminHotelsIdRoute,
   AdminPackagesIdRoute: AdminPackagesIdRoute,
+  AdminStoriesIdRoute: AdminStoriesIdRoute,
   AdminWebsiteSectionRoute: AdminWebsiteSectionRoute,
 }
 
@@ -1160,22 +1405,29 @@ const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  SlugRoute: SlugRoute,
   AboutRoute: AboutRoute,
   AccountRoute: AccountRoute,
   AdminRoute: AdminRouteWithChildren,
-  ChoptaTungnathRoute: ChoptaTungnathRoute,
+  CancellationRoute: CancellationRoute,
   ContactRoute: ContactRoute,
   DestinationsRoute: DestinationsRoute,
-  JibhiRoute: JibhiRoute,
-  ManaliRoute: ManaliRoute,
-  McleodganjRoute: McleodganjRoute,
+  ExplorerRoute: ExplorerRoute,
+  ForgotPasswordRoute: ForgotPasswordRoute,
+  LoginRoute: LoginRoute,
+  PrivacyRoute: PrivacyRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
+  SignupRoute: SignupRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   StoriesRoute: StoriesRoute,
-  UdaipurRoute: UdaipurRoute,
+  TermsRoute: TermsRoute,
+  AuthCallbackRoute: AuthCallbackRoute,
   BookJourneyIdRoute: BookJourneyIdRoute,
   BookingSuccessRoute: BookingSuccessRoute,
   DestinationsSlugRoute: DestinationsSlugRoute,
   JourneysJourneyIdRoute: JourneysJourneyIdRoute,
+  StoriesSlugRoute: StoriesSlugRoute,
+  AccountItinerarySlugRoute: AccountItinerarySlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

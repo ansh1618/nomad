@@ -296,7 +296,7 @@ export const createGuestBookingFn = createServerFn({ method: "POST" })
 
       // 1. Check if customer already exists by phone or email
       console.log(`[DEBUG] Step 1: Customer lookup`);
-      let existingCustomer = null;
+      let existingCustomer: any = null;
       
       console.log(`[DEBUG] Searching customer by phone: ${data.phone}`);
       const { data: customerByPhone, error: phoneSearchError } = await supabaseAdmin

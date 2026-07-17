@@ -45,6 +45,8 @@ import {
   TrendingDown,
   Globe,
   Megaphone,
+  BookOpen,
+  HelpCircle,
 } from "lucide-react";
 
 const NAV_SECTIONS = [
@@ -61,6 +63,8 @@ const NAV_SECTIONS = [
     items: [
       { title: "Destinations", href: "/admin/destinations", icon: MapPin },
       { title: "Packages", href: "/admin/packages", icon: Package },
+      { title: "Premium Itineraries", href: "/admin/itinerary-pdfs", icon: FileText },
+      { title: "FAQ Library", href: "/admin/faqs", icon: HelpCircle },
       { title: "Departures", href: "/admin/departures", icon: CalendarDays },
     ],
   },
@@ -91,6 +95,12 @@ const NAV_SECTIONS = [
     ],
   },
   {
+    label: "Community",
+    items: [
+      { title: "Community CRM", href: "/admin/community", icon: Users },
+    ],
+  },
+  {
     label: "Finance",
     items: [
       { title: "Payments", href: "/admin/payments", icon: CreditCard },
@@ -110,6 +120,7 @@ const NAV_SECTIONS = [
     items: [
       { title: "Reviews", href: "/admin/reviews", icon: Star },
       { title: "Blog", href: "/admin/blog", icon: FileText },
+      { title: "Stories", href: "/admin/stories", icon: BookOpen },
       { title: "Banners", href: "/admin/banners", icon: PanelTop },
       { title: "Notifications", href: "/admin/notifications", icon: Bell },
     ],

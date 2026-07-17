@@ -8,6 +8,7 @@ import { MapSection } from "@/components/site/MapSection";
 import { WhyWeDontSellTrips } from "@/components/site/WhyWeDontSellTrips";
 import { OurPromise } from "@/components/site/OurPromise";
 import { FeaturedPackages } from "@/components/site/FeaturedPackages";
+import { FeaturedSpiritualJourneys } from "@/components/site/FeaturedSpiritualJourneys";
 import { NomadikExperience } from "@/components/site/NomadikExperience";
 import { Testimonials } from "@/components/site/Testimonials";
 import { InstagramReels } from "@/components/site/InstagramReels";
@@ -16,7 +17,6 @@ import { FAQ } from "@/components/site/FAQ";
 import { Footer } from "@/components/site/Footer";
 import { FloatingUI } from "@/components/site/FloatingUI";
 import { LoadingScreen } from "@/components/site/LoadingScreen";
-import { TripPlannerDialog } from "@/components/site/TripPlannerDialog";
 
 import { getDestinations, getJourneys } from "@/lib/queries-client";
 import { RouteLoadingState, RouteErrorState } from "@/components/site/RouteStates";
@@ -77,6 +77,8 @@ function Index() {
         <OurPromise />
         {/* 9. Signature journey cards */}
         <FeaturedPackages />
+        {/* Featured Spiritual Journeys category block */}
+        <FeaturedSpiritualJourneys />
         {/* 10. Horizontal experience timeline */}
         <NomadikExperience />
         {/* 11. Google-verified reviews */}
@@ -90,7 +92,6 @@ function Index() {
       </main>
       <Footer />
       <FloatingUI />
-      <TripPlannerDialog />
     </div>
   );
 }

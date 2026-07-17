@@ -94,7 +94,7 @@ export function FloatingUI() {
               {dbDestinations.map(d => (
                 <Link
                   key={d.slug}
-                  to={`/${d.slug}`}
+                  to={`/${d.slug}` as any}
                   onClick={() => setChatOpen(false)}
                   className="flex justify-between items-center bg-white hover:bg-gold/10 border border-border px-3 py-2 rounded-xl text-xs transition duration-200 group font-sans"
                 >
@@ -300,7 +300,7 @@ export function FloatingUI() {
                 {dbDestinations.map(d => (
                   <Link
                     key={d.slug}
-                    to={`/${d.slug}`}
+                    to={`/${d.slug}` as any}
                     onClick={() => setChatOpen(false)}
                     className="flex justify-between items-center bg-white hover:bg-gold/10 border border-border px-3 py-2 rounded-xl text-xs transition duration-200 group font-sans"
                   >

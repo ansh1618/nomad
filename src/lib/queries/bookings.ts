@@ -12,7 +12,7 @@ import type {
 const BOOKING_SELECT = `
   *,
   customers(id, name, email, phone, total_bookings, total_spent),
-  users(id, full_name, phone, email, avatar_url),
+  users(id, full_name, phone, email, avatar_url, gender, dob, city, emergency_contact),
   departures(
     id, departure_date, return_date, base_price, available_seats,
     journeys(id, slug, name, hero_banner, duration),
@@ -22,6 +22,7 @@ const BOOKING_SELECT = `
   booking_travellers(*),
   payments(*),
   booking_timeline(id, event, description, actor, created_at),
+  booking_documents(*),
   coupons(id, code, discount_type, discount_value)
 `
 
@@ -34,6 +35,7 @@ export async function getBookings(
     bookingStatus?: string
     paymentStatus?: string
     departureId?: string
+    destinationId?: string
     userId?: string
     fromDate?: string
     toDate?: string
@@ -49,6 +51,7 @@ export async function getBookings(
     bookingStatus,
     paymentStatus,
     departureId,
+    destinationId,
     userId,
     fromDate,
     toDate,
@@ -60,13 +63,20 @@ export async function getBookings(
   if (bookingStatus) query = query.eq('booking_status', bookingStatus)
   if (paymentStatus) query = query.eq('payment_status', paymentStatus)
   if (departureId) query = query.eq('departure_id', departureId)
+  if (destinationId) query = query.eq('destination_id', destinationId)
   if (userId) query = query.eq('user_id', userId)
   if (fromDate) query = query.gte('created_at', fromDate)
   if (toDate) query = query.lte('created_at', toDate)
   if (search) {
-    // Search by booking_id or customer will be done client-side via data filter
-    // since customers is a join table
-    query = query.or(`booking_id.ilike.%${search}%`)
+    query = query.or(
+      `booking_id.ilike.%${search}%,` +
+      `customer_name.ilike.%${search}%,` +
+      `phone.ilike.%${search}%,` +
+      `email.ilike.%${search}%,` +
+      `cashfree_order_id.ilike.%${search}%,` +
+      `cashfree_payment_id.ilike.%${search}%,` +
+      `transaction_id.ilike.%${search}%`
+    )
   }
 
   query = query.order(sortBy, { ascending: sortDir === 'asc' })
@@ -316,5 +326,102 @@ export async function addManualPayment(payload: {
       if (updErr) throw new Error(updErr.message)
     }
   }
+}
+
+export async function assignBus(bookingId: string, busId: string | null): Promise<void> {
+  const { data: bus } = busId
+    ? await supabase.from('buses').select('name').eq('id', busId).single()
+    : { data: null }
+
+  const { error } = await supabase
+    .from('bookings')
+    .update({ assigned_bus_id: busId, updated_at: new Date().toISOString() })
+    .eq('id', bookingId)
+
+  if (error) throw new Error(error.message)
+
+  await supabase.from('booking_timeline').insert({
+    booking_id: bookingId,
+    event: 'BUS_ASSIGNED',
+    description: bus ? `Bus assigned: ${bus.name}` : 'Bus unassigned',
+    actor: 'ADMIN',
+  })
+}
+
+export async function assignHotel(bookingId: string, hotelId: string | null): Promise<void> {
+  const { data: hotel } = hotelId
+    ? await supabase.from('hotels').select('name').eq('id', hotelId).single()
+    : { data: null }
+
+  const { error } = await supabase
+    .from('bookings')
+    .update({ assigned_hotel_id: hotelId, updated_at: new Date().toISOString() })
+    .eq('id', bookingId)
+
+  if (error) throw new Error(error.message)
+
+  await supabase.from('booking_timeline').insert({
+    booking_id: bookingId,
+    event: 'HOTEL_ASSIGNED',
+    description: hotel ? `Hotel assigned: ${hotel.name}` : 'Hotel unassigned',
+    actor: 'ADMIN',
+  })
+}
+
+export async function assignTripCaptain(bookingId: string, captainId: string | null): Promise<void> {
+  const { data: captain } = captainId
+    ? await supabase.from('trip_captains').select('full_name').eq('id', captainId).single()
+    : { data: null }
+
+  const { error } = await supabase
+    .from('bookings')
+    .update({ assigned_trip_captain_id: captainId, updated_at: new Date().toISOString() })
+    .eq('id', bookingId)
+
+  if (error) throw new Error(error.message)
+
+  await supabase.from('booking_timeline').insert({
+    booking_id: bookingId,
+    event: 'CAPTAIN_ASSIGNED',
+    description: captain ? `Trip Captain assigned: ${captain.full_name}` : 'Trip Captain unassigned',
+    actor: 'ADMIN',
+  })
+}
+
+export async function addBookingDocument(payload: {
+  bookingId: string
+  name: string
+  fileUrl: string
+  fileType: string
+  uploadedBy?: string
+}): Promise<void> {
+  const { error } = await supabase.from('booking_documents').insert({
+    booking_id: payload.bookingId,
+    name: payload.name,
+    file_url: payload.fileUrl,
+    file_type: payload.fileType,
+    uploaded_by: payload.uploadedBy || null,
+  })
+
+  if (error) throw new Error(error.message)
+
+  await supabase.from('booking_timeline').insert({
+    booking_id: payload.bookingId,
+    event: 'DOCUMENT_UPLOADED',
+    description: `Uploaded document: ${payload.name} (${payload.fileType})`,
+    actor: 'ADMIN',
+  })
+}
+
+export async function deleteBookingDocument(documentId: string, bookingId: string, name: string): Promise<void> {
+  const { error } = await supabase.from('booking_documents').delete().eq('id', documentId)
+  if (error) throw new Error(error.message)
+
+  await supabase.from('booking_timeline').insert({
+    booking_id: bookingId,
+    event: 'DOCUMENT_DELETED',
+    description: `Deleted document: ${name}`,
+    actor: 'ADMIN',
+  })
 }
 

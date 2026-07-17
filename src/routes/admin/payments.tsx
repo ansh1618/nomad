@@ -68,9 +68,11 @@ function PaymentsPage() {
     }
     if (confirm(`Refund ₹${payment.amount} for booking ${payment.bookings?.booking_id}?`)) {
       refundMutation.mutate({
-        paymentId: payment.id,
-        amount: payment.amount,
-        bookingId: payment.booking_id,
+        data: {
+          paymentId: payment.id,
+          amount: payment.amount,
+          bookingId: payment.booking_id,
+        }
       })
     }
   }

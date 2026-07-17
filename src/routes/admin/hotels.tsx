@@ -238,7 +238,7 @@ function HotelsPage() {
             {result?.total ?? 0} hotel vendor{(result?.total ?? 0) !== 1 ? 's' : ''} total
           </p>
         </div>
-        <Link to="/admin/hotels/new">
+        <Link to="/admin/hotels/$id" params={{ id: 'new' }}>
           <Button className="gap-1.5">
             <Plus className="h-4 w-4" /> Add Hotel Stay
           </Button>
@@ -248,7 +248,7 @@ function HotelsPage() {
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
         <DataTable
           data={hotels}
-          columns={columns}
+          columns={columns as any}
           total={result?.total ?? 0}
           page={page}
           pageSize={pageSize}

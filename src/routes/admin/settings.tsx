@@ -12,7 +12,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ImageField } from '@/components/admin/MediaPicker'
-import { getSettings, updateSettings } from '@/lib/queries/admin'
+import { getSiteSettings, updateSiteSettings } from '@/lib/queries/cms'
 import { toast } from 'sonner'
 import {
   Save,
@@ -60,8 +60,8 @@ function SettingsPage() {
   const [favicon, setFavicon] = useState('')
 
   const { data: settings, isLoading } = useQuery({
-    queryKey: ['system_settings'],
-    queryFn: () => getSiteSettings(),
+    queryKey: ['site_settings'],
+    queryFn: getSiteSettings,
   })
 
   const {
@@ -116,7 +116,7 @@ function SettingsPage() {
       await updateSiteSettings(payload)
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['system_settings'] })
+      qc.invalidateQueries({ queryKey: ['site_settings'] })
       toast.success('System settings saved successfully')
     },
     onError: (err: Error) => toast.error(err.message),

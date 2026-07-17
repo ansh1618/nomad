@@ -87,7 +87,7 @@ function TripCalendarCenter() {
   const monthName = currentDate.toLocaleString('en-IN', { month: 'long', year: 'numeric' })
 
   // Construct day numbers grid
-  const daysArray = []
+  const daysArray: (number | null)[] = []
   // Empty spaces for previous month's trailing days
   for (let i = 0; i < firstDayIndex; i++) {
     daysArray.push(null)

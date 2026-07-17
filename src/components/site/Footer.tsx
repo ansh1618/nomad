@@ -112,9 +112,9 @@ export function Footer() {
               ))
             ) : (
               <>
-                <li><Link to="/manali" className="text-sm text-white/60 hover:text-gold transition-colors">Manali</Link></li>
-                <li><Link to="/jibhi" className="text-sm text-white/60 hover:text-gold transition-colors">Jibhi</Link></li>
-                <li><Link to="/chopta-tungnath" className="text-sm text-white/60 hover:text-gold transition-colors">Chopta</Link></li>
+                <li><Link to="/$slug" params={{ slug: 'manali' }} className="text-sm text-white/60 hover:text-gold transition-colors">Manali</Link></li>
+                <li><Link to="/$slug" params={{ slug: 'jibhi' }} className="text-sm text-white/60 hover:text-gold transition-colors">Jibhi</Link></li>
+                <li><Link to="/$slug" params={{ slug: 'chopta-tungnath' }} className="text-sm text-white/60 hover:text-gold transition-colors">Chopta</Link></li>
               </>
             )}
           </ul>
@@ -133,7 +133,7 @@ export function Footer() {
             </li>
             <li>
               <Link to="/stories" className="text-sm text-white/60 hover:text-gold transition-colors duration-200">
-                Stories
+                Community
               </Link>
             </li>
             <li>
@@ -227,7 +227,7 @@ export function Footer() {
         {/* Signature quote */}
         <div className="mt-16 border-t border-white/10 pt-8 text-center">
           <p className="font-display text-lg italic text-white/40">
-            "{footerQuote}"
+            &ldquo;{footerQuote}&rdquo;
           </p>
         </div>
 
@@ -237,9 +237,9 @@ export function Footer() {
             {copyrightText}
           </p>
           <div className="flex gap-6 text-[10px] text-white/40 font-sans">
-            <Link to="/privacy" className="hover:text-white/60 transition-colors">Privacy Policy</Link>
-            <Link to="/terms" className="hover:text-white/60 transition-colors">Terms of Service</Link>
-            <Link to="/cancellation" className="hover:text-white/60 transition-colors">Refund Policy</Link>
+            <Link to={"/privacy" as any} className="hover:text-white/60 transition-colors">Privacy Policy</Link>
+            <Link to={"/terms" as any} className="hover:text-white/60 transition-colors">Terms of Service</Link>
+            <Link to={"/cancellation" as any} className="hover:text-white/60 transition-colors">Refund Policy</Link>
           </div>
         </div>
       </div>

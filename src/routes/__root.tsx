@@ -4,6 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useNavigate,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -119,6 +120,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 import { AuthProvider, useAuth } from "@/components/site/AuthContext";
 import { AuthModal } from "@/components/site/AuthModal";
 import { AnnouncementBar } from "@/components/site/AnnouncementBar";
+import { TripPlannerDialog } from "@/components/site/TripPlannerDialog";
 import { AlertTriangle } from "lucide-react";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -139,6 +141,17 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function MainAppLayout() {
   const { user, isEmailVerified } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user) {
+      const redirectTarget = sessionStorage.getItem("auth_redirect_target");
+      if (redirectTarget) {
+        sessionStorage.removeItem("auth_redirect_target");
+        navigate({ to: redirectTarget });
+      }
+    }
+  }, [user, navigate]);
 
   return (
     <div className="relative min-h-screen flex flex-col">
@@ -153,6 +166,7 @@ function MainAppLayout() {
         <Outlet />
       </div>
       <AuthModal />
+      <TripPlannerDialog />
     </div>
   );
 }

@@ -181,8 +181,8 @@ export async function createDeparture(payload: DepartureInsert): Promise<Departu
     departure_date: payload.departure_date,
     return_date: payload.return_date,
     price: payload.base_price,
-    max_capacity: payload.max_capacity ?? 18,
-    remaining_seats: payload.max_capacity ?? 18,
+    max_capacity: (payload as any).max_capacity ?? 18,
+    remaining_seats: (payload as any).max_capacity ?? 18,
   }
 
   const { data: legacyData, error: legacyError } = await supabase
@@ -233,8 +233,8 @@ export async function updateDeparture(id: string, payload: DepartureUpdate): Pro
     departure_date: payload.departure_date,
     return_date: payload.return_date,
     price: payload.base_price,
-    max_capacity: payload.max_capacity,
-    remaining_seats: payload.available_seats,
+    max_capacity: (payload as any).max_capacity,
+    remaining_seats: (payload as any).available_seats,
   }
 
   const { data: legacyData, error: legacyError } = await supabase

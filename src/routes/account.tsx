@@ -1,7 +1,6 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/site/AuthContext";
-import { triggerNomadikAuth } from "@/components/site/AuthModal";
 import { Navbar } from "@/components/site/Navbar";
 import { Footer } from "@/components/site/Footer";
 import { FloatingUI } from "@/components/site/FloatingUI";
@@ -12,11 +11,15 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { 
   User, Calendar, MapPin, Phone, Heart, Users, ShieldAlert, LogOut, Lock, 
-  ChevronRight, Compass, MessageCircle, HelpCircle, FileText, CheckCircle2 
+  ChevronRight, Compass, MessageCircle, HelpCircle, FileText, CheckCircle2, Settings,
+  Eye, Loader2
 } from "lucide-react";
 import { getJourneys } from "@/lib/queries-client";
 
 export const Route = createFileRoute("/account")({
+  validateSearch: (search: Record<string, unknown>): { tab?: string } => ({
+    tab: search.tab as string | undefined,
+  }),
   head: () => ({
     meta: [
       { title: "My Account & Bookings | Nomadik" },
@@ -26,12 +29,27 @@ export const Route = createFileRoute("/account")({
   component: AccountDashboard,
 });
 
-type ActiveTab = "profile" | "bookings" | "wishlist" | "travelers" | "support" | "settings";
+type ActiveTab = "profile" | "bookings" | "wishlist" | "travelers" | "support" | "settings" | "documents";
 
 function AccountDashboard() {
-  const { user, profile, refreshProfile, signOut, loading } = useAuth();
-  const [activeTab, setActiveTab] = useState<ActiveTab>("bookings");
+  const { user, profile, isAuthenticated, updateProfile, refreshProfile, signOut, loading } = useAuth();
   const navigate = useNavigate();
+  const { tab } = useSearch({ from: "/account" });
+  const [activeTab, setActiveTab] = useState<ActiveTab>((tab as ActiveTab) || "bookings");
+
+  // Redirect unauthenticated users
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      navigate({ to: "/login", search: { returnTo: "/account" } });
+    }
+  }, [loading, isAuthenticated, navigate]);
+
+  // Sync tab from URL search param
+  useEffect(() => {
+    if (tab && tab !== activeTab) {
+      setActiveTab(tab as ActiveTab);
+    }
+  }, [tab]);
 
   // Profile Edit fields
   const [fullName, setFullName] = useState("");
@@ -75,6 +93,73 @@ function AccountDashboard() {
     getJourneys().then(setAllJourneys).catch(console.error);
   }, []);
 
+  const [recentViews, setRecentViews] = useState<any[]>([]);
+  const [availableDocs, setAvailableDocs] = useState<any[]>([]);
+  const [loadingDocsData, setLoadingDocsData] = useState(false);
+
+  useEffect(() => {
+    if (user && activeTab === "documents") {
+      setLoadingDocsData(true);
+      
+      // 1. Fetch recently viewed pdfs
+      supabase
+        .from("pdf_views")
+        .select(`
+          id,
+          viewed_at,
+          last_page_viewed,
+          progress_percent,
+          package_documents (
+            id,
+            title,
+            document_type,
+            file_url
+          ),
+          journeys (
+            name,
+            slug
+          )
+        `)
+        .eq("user_id", user.id)
+        .order("viewed_at", { ascending: false })
+        .limit(6)
+        .then(({ data, error }) => {
+          if (!error && data) {
+            // Filter duplicates by document_id manually
+            const unique: any[] = [];
+            const ids = new Set();
+            data.forEach((item: any) => {
+              const docId = item.package_documents?.id;
+              if (docId && !ids.has(docId)) {
+                ids.add(docId);
+                unique.push(item);
+              }
+            });
+            setRecentViews(unique);
+          }
+        });
+
+      // 2. Fetch available documents
+      supabase
+        .from("package_documents")
+        .select(`
+          *,
+          journeys (
+            name,
+            slug
+          )
+        `)
+        .eq("is_active", true)
+        .order("created_at", { ascending: false })
+        .then(({ data, error }) => {
+          setLoadingDocsData(false);
+          if (!error && data) {
+            setAvailableDocs(data);
+          }
+        });
+    }
+  }, [user, activeTab]);
+
   const loadTravelers = async () => {
     if (!user) return;
     const { data } = await supabase.from("travellers").select("*").eq("user_id", user.id);
@@ -99,22 +184,15 @@ function AccountDashboard() {
 
     setSavingProfile(true);
     try {
-      const { error } = await supabase
-        .from("users")
-        .update({
-          full_name: fullName,
-          phone,
-          gender,
-          dob: dob || null,
-          city,
-          emergency_contact: emergencyContact,
-          updated_at: new Date().toISOString()
-        })
-        .eq("id", user.id);
-
-      if (error) throw error;
+      await updateProfile({
+        full_name: fullName,
+        phone,
+        gender,
+        dob: dob || undefined,
+        city,
+        emergency_contact: emergencyContact,
+      });
       toast.success("Profile updated successfully!");
-      refreshProfile();
     } catch (err: any) {
       toast.error(err.message || "Failed to update profile.");
     } finally {
@@ -178,7 +256,7 @@ function AccountDashboard() {
     }
   };
 
-  // If loading session
+  // Loading
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -187,37 +265,9 @@ function AccountDashboard() {
     );
   }
 
-  // Not logged in Lock Screen
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-background flex flex-col justify-between">
-        <Navbar />
-        <main className="flex-1 flex items-center justify-center px-5 py-32">
-          <div className="max-w-md w-full bg-card border border-border rounded-3xl p-8 shadow-elegant text-center space-y-6">
-            <div className="mx-auto w-16 h-16 rounded-full bg-secondary/10 flex items-center justify-center text-secondary">
-              <Lock className="h-8 w-8" />
-            </div>
-            <div className="space-y-2">
-              <h2 className="font-display text-2xl font-bold text-primary">Explorer Dashboard Lock</h2>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Log in to check your upcoming convoy details, view travel history, download invoices, or message your Captain.
-              </p>
-            </div>
-            <div className="flex flex-col gap-3">
-              <Button onClick={() => triggerNomadikAuth({ mode: "login" })} variant="hero" className="w-full h-11">
-                Log In Now
-              </Button>
-              <Link to="/" className="text-xs text-accent font-semibold hover:underline block">
-                Go back to Homepage
-              </Link>
-            </div>
-          </div>
-        </main>
-        <Footer />
-        <FloatingUI />
-      </div>
-    );
-  }
+  // Not authenticated — redirect handled by useEffect above
+  if (!isAuthenticated) return null;
+
 
   // Helper groupings
   const upcomingBookings = bookings.filter(b => b.booking_status === "PENDING" || b.booking_status === "CONFIRMED");
@@ -247,6 +297,7 @@ function AccountDashboard() {
             <nav className="flex flex-col gap-1.5 pt-4 border-t border-border">
               {[
                 { id: "bookings", label: "My Bookings", icon: Calendar },
+                { id: "documents", label: "Premium Documents", icon: FileText },
                 { id: "profile", label: "Profile Information", icon: User },
                 { id: "wishlist", label: "Wishlist", icon: Heart },
                 { id: "travelers", label: "Saved Travelers", icon: Users },
@@ -364,6 +415,130 @@ function AccountDashboard() {
                               <span className="text-[10px] text-muted-foreground">{b.travel_date}</span>
                             </div>
                             <span className="text-xs font-semibold text-green-700 bg-green-50 px-2 py-0.5 rounded">Completed</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* DOCUMENTS TAB */}
+            {activeTab === "documents" && (
+              <div className="space-y-8">
+                <div>
+                  <h2 className="font-display text-2xl font-bold text-primary">Premium Documents</h2>
+                  <p className="text-xs text-muted-foreground mt-1">Access secure PDF travel guides, schedules, packing lists, and vouchers.</p>
+                </div>
+
+                {/* 1. Recently Viewed */}
+                {recentViews.length > 0 && (
+                  <div className="space-y-4">
+                    <h3 className="text-xs font-poppins font-bold uppercase tracking-wider text-accent border-b border-border pb-2">Recently Read</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {recentViews.map((view: any) => (
+                        <div key={view.id} className="border border-border rounded-2xl p-4 bg-muted/5 flex justify-between items-center shadow-sm">
+                          <div className="space-y-1 min-w-0">
+                            <span className="text-[9px] font-bold font-poppins uppercase bg-secondary/15 text-secondary px-2 py-0.5 rounded">
+                              {view.package_documents?.document_type}
+                            </span>
+                            <h4 className="font-display font-semibold text-sm text-primary truncate mt-1">{view.package_documents?.title}</h4>
+                            <p className="text-[10px] text-muted-foreground truncate">{view.journeys?.name}</p>
+                            
+                            {/* progress bar */}
+                            <div className="flex items-center gap-2 pt-1">
+                              <div className="w-24 bg-muted h-1 rounded-full overflow-hidden">
+                                <div className="bg-emerald-600 h-full" style={{ width: `${view.progress_percent || 0}%` }} />
+                              </div>
+                              <span className="text-[9px] font-mono font-bold text-emerald-700">{view.progress_percent || 0}% read</span>
+                            </div>
+                          </div>
+
+                          <a href={`/account/itinerary/${view.journeys?.slug}?type=${view.package_documents?.document_type}`} target="_blank" rel="noreferrer">
+                            <Button size="sm" className="h-8 font-poppins text-[10px] font-bold shadow-sm gap-1">
+                              <Eye className="h-3 w-3" /> Resume
+                            </Button>
+                          </a>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 2. Public / Travel Guides */}
+                <div className="space-y-4">
+                  <h3 className="text-xs font-poppins font-bold uppercase tracking-wider text-accent border-b border-border pb-2">Travel Guides & Inclusions</h3>
+                  {loadingDocsData ? (
+                    <div className="flex justify-center py-6">
+                      <Loader2 className="h-6 w-6 text-primary animate-spin" />
+                    </div>
+                  ) : availableDocs.filter(d => ['ITINERARY', 'PACKING', 'GUIDE', 'TERMS', 'OTHER'].includes(d.document_type)).length === 0 ? (
+                    <p className="text-xs text-muted-foreground italic py-2">No itineraries are configured for public download at this moment.</p>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {availableDocs.filter(d => ['ITINERARY', 'PACKING', 'GUIDE', 'TERMS', 'OTHER'].includes(d.document_type)).map((doc: any) => (
+                        <div key={doc.id} className="border border-border/80 hover:border-accent/40 rounded-2xl p-4 space-y-3 bg-card hover:shadow-soft transition-all">
+                          <div className="flex justify-between items-start">
+                            <div className="space-y-0.5">
+                              <span className="text-[9px] font-bold font-poppins uppercase bg-blue-50 text-blue-700 px-2 py-0.5 rounded border border-blue-200">
+                                {doc.document_type}
+                              </span>
+                              <h4 className="font-display font-semibold text-sm text-primary mt-1">{doc.title}</h4>
+                              <p className="text-[10px] text-muted-foreground">{doc.journeys?.name}</p>
+                            </div>
+                            <FileText className="h-5 w-5 text-muted-foreground/50" />
+                          </div>
+
+                          <div className="flex justify-between items-center pt-2 border-t text-[10px] text-muted-foreground font-poppins">
+                            <span>Ver: v{doc.version} · {Math.round(doc.size / 1024)} KB</span>
+                            <a href={`/account/itinerary/${doc.journeys?.slug}?type=${doc.document_type}`} target="_blank" rel="noreferrer">
+                              <span className="text-accent font-bold hover:underline cursor-pointer flex items-center gap-0.5">
+                                View Guide →
+                              </span>
+                            </a>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* 3. Booked Vouchers & Invoices */}
+                <div className="space-y-4">
+                  <h3 className="text-xs font-poppins font-bold uppercase tracking-wider text-accent border-b border-border pb-2">My Invoices & Booking Vouchers</h3>
+                  {bookings.length === 0 ? (
+                    <div className="text-center py-6 bg-muted/15 border border-dashed rounded-2xl">
+                      <Lock className="h-6 w-6 text-muted-foreground/50 mx-auto mb-1.5" />
+                      <p className="text-xs text-muted-foreground font-poppins">No dynamic vouchers/invoices. Booking a trip unlocks official vouchers.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-3">
+                      {bookings.map((b: any) => {
+                        const journey = allJourneys.find(j => j.id === b.journey_id);
+                        // Filter invoice / voucher documents for this package
+                        const pkgDocs = availableDocs.filter(d => d.package_id === b.journey_id && ['VOUCHER', 'INVOICE'].includes(d.document_type));
+
+                        return (
+                          <div key={b.id} className="border border-border/80 rounded-2xl p-4 bg-muted/10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                            <div className="space-y-1">
+                              <h4 className="font-display font-semibold text-sm text-primary">{journey?.name}</h4>
+                              <p className="text-[10px] text-muted-foreground">Booking ID: {b.booking_id || "NOM-Pending"} · Status: {b.status}</p>
+                            </div>
+
+                            <div className="flex gap-2 w-full md:w-auto">
+                              {pkgDocs.length === 0 ? (
+                                <span className="text-[10px] text-muted-foreground italic">Admin hasn't uploaded voucher/invoice templates yet.</span>
+                              ) : (
+                                pkgDocs.map((doc: any) => (
+                                  <a key={doc.id} href={`/account/itinerary/${journey?.slug}?type=${doc.document_type}`} target="_blank" rel="noreferrer" className="flex-1 md:flex-none">
+                                    <Button variant="outline" size="sm" className="w-full text-[10px] font-bold font-poppins h-8 px-3 gap-1">
+                                      <FileText className="h-3 w-3" /> {doc.document_type === 'VOUCHER' ? 'Voucher' : 'Invoice'}
+                                    </Button>
+                                  </a>
+                                ))
+                              )}
+                            </div>
                           </div>
                         );
                       })}

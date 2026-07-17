@@ -242,13 +242,18 @@ function ExpensesPage() {
       </div>
 
       <DataTable
-        columns={columns}
+        columns={columns as any}
         data={expenses}
         isLoading={isLoading}
         searchPlaceholder="Search expenses..."
         onSearch={setSearch}
         onSort={handleSort}
-        pagination={{ page, pageSize, total: result?.total ?? 0, totalPages: result?.totalPages ?? 1, onPageChange: setPage, onPageSizeChange: setPageSize }}
+        total={result?.total ?? 0}
+        page={page}
+        pageSize={pageSize}
+        totalPages={result?.totalPages ?? 1}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
       />
 
       {/* Create / Edit Dialog */}

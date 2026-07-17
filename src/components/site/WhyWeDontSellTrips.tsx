@@ -3,6 +3,7 @@ import { Reveal } from "./Reveal";
 import { triggerNomadikPlanner } from "./TripPlannerDialog";
 import { Button } from "@/components/ui/button";
 import { getCmsSection } from "@/lib/queries/cms";
+import { Link } from "@tanstack/react-router";
 
 export function WhyWeDontSellTrips() {
   const { data: section } = useQuery({
@@ -50,9 +51,11 @@ export function WhyWeDontSellTrips() {
         </Reveal>
 
         <Reveal delay={3} className="pt-4">
-          <Button size="lg" variant="hero" onClick={() => triggerNomadikPlanner()}>
-            {ctaLabel}
-          </Button>
+          <Link to="/explorer">
+            <Button size="lg" variant="hero">
+              {ctaLabel}
+            </Button>
+          </Link>
         </Reveal>
       </div>
     </section>

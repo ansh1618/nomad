@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { z } from "zod";
 
 // ==========================================
@@ -39,7 +39,7 @@ export const uploadMediaFn = createServerFn({ method: "POST" })
     const storagePath = `${data.folder === "/" ? "" : data.folder + "/"}${timestamp}_${sanitizedName}`;
 
     // Upload to Supabase Storage
-    const { error: uploadError } = await supabase.storage
+    const { error: uploadError } = await supabaseAdmin.storage
       .from(BUCKET_NAME)
       .upload(storagePath, bytes, {
         contentType: data.mimeType,
@@ -51,14 +51,14 @@ export const uploadMediaFn = createServerFn({ method: "POST" })
     }
 
     // Get public URL
-    const { data: urlData } = supabase.storage
+    const { data: urlData } = supabaseAdmin.storage
       .from(BUCKET_NAME)
       .getPublicUrl(storagePath);
 
     const publicUrl = urlData.publicUrl;
 
     // Create media_assets record
-    const { data: asset, error: dbError } = await supabase
+    const { data: asset, error: dbError } = await supabaseAdmin
       .from("media_assets")
       .insert({
         filename: data.fileName,
@@ -92,7 +92,7 @@ export const listMediaFn = createServerFn({ method: "GET" })
     listMediaSchema.parse(data)
   )
   .handler(async ({ data }) => {
-    let query = supabase
+    let query = supabaseAdmin
       .from("media_assets")
       .select("*")
       .order("created_at", { ascending: false })
@@ -129,11 +129,11 @@ export const deleteMediaFn = createServerFn({ method: "POST" })
     const urlParts = data.url.split(`/storage/v1/object/public/${BUCKET_NAME}/`);
     if (urlParts.length > 1) {
       const storagePath = decodeURIComponent(urlParts[1]);
-      await supabase.storage.from(BUCKET_NAME).remove([storagePath]);
+      await supabaseAdmin.storage.from(BUCKET_NAME).remove([storagePath]);
     }
 
     // Delete DB record
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from("media_assets")
       .delete()
       .eq("id", data.id);
@@ -161,7 +161,7 @@ export const updateMediaFn = createServerFn({ method: "POST" })
     if (data.altText !== undefined) updates.alt_text = data.altText;
     if (data.folder !== undefined) updates.folder = data.folder;
 
-    const { data: updated, error } = await supabase
+    const { data: updated, error } = await supabaseAdmin
       .from("media_assets")
       .update(updates)
       .eq("id", data.id)
@@ -178,7 +178,7 @@ export const updateMediaFn = createServerFn({ method: "POST" })
 // Get distinct folders for the folder filter
 export const getMediaFoldersFn = createServerFn({ method: "GET" })
   .handler(async () => {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from("media_assets")
       .select("folder")
       .order("folder");

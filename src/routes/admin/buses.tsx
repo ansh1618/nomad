@@ -218,7 +218,7 @@ function BusesPage() {
             {result?.total ?? 0} vehicle configuration{(result?.total ?? 0) !== 1 ? 's' : ''} total
           </p>
         </div>
-        <Link to="/admin/buses/new">
+        <Link to="/admin/buses/$id" params={{ id: 'new' }}>
           <Button className="gap-1.5">
             <Plus className="h-4 w-4" /> Configure Vehicle
           </Button>
@@ -228,7 +228,7 @@ function BusesPage() {
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
         <DataTable
           data={buses}
-          columns={columns}
+          columns={columns as any}
           total={result?.total ?? 0}
           page={page}
           pageSize={pageSize}

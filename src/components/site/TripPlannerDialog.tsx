@@ -10,13 +10,23 @@ import { CalendarCheck, MessageSquare, Phone, CheckCircle2, User, CalendarIcon, 
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { Route } from "@/routes/index";
+import { useQuery } from "@tanstack/react-query";
+import { getDestinations, getJourneys } from "@/lib/queries-client";
 import { submitInquiryFn } from "@/lib/server-fns";
 import { useAuth } from "./AuthContext";
 import { triggerNomadikAuth } from "./AuthModal";
 
 export function TripPlannerDialog() {
-  const { destinations, journeys } = Route.useLoaderData();
+  const { data: destinations = [] } = useQuery({
+    queryKey: ["destinations"],
+    queryFn: getDestinations,
+  });
+
+  const { data: journeys = [] } = useQuery({
+    queryKey: ["journeys"],
+    queryFn: getJourneys,
+  });
+
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"planner" | "consultation" | "callback">("planner");

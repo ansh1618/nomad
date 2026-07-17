@@ -190,7 +190,7 @@ function BlogPage() {
             {result?.total ?? 0} article{(result?.total ?? 0) !== 1 ? 's' : ''} total
           </p>
         </div>
-        <Link to="/admin/blog/new">
+        <Link to="/admin/blog/$id" params={{ id: 'new' }}>
           <Button className="gap-1.5">
             <Plus className="h-4 w-4" /> Add Blog Post
           </Button>
@@ -200,7 +200,7 @@ function BlogPage() {
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
         <DataTable
           data={blogs}
-          columns={columns}
+          columns={columns as any}
           total={result?.total ?? 0}
           page={page}
           pageSize={pageSize}

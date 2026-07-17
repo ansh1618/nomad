@@ -164,6 +164,76 @@ export interface FaqItem {
   answer: string
 }
 
+export interface FaqLibraryItem {
+  id: string
+  question: string
+  answer: string
+  category: 'Booking' | 'Transport' | 'Stay' | 'Meals' | 'Safety' | 'Cancellation' | 'Payment' | 'Packing' | 'Food' | 'Weather' | 'Activities'
+  featured: boolean
+  status: 'active' | 'inactive'
+  created_at: string
+  updated_at: string
+  used_count?: number
+}
+
+export interface PackageFaq {
+  id: string
+  package_id: string
+  faq_id: string
+  display_order: number
+  created_at: string
+  faq_library?: FaqLibraryItem
+}
+
+export interface CustomPackageFaq {
+  id: string
+  package_id: string
+  question: string
+  answer: string
+  category: 'Booking' | 'Transport' | 'Stay' | 'Meals' | 'Safety' | 'Cancellation' | 'Payment' | 'Packing' | 'Food' | 'Weather' | 'Activities'
+  display_order: number
+  created_at: string
+}
+
+export interface Transport {
+  id?: string
+  package_id: string
+  vehicle_name: string
+  vehicle_type?: string
+  cover_image?: string
+  gallery?: string[]
+  features?: string[]
+  pickup_points?: string[]
+  drop_points?: string[]
+  departure_time?: string
+  arrival_time?: string
+  seat_capacity?: number
+  available_seats?: number
+  trip_captain?: boolean
+  ac?: boolean
+  music?: boolean
+  charging_ports?: boolean
+  created_at?: string
+  updated_at?: string
+}
+
+export interface Accommodation {
+  id?: string
+  package_id: string
+  hotel_name: string
+  hotel_category?: string
+  location?: string
+  cover_image?: string
+  gallery?: string[]
+  room_types?: string[]
+  amenities?: string[]
+  google_maps?: string
+  check_in?: string
+  check_out?: string
+  created_at?: string
+  updated_at?: string
+}
+
 // Thing to do type
 export interface ThingToDo {
   title: string
@@ -251,6 +321,17 @@ export interface Journey {
   hero_banner: string | null
   gallery: GalleryItem[]
   videos: string[]
+  reels?: any[]
+  memories?: any[]
+  trip_moments?: any[]
+  experience_stats?: {
+    travelers?: number
+    stories?: number
+    photos?: number
+    videos?: number
+    reels?: number
+    avg_rating?: number
+  }
   duration_days: number | null
   duration_nights: number | null
   duration: string | null
@@ -274,6 +355,19 @@ export interface Journey {
   status: ErpStatus
   is_featured: boolean
   is_published: boolean
+  category: string | null
+  transport: string | null
+  hotel: string | null
+  food: string | null
+  description: string | null
+  distance: string | null
+  season: string | null
+  best_season: string | null
+  group_size: number | null
+  price: number | null
+  max_capacity: number | null
+  remaining_seats: number | null
+  available_seats: number | null
   priority: number
   avg_rating: number
   review_count: number
@@ -286,6 +380,8 @@ export interface Journey {
   destinations?: Partial<Destination>
   trip_captains?: Partial<TripCaptain>
   itinerary_days?: ItineraryDay[]
+  package_faqs?: PackageFaq[]
+  custom_package_faqs?: CustomPackageFaq[]
 }
 
 export interface Bus {
@@ -519,6 +615,17 @@ export interface Notification {
   created_at: string
 }
 
+// ── Booking Documents ─────────────────────────────────────────
+export interface BookingDocument {
+  id: string
+  booking_id: string
+  name: string
+  file_url: string
+  file_type: string
+  uploaded_by: string | null
+  created_at: string
+}
+
 export interface Booking {
   id: string
   booking_id: string | null
@@ -559,6 +666,17 @@ export interface Booking {
   created_by: string | null
   created_at: string
   updated_at: string
+  // CRM upgrades
+  payment_schedule?: string | null
+  pickup_point?: string | null
+  drop_point?: string | null
+  terms_accepted?: boolean
+  cancellation_accepted?: boolean
+  booking_source?: string | null
+  payment_time?: string | null
+  assigned_bus_id?: string | null
+  assigned_trip_captain_id?: string | null
+  assigned_hotel_id?: string | null
   // joined
   customers?: Partial<Customer>
   users?: Partial<SiteUser>
@@ -568,6 +686,7 @@ export interface Booking {
   booking_travellers?: BookingTraveller[]
   payments?: Payment[]
   booking_timeline?: BookingTimeline[]
+  booking_documents?: BookingDocument[]
 }
 
 export interface BookingTraveller {
@@ -594,11 +713,16 @@ export interface BookingTraveller {
   emergency_contact_phone: string | null
   emergency_contact_relation: string | null
   pickup_point: string | null
+  seat_number: string | null
   assigned_seat_id: string | null
   assigned_room_id: string | null
   aadhaar_doc_url: string | null
   photo_url: string | null
   created_at: string
+  // allocations
+  id_proof_type?: string | null
+  id_proof_number?: string | null
+  room_number?: string | null
 }
 
 export interface Payment {
@@ -620,6 +744,11 @@ export interface Payment {
   processed_at: string | null
   created_at: string
   updated_at: string
+  // CRM upgrades
+  cashfree_order_id?: string | null
+  cashfree_payment_id?: string | null
+  transaction_id?: string | null
+  refund_status?: string | null
 }
 
 export interface Invoice {
@@ -920,4 +1049,109 @@ export interface PackagePerformance {
   total_revenue: number
   avg_rating: number
   review_count: number
+}
+
+// ==========================================
+// STORY MANAGEMENT SYSTEM
+// ==========================================
+
+export interface Story {
+  id: string
+  title: string
+  slug: string
+  excerpt: string | null
+  content: string | null
+  cover_image: string | null
+  gallery: string[]
+  author_name: string | null
+  author_image: string | null
+  author_designation: string | null
+  college_name: string | null
+  package_id: string | null
+  destination_id: string | null
+  category: string
+  rating: number | null
+  trip_date: string | null
+  is_featured: boolean
+  is_published: boolean
+  reading_time: number
+  views: number
+  likes_count: number
+  shares_count: number
+  seo_title: string | null
+  seo_description: string | null
+  created_by: string | null
+  updated_by: string | null
+  published_at: string | null
+  created_at: string
+  updated_at: string
+  // Joined fields
+  package?: { id: string; name: string; slug: string } | null
+  destination?: { id: string; name: string; slug: string } | null
+}
+
+export type StoryInsert = Omit<Story, 'id' | 'created_at' | 'updated_at' | 'views' | 'likes_count' | 'shares_count' | 'package' | 'destination'>
+export type StoryUpdate = Partial<StoryInsert>
+
+export interface StoryGallery {
+  id: string
+  story_id: string
+  image_url: string
+  caption: string | null
+  sort_order: number
+  created_at: string
+}
+
+export interface StoryView {
+  id: string
+  story_id: string
+  user_id: string | null
+  ip_address: string | null
+  device: string | null
+  browser: string | null
+  time_spent: number
+  created_at: string
+}
+
+export interface StoryLike {
+  id: string
+  story_id: string
+  user_id: string | null
+  ip_address: string | null
+  created_at: string
+}
+
+// ==========================================
+// COMMUNITY & EXPLORER PROGRAM SYSTEM
+// ==========================================
+
+export interface ExplorerApplication {
+  id: string
+  name: string
+  email: string
+  phone: string
+  college: string | null
+  city: string
+  roles: string[]
+  instagram: string | null
+  linkedin: string | null
+  portfolio: string | null
+  youtube: string | null
+  why_join: string
+  experience: string | null
+  skills: string | null
+  status: 'PENDING' | 'ACCEPTED' | 'REJECTED'
+  internal_notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface ExplorerReferral {
+  id: string
+  referrer_id: string | null
+  referred_booking_id: string | null
+  reward_points: number
+  cashback_amount: number
+  status: 'PENDING' | 'CREDITED' | 'CANCELLED'
+  created_at: string
 }

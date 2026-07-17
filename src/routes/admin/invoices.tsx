@@ -12,7 +12,7 @@ import type { Invoice } from '@/lib/queries/erp'
 import { toast } from 'sonner'
 import {
   FileText, Download, IndianRupee, CheckCircle, Clock,
-  AlertCircle, ExternalLink,
+  AlertCircle, ExternalLink, Check,
 } from 'lucide-react'
 
 export const Route = createFileRoute('/admin/invoices')({
@@ -46,7 +46,7 @@ function InvoicesPage() {
 
   const handleMarkPaid = async (inv: Invoice) => {
     try {
-      await updateInvoice(inv.id, { status: 'PAID', paid_at: new Date().toISOString(), amount_paid: inv.total_amount, balance_due: 0 })
+      await updateInvoice(inv.id, { status: 'PAID' } as any)
       qc.invalidateQueries({ queryKey: ['invoices'] })
       toast.success(`Invoice ${inv.invoice_number} marked as paid`)
     } catch (e: any) {
@@ -58,13 +58,12 @@ function InvoicesPage() {
     exportToCSV(
       invoices.map((inv) => ({
         invoice_number: inv.invoice_number ?? '',
-        customer: inv.customer_name,
-        trip: inv.trip_name ?? '',
-        base: inv.base_amount,
-        gst: inv.gst_amount,
-        total: inv.total_amount,
-        status: inv.status,
-        issued: inv.issued_at ?? '',
+        customer_name: inv.customer_name ?? '',
+        customer_email: inv.customer_email ?? '',
+        trip_name: inv.trip_name ?? '',
+        total_amount: inv.total_amount ?? 0,
+        status: inv.status ?? '',
+        created_at: inv.created_at,
       })),
       'invoices'
     )
@@ -76,16 +75,14 @@ function InvoicesPage() {
   const columns: ColumnDef<Invoice>[] = [
     {
       accessorKey: 'invoice_number',
-      header: 'Invoice #',
-      cell: ({ getValue }) => (
-        <span className="font-mono text-xs font-bold text-primary">{(getValue() as string) || '—'}</span>
-      ),
+      header: 'Invoice Number',
+      cell: ({ getValue }) => <span className="font-mono text-sm font-semibold">{getValue() as string}</span>,
     },
     {
       accessorKey: 'customer_name',
       header: 'Customer',
       cell: ({ row }) => {
-        const inv = row.original
+        const inv = row.original as any
         return (
           <div>
             <p className="font-semibold text-sm">{inv.customer_name}</p>
@@ -110,7 +107,7 @@ function InvoicesPage() {
       accessorKey: 'gst_amount',
       header: 'GST',
       cell: ({ row }) => {
-        const inv = row.original
+        const inv = row.original as any
         return <span className="text-xs text-muted-foreground">₹{inv.gst_amount.toLocaleString('en-IN')} ({inv.gst_rate}%)</span>
       },
     },
@@ -118,8 +115,12 @@ function InvoicesPage() {
       accessorKey: 'balance_due',
       header: 'Balance Due',
       cell: ({ getValue }) => {
-        const v = getValue() as number
-        return <span className={`text-sm font-semibold ${v > 0 ? 'text-red-600' : 'text-emerald-600'}`}>₹{v.toLocaleString('en-IN')}</span>
+        const val = getValue() as number
+        return (
+          <span className={`font-semibold text-sm ${val > 0 ? 'text-destructive' : 'text-emerald-600'}`}>
+            ₹{val.toLocaleString('en-IN')}
+          </span>
+        )
       },
     },
     {
@@ -127,25 +128,31 @@ function InvoicesPage() {
       header: 'Status',
       cell: ({ getValue }) => {
         const s = getValue() as string
-        return <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[s] ?? 'bg-gray-100 text-gray-700'}`}>{s}</span>
+        return (
+          <Badge variant="secondary" className={`${STATUS_COLORS[s]} font-poppins font-bold text-[10px] tracking-wider px-2 py-0.5 rounded-md uppercase`}>
+            {s}
+          </Badge>
+        )
       },
     },
     {
       id: 'actions',
       header: 'Actions',
       cell: ({ row }) => {
-        const inv = row.original
+        const inv = row.original as any
         return (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            {inv.status !== 'PAID' && (
+              <Button size="icon" variant="ghost" className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50" onClick={() => handleMarkPaid(inv)} title="Mark Paid">
+                <Check className="h-4 w-4" />
+              </Button>
+            )}
             {inv.pdf_url && (
               <a href={inv.pdf_url} target="_blank" rel="noopener noreferrer">
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0"><ExternalLink className="h-3.5 w-3.5" /></Button>
+                <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-500 hover:text-slate-700">
+                  <Download className="h-4 w-4" />
+                </Button>
               </a>
-            )}
-            {inv.status === 'ISSUED' && (
-              <Button variant="ghost" size="sm" onClick={() => handleMarkPaid(inv)} className="h-8 px-2 text-emerald-600 hover:text-emerald-700 text-xs">
-                <CheckCircle className="h-3.5 w-3.5 mr-1" />Mark Paid
-              </Button>
             )}
           </div>
         )
@@ -155,15 +162,22 @@ function InvoicesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+      >
         <div>
-          <h1 className="text-2xl font-bold font-poppins text-foreground">Invoices</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">GST-compliant invoices for all confirmed bookings.</p>
+          <h1 className="text-2xl font-bold font-poppins">Invoices</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Manage customer invoice billing status and downloads.</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleExport}><Download className="h-4 w-4 mr-1.5" />Export</Button>
+          <Button variant="outline" size="sm" onClick={handleExport} className="gap-1.5 text-xs font-poppins font-bold">
+            <Download className="h-3.5 w-3.5" /> Export CSV
+          </Button>
         </div>
-      </div>
+      </motion.div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -191,13 +205,18 @@ function InvoicesPage() {
       </Select>
 
       <DataTable
-        columns={columns}
+        columns={columns as any}
         data={invoices}
         isLoading={isLoading}
         searchPlaceholder="Search by invoice # or customer..."
         onSearch={setSearch}
         onSort={(by, dir) => { setSortBy(by); setSortDir(dir) }}
-        pagination={{ page, pageSize, total: result?.total ?? 0, totalPages: result?.totalPages ?? 1, onPageChange: setPage, onPageSizeChange: setPageSize }}
+        total={result?.total ?? 0}
+        page={page}
+        pageSize={pageSize}
+        totalPages={result?.totalPages ?? 1}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
       />
     </div>
   )

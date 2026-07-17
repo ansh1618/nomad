@@ -376,7 +376,7 @@ export async function uploadMedia(file: File, folder: string, adminId: string): 
     url: publicUrl,
     folder,
     uploaded_by: adminId,
-  })
+  } as any)
 }
 
 // ==========================================

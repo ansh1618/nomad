@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
-import { Menu, X, Compass, User, Calendar, Heart, HelpCircle, LogOut } from "lucide-react";
+import { Link, useNavigate, useLocation } from "@tanstack/react-router";
+import { Menu, X, User, Calendar, Settings, HelpCircle, LogOut, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { triggerNomadikPlanner } from "./TripPlannerDialog";
 import { triggerNomadikAuth } from "./AuthModal";
@@ -21,8 +21,12 @@ import {
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, isAuthenticated, signOut } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const returnTo = location.pathname !== "/" ? location.pathname : undefined;
+
 
   // 1. Fetch site settings
   const { data: settings } = useQuery({
@@ -42,7 +46,7 @@ export function Navbar() {
   const defaultNavLinks = [
     { label: "Destinations", href: "/#destinations", is_external: false },
     { label: "Journeys", href: "/#packages", is_external: false },
-    { label: "Stories", href: "/stories", is_external: false },
+    { label: "Community", href: "/stories", is_external: false },
     { label: "About", href: "/about", is_external: false },
     { label: "Contact", href: "/contact", is_external: false },
   ];
@@ -57,9 +61,11 @@ export function Navbar() {
   }, []);
 
   const getFirstName = () => {
-    if (!profile?.full_name) return "Explorer";
-    return profile.full_name.trim().split(" ")[0];
+    const name = profile?.full_name || user?.user_metadata?.full_name || user?.user_metadata?.name || "Explorer";
+    return name.trim().split(" ")[0];
   };
+
+  const avatarUrl = profile?.avatar_url || user?.user_metadata?.avatar_url || user?.user_metadata?.picture || null;
 
   const logoUrl = settings?.logo_url || logoFallback;
   const companyName = settings?.company_name || BRAND.name;
@@ -130,32 +136,38 @@ export function Navbar() {
 
         {/* Action CTAs */}
         <div className="hidden items-center gap-3 lg:flex">
-          {user ? (
+          {isAuthenticated ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant={scrolled ? "glass" : "outlineLight"} className="h-10 px-4 font-poppins text-xs font-bold gap-2">
-                  👤 Hi, {getFirstName()} ▼
+                <Button variant={scrolled ? "glass" : "outlineLight"} className="h-10 px-3 font-poppins text-xs font-bold gap-2">
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt={getFirstName()} className="h-6 w-6 rounded-full object-cover border border-white/30" />
+                  ) : (
+                    <div className="h-6 w-6 rounded-full bg-gold/20 flex items-center justify-center text-[10px] font-bold text-gold">
+                      {getFirstName().charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  {getFirstName()} ▼
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-52 bg-white/95 border border-border shadow-elegant rounded-xl p-1.5 glass">
+              <DropdownMenuContent align="end" className="w-56 bg-white/95 border border-border shadow-elegant rounded-xl p-1.5 glass">
+                <div className="px-3 py-2 border-b border-border mb-1">
+                  <p className="text-xs font-poppins font-bold text-foreground">{getFirstName()}</p>
+                  <p className="text-[10px] text-muted-foreground truncate">{user?.email}</p>
+                </div>
                 <DropdownMenuItem asChild className="rounded-lg py-2 text-xs font-semibold cursor-pointer">
-                  <Link to="/account" className="flex items-center gap-2 text-primary">
+                  <Link to="/account" search={{ tab: "profile" } as any} className="flex items-center gap-2 text-primary">
                     <User className="h-4 w-4 text-accent" /> My Profile
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild className="rounded-lg py-2 text-xs font-semibold cursor-pointer">
-                  <Link to="/account" className="flex items-center gap-2 text-primary">
+                  <Link to="/account" search={{ tab: "bookings" } as any} className="flex items-center gap-2 text-primary">
                     <Calendar className="h-4 w-4 text-accent" /> My Bookings
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild className="rounded-lg py-2 text-xs font-semibold cursor-pointer">
-                  <Link to="/account" className="flex items-center gap-2 text-primary">
-                    <Heart className="h-4 w-4 text-accent" /> Wishlist
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild className="rounded-lg py-2 text-xs font-semibold cursor-pointer">
-                  <Link to="/account" className="flex items-center gap-2 text-primary">
-                    <HelpCircle className="h-4 w-4 text-accent" /> Support
+                  <Link to="/account" search={{ tab: "settings" } as any} className="flex items-center gap-2 text-primary">
+                    <Settings className="h-4 w-4 text-accent" /> Settings
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator className="bg-border" />
@@ -172,7 +184,7 @@ export function Navbar() {
           ) : (
             <>
               <button
-                onClick={() => triggerNomadikAuth({ mode: "login" })}
+                onClick={() => triggerNomadikAuth({ mode: "login", returnTo })}
                 className={cn(
                   "text-xs font-poppins font-bold uppercase tracking-wider transition-colors hover:text-accent cursor-pointer px-3 py-2",
                   scrolled ? "text-foreground" : "text-white",
@@ -182,7 +194,7 @@ export function Navbar() {
               </button>
               <Button
                 variant={scrolled ? "glass" : "outlineLight"}
-                onClick={() => triggerNomadikAuth({ mode: "signup" })}
+                onClick={() => triggerNomadikAuth({ mode: "signup", returnTo })}
                 className="h-10 px-4 font-poppins text-xs font-bold"
               >
                 Sign Up
@@ -242,21 +254,30 @@ export function Navbar() {
           </ul>
           
           <div className="flex flex-col gap-3.5 mt-4 border-t border-border/40 pt-4">
-            {user ? (
+            {isAuthenticated ? (
               <div className="space-y-2">
-                <p className="text-xs text-muted-foreground font-poppins font-semibold px-3">👤 Logged in as: {getFirstName()}</p>
+                <div className="flex items-center gap-2 px-3">
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt={getFirstName()} className="h-8 w-8 rounded-full object-cover" />
+                  ) : (
+                    <div className="h-8 w-8 rounded-full bg-gold/20 flex items-center justify-center text-xs font-bold text-gold">
+                      {getFirstName().charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-xs font-poppins font-semibold text-foreground">{getFirstName()}</p>
+                    <p className="text-[10px] text-muted-foreground">{user?.email}</p>
+                  </div>
+                </div>
                 <div className="grid grid-cols-2 gap-2">
                   <Button variant="outline" size="sm" asChild onClick={() => setOpen(false)}>
-                    <Link to="/account">My Dashboard</Link>
+                    <Link to="/account" search={{ tab: "bookings" } as any}>My Bookings</Link>
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
                     className="text-[#E53E3E]"
-                    onClick={() => {
-                      setOpen(false);
-                      signOut().then(() => navigate({ to: "/" }));
-                    }}
+                    onClick={() => { setOpen(false); signOut().then(() => navigate({ to: "/" })); }}
                   >
                     Logout
                   </Button>
@@ -264,10 +285,10 @@ export function Navbar() {
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-2">
-                <Button variant="outline" onClick={() => { setOpen(false); triggerNomadikAuth({ mode: "login" }); }}>
+                <Button variant="outline" onClick={() => { setOpen(false); triggerNomadikAuth({ mode: "login", returnTo }); }}>
                   Login
                 </Button>
-                <Button variant="outline" onClick={() => { setOpen(false); triggerNomadikAuth({ mode: "signup" }); }}>
+                <Button variant="outline" onClick={() => { setOpen(false); triggerNomadikAuth({ mode: "signup", returnTo }); }}>
                   Sign Up
                 </Button>
               </div>

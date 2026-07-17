@@ -11,6 +11,7 @@ import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 import {
   ArrowLeft,
@@ -68,7 +69,7 @@ function BusFormPage() {
     formState: { errors },
     reset,
   } = useForm<BusFormValues>({
-    resolver: zodResolver(busSchema),
+    resolver: zodResolver(busSchema) as any,
     defaultValues: {
       bus_type: '2x2',
       total_seats: 20,
@@ -99,20 +100,23 @@ function BusFormPage() {
         ...values,
         amenities,
         created_by: admin?.id ?? null,
+        seat_layout: null,
+        photos: [],
+        driver_photo: null,
       }
 
       let savedBus
       if (isNew) {
-        savedBus = await createBus(payload)
+        savedBus = await createBus(payload as any)
       } else {
-        savedBus = await updateBus(id, payload)
+        savedBus = await updateBus(id, payload as any)
       }
 
       // Automatically generate/refresh seats registry map
       const seatsCount = values.total_seats
       const layout = values.bus_type
 
-      const seatsToInsert = []
+      const seatsToInsert: any[] = []
       const cols = layout === '1x2' ? ['A', 'B', 'C'] : ['A', 'B', 'C', 'D']
       const rowsCount = Math.ceil(seatsCount / cols.length)
 
@@ -198,7 +202,7 @@ function BusFormPage() {
           </h1>
         </div>
         <Button
-          onClick={handleSubmit((v) => saveMutation.mutate(v), onInvalid)}
+          onClick={handleSubmit((v) => saveMutation.mutate(v as any), onInvalid)}
           disabled={saveMutation.isPending}
           className="gap-1.5"
         >
@@ -207,7 +211,7 @@ function BusFormPage() {
         </Button>
       </motion.div>
 
-      <form onSubmit={handleSubmit((v) => saveMutation.mutate(v), onInvalid)} className="space-y-6">
+      <form onSubmit={handleSubmit((v) => saveMutation.mutate(v as any), onInvalid)} className="space-y-6">
         <Card>
           <CardHeader>
             <CardTitle className="text-sm font-semibold">Vehicle Details</CardTitle>

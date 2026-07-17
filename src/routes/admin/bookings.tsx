@@ -9,6 +9,7 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { getBookings } from '@/lib/queries/bookings'
 import { useRealtimeBookings } from '@/hooks/use-realtime-bookings'
 import type { Booking } from '@/types/supabase'
+import { supabase } from '@/lib/supabase'
 import {
   MoreHorizontal,
   Eye,
@@ -18,6 +19,11 @@ import {
   CalendarDays,
   Users,
   IndianRupee,
+  TrendingUp,
+  XCircle,
+  Calendar,
+  CreditCard,
+  Plane,
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -27,6 +33,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
 
 export const Route = createFileRoute('/admin/bookings')({
@@ -59,15 +66,89 @@ function BookingsPage() {
   const [sortBy, setSortBy] = useState('created_at')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const [statusFilter, setStatusFilter] = useState('')
+  const [destinationFilter, setDestinationFilter] = useState('')
+  const [fromDate, setFromDate] = useState('')
+  const [toDate, setToDate] = useState('')
 
   // Subscribe to realtime booking changes — no polling needed
   useRealtimeBookings()
 
   const { data: result, isLoading } = useQuery({
-    queryKey: ['bookings_list', page, pageSize, search, sortBy, sortDir, statusFilter],
+    queryKey: ['bookings_list', page, pageSize, search, sortBy, sortDir, statusFilter, destinationFilter, fromDate, toDate],
     queryFn: () =>
-      getBookings({ page, pageSize, search, sortBy, sortDir, status: statusFilter || undefined }),
+      getBookings({
+        page,
+        pageSize,
+        search,
+        sortBy,
+        sortDir,
+        status: statusFilter || undefined,
+        destinationId: destinationFilter || undefined,
+        fromDate: fromDate || undefined,
+        toDate: toDate || undefined,
+      }),
     placeholderData: (prev) => prev,
+  })
+
+  // Load aggregate stats dynamically from DB
+  const { data: stats } = useQuery({
+    queryKey: ['bookings_dashboard_stats'],
+    queryFn: async () => {
+      const { count: total } = await supabase.from('bookings').select('*', { count: 'exact', head: true })
+      const { count: confirmed } = await supabase.from('bookings').select('*', { count: 'exact', head: true }).eq('booking_status', 'CONFIRMED')
+      const { count: pending } = await supabase.from('bookings').select('*', { count: 'exact', head: true }).eq('booking_status', 'PENDING')
+      const { count: cancelled } = await supabase.from('bookings').select('*', { count: 'exact', head: true }).eq('booking_status', 'CANCELLED')
+      
+      const { data: rev } = await supabase.from('bookings').select('amount_paid')
+      const revenue = rev?.reduce((s, b) => s + Number(b.amount_paid || 0), 0) ?? 0
+
+      const { data: travs } = await supabase.from('bookings').select('traveller_count')
+      const travellers = travs?.reduce((s, b) => s + Number(b.traveller_count || 1), 0) ?? 0
+
+      return { total: total ?? 0, confirmed: confirmed ?? 0, pending: pending ?? 0, cancelled: cancelled ?? 0, revenue, travellers }
+    },
+    refetchInterval: 10_000,
+  })
+
+  // Load destinations list for dropdown filter
+  const { data: destinations = [] } = useQuery({
+    queryKey: ['destinations_list_dropdown'],
+    queryFn: async () => {
+      const { data } = await supabase.from('destinations').select('id, name').order('name')
+      return data ?? []
+    }
+  })
+
+  const bulkConfirmMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase
+        .from('bookings')
+        .update({ status: 'CONFIRMED', booking_status: 'CONFIRMED', updated_at: new Date().toISOString() })
+        .in('id', ids)
+      if (error) throw error
+    },
+    onSuccess: (_, ids) => {
+      qc.invalidateQueries({ queryKey: ['bookings_list'] })
+      qc.invalidateQueries({ queryKey: ['bookings_dashboard_stats'] })
+      toast.success(`${ids.length} booking(s) confirmed successfully`)
+    },
+    onError: (err: Error) => toast.error(err.message),
+  })
+
+  const bulkCancelMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase
+        .from('bookings')
+        .update({ status: 'CANCELLED', booking_status: 'CANCELLED', updated_at: new Date().toISOString() })
+        .in('id', ids)
+      if (error) throw error
+    },
+    onSuccess: (_, ids) => {
+      qc.invalidateQueries({ queryKey: ['bookings_list'] })
+      qc.invalidateQueries({ queryKey: ['bookings_dashboard_stats'] })
+      toast.success(`${ids.length} booking(s) cancelled successfully`)
+    },
+    onError: (err: Error) => toast.error(err.message),
   })
 
   const bookings: BookingWithJoins[] = (result?.data ?? []) as BookingWithJoins[]
@@ -234,18 +315,70 @@ function BookingsPage() {
       >
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold font-poppins">Bookings</h1>
+            <h1 className="text-2xl font-bold font-poppins text-foreground">Bookings CRM</h1>
             <span className="flex items-center gap-1 text-xs text-emerald-600 font-poppins font-semibold bg-emerald-50 px-2 py-0.5 rounded-full">
               <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
               Live
             </span>
           </div>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {result?.total ?? 0} booking{(result?.total ?? 0) !== 1 ? 's' : ''} total
+            Manage booking lifecycles, seats, rooms, and payments sync.
           </p>
         </div>
       </motion.div>
 
+      {/* Aggregate Stats Row */}
+      {stats && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3"
+        >
+          <div className="bg-white border rounded-xl p-4 flex flex-col justify-between shadow-soft hover:shadow-soft-lg transition-all">
+            <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Total Bookings</span>
+            <div className="flex items-baseline gap-1.5 mt-2">
+              <span className="text-2xl font-bold font-poppins text-primary">{stats.total}</span>
+              <span className="text-xs text-muted-foreground">files</span>
+            </div>
+          </div>
+          <div className="bg-white border rounded-xl p-4 flex flex-col justify-between shadow-soft hover:shadow-soft-lg transition-all">
+            <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Total Revenue</span>
+            <div className="flex items-baseline gap-1 mt-2 text-emerald-600">
+              <span className="text-2xl font-bold font-poppins">₹{stats.revenue.toLocaleString('en-IN')}</span>
+            </div>
+          </div>
+          <div className="bg-white border rounded-xl p-4 flex flex-col justify-between shadow-soft hover:shadow-soft-lg transition-all">
+            <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Total Travellers</span>
+            <div className="flex items-baseline gap-1.5 mt-2 text-blue-600">
+              <span className="text-2xl font-bold font-poppins">{stats.travellers}</span>
+              <span className="text-xs text-muted-foreground">explorers</span>
+            </div>
+          </div>
+          <div className="bg-white border rounded-xl p-4 flex flex-col justify-between shadow-soft hover:shadow-soft-lg transition-all">
+            <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Confirmed Slots</span>
+            <div className="flex items-baseline gap-1.5 mt-2 text-emerald-600">
+              <span className="text-2xl font-bold font-poppins">{stats.confirmed}</span>
+              <span className="text-xs text-muted-foreground">confirmed</span>
+            </div>
+          </div>
+          <div className="bg-white border rounded-xl p-4 flex flex-col justify-between shadow-soft hover:shadow-soft-lg transition-all">
+            <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Pending Payments</span>
+            <div className="flex items-baseline gap-1.5 mt-2 text-amber-600">
+              <span className="text-2xl font-bold font-poppins">{stats.pending}</span>
+              <span className="text-xs text-muted-foreground">pending</span>
+            </div>
+          </div>
+          <div className="bg-white border rounded-xl p-4 flex flex-col justify-between shadow-soft hover:shadow-soft-lg transition-all">
+            <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Cancelled Files</span>
+            <div className="flex items-baseline gap-1.5 mt-2 text-red-500">
+              <span className="text-2xl font-bold font-poppins">{stats.cancelled}</span>
+              <span className="text-xs text-muted-foreground">void</span>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Advanced Toolbar Filters */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
         <DataTable
           data={bookings}
@@ -255,30 +388,98 @@ function BookingsPage() {
           pageSize={pageSize}
           totalPages={result?.totalPages ?? 1}
           isLoading={isLoading}
-          searchPlaceholder="Search by booking ID..."
+          searchPlaceholder="Search Name, Phone, Email, IDs..."
           onPageChange={setPage}
           onPageSizeChange={(s) => { setPageSize(s); setPage(1) }}
           onSearch={(s) => { setSearch(s); setPage(1) }}
           onSort={handleSort}
-          onRefresh={() => qc.invalidateQueries({ queryKey: ['bookings_list'] })}
+          onRefresh={() => {
+            qc.invalidateQueries({ queryKey: ['bookings_list'] });
+            qc.invalidateQueries({ queryKey: ['bookings_dashboard_stats'] });
+          }}
           onExportCSV={handleExport}
           filterComponent={
-            <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v === 'ALL' ? '' : v); setPage(1) }}>
-              <SelectTrigger className="w-44 h-9">
-                <SelectValue placeholder="All Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">All Status</SelectItem>
-                <SelectItem value="CONFIRMED">Confirmed</SelectItem>
-                <SelectItem value="PAYMENT_PENDING">Payment Pending</SelectItem>
-                <SelectItem value="PARTIAL_PAID">Partial Paid</SelectItem>
-                <SelectItem value="COMPLETED">Completed</SelectItem>
-                <SelectItem value="CANCELLED">Cancelled</SelectItem>
-                <SelectItem value="REFUNDED">Refunded</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex flex-wrap items-center gap-2">
+              <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v === 'ALL' ? '' : v); setPage(1) }}>
+                <SelectTrigger className="w-36 h-9">
+                  <SelectValue placeholder="All Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">All Status</SelectItem>
+                  <SelectItem value="CONFIRMED">Confirmed</SelectItem>
+                  <SelectItem value="PAYMENT_PENDING">Payment Pending</SelectItem>
+                  <SelectItem value="PARTIAL_PAID">Partial Paid</SelectItem>
+                  <SelectItem value="COMPLETED">Completed</SelectItem>
+                  <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                  <SelectItem value="REFUNDED">Refunded</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={destinationFilter} onValueChange={(v) => { setDestinationFilter(v === 'ALL' ? '' : v); setPage(1) }}>
+                <SelectTrigger className="w-40 h-9">
+                  <SelectValue placeholder="All Destinations" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">All Destinations</SelectItem>
+                  {destinations.map((d: any) => (
+                    <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <div className="flex items-center gap-1.5 bg-white border rounded-lg px-2 py-1 h-9">
+                <span className="text-[10px] text-muted-foreground font-semibold uppercase">From:</span>
+                <input
+                  type="date"
+                  value={fromDate}
+                  onChange={(e) => { setFromDate(e.target.value); setPage(1) }}
+                  className="text-xs bg-transparent border-0 focus:outline-none w-28 focus:ring-0"
+                />
+              </div>
+
+              <div className="flex items-center gap-1.5 bg-white border rounded-lg px-2 py-1 h-9">
+                <span className="text-[10px] text-muted-foreground font-semibold uppercase">To:</span>
+                <input
+                  type="date"
+                  value={toDate}
+                  onChange={(e) => { setToDate(e.target.value); setPage(1) }}
+                  className="text-xs bg-transparent border-0 focus:outline-none w-28 focus:ring-0"
+                />
+              </div>
+
+              {(statusFilter || destinationFilter || fromDate || toDate || search) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setStatusFilter('');
+                    setDestinationFilter('');
+                    setFromDate('');
+                    setToDate('');
+                    setSearch('');
+                    setPage(1);
+                  }}
+                  className="h-9 px-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                >
+                  <X className="h-3.5 w-3.5 mr-1" /> Reset
+                </Button>
+              )}
+            </div>
           }
-          emptyMessage="No bookings found."
+          emptyMessage="No bookings found matching criteria."
+          bulkActions={[
+            {
+              label: 'Confirm Selected',
+              icon: <CheckCircle className="h-3.5 w-3.5 mr-1.5" />,
+              onClick: (ids) => bulkConfirmMutation.mutateAsync(ids),
+            },
+            {
+              label: 'Cancel Selected',
+              icon: <XCircle className="h-3.5 w-3.5 mr-1.5 text-destructive" />,
+              variant: 'destructive',
+              onClick: (ids) => bulkCancelMutation.mutateAsync(ids),
+            },
+          ]}
         />
       </motion.div>
     </div>

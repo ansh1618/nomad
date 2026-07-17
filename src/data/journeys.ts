@@ -85,18 +85,22 @@ export const journeys: Journey[] = [
     pickupPoint: "Majnu ka Tilla (near Gurudwara), Delhi NCR at 6:30 PM",
     dropPoint: "Majnu ka Tilla, Delhi NCR by 7:00 AM (Day 5)",
     inclusions: [
-      "All transport in AC Tempo Traveller from Delhi NCR",
-      "Cozy stays for 2 Nights in premium cottages",
-      "4 Meals (2 Breakfast, 2 Dinner)",
-      "Experienced Trip Captain and Local Guide support",
-      "Permits, tolls, and state taxes",
-      "First aid and oxygen kits"
+      "🏨 Premium Hotel Accommodation (2N/3D)",
+      "🍽️ 2 Breakfasts & 2 Dinners",
+      "🚌 Volvo / Tempo Traveller Transportation",
+      "👨‍✈️ Experienced Trip Captain",
+      "🔥 Bonfire, Music & Group Activities (subject to weather)",
+      "📍 Local Sightseeing (as per itinerary)",
+      "🚗 Toll Tax, Parking & Driver Charges",
+      "🛡️ 24×7 On-Trip Support"
     ],
     exclusions: [
-      "Any adventure activity costs (paragliding, zorbing)",
-      "Lunch meals on all days",
-      "Personal expenses, laundry, and tips",
-      "Anything not mentioned in Inclusions"
+      "Adventure Activities (Paragliding, River Rafting, ATV, Zipline, etc.)",
+      "Lunch & Personal Snacks",
+      "Entry Tickets / Monument Fees",
+      "Personal Expenses (Shopping, Laundry, Tips)",
+      "Any Expense Due to Weather, Road Block, Landslide or Natural Calamities",
+      "Anything Not Mentioned Under \"What's Included\""
     ],
     packingList: [
       "Warm fleece jacket or light down jacket",
@@ -155,18 +159,27 @@ export const journeys: Journey[] = [
     pickupPoint: "Akshardham Metro Station, Delhi NCR at 7:00 PM",
     dropPoint: "Akshardham Metro Station, Delhi NCR by 8:00 AM (Day 5)",
     inclusions: [
-      "AC Force Traveller transport from Delhi NCR and back",
-      "2 Nights stay in premium wooden cottages",
-      "4 Meals (2 Breakfasts, 2 Dinners)",
-      "Guided trek to Serolsar Lake and Chehni Kothi",
-      "Forest department entry permits",
-      "Nomadik Trip Captain supervision"
+      "Super Deluxe Hotel / Cottage Accommodation",
+      "Daily Breakfast & Dinner",
+      "Volvo / Tempo Traveller Transportation",
+      "Bonfire with Music (Weather Permitting)",
+      "Local Sightseeing as per Itinerary",
+      "Jalori Pass Excursion",
+      "Serolsar Lake Trek",
+      "Experienced Trip Captain",
+      "All Toll Taxes, Parking & Driver Allowance",
+      "First Aid Assistance",
+      "24×7 Travel Support"
     ],
     exclusions: [
-      "Lunches and trail snacks",
-      "Rafting or trout fishing gear",
-      "Travel insurance",
-      "Any personal expenses"
+      "Lunch & Snacks",
+      "Personal Expenses",
+      "Entry Tickets & Activity Charges",
+      "Any Adventure Activities",
+      "Heater Charges (if applicable)",
+      "Camera / Photography Fees",
+      "Travel Insurance",
+      "Anything Not Mentioned Under \"What's Included\""
     ],
     packingList: [
       "Good grip trekking shoes",
@@ -365,18 +378,26 @@ export const journeys: Journey[] = [
     pickupPoint: "IFFCO Chowk, Gurgaon / Dhaula Kuan, Delhi at 9:00 PM",
     dropPoint: "IFFCO Chowk, Gurgaon by 7:30 AM (Day 5)",
     inclusions: [
-      "AC Highway Transport from Delhi/NCR and back",
-      "2 Nights stay in a heritage lakeview Haveli",
-      "4 Meals (2 Breakfasts, 2 Dinners)",
-      "City Palace entry ticket and Lake Pichola Boat Cruise ticket",
-      "Guided heritage walking tour with local storyteller",
-      "Nomadik Trip Captain support"
+      "🚌 Comfortable AC Volvo / Tempo Traveller Transportation",
+      "🏨 Premium Hotel Accommodation on Sharing Basis",
+      "🍽️ 2 Breakfasts",
+      "🍛 2 Dinners",
+      "👨‍✈️ Experienced Trip Captain Throughout the Journey",
+      "🎉 Bonfire, Music & Fun Group Activities (subject to weather & permissions)",
+      "🏰 Sightseeing as per the Itinerary",
+      "📸 Unlimited Group Photos & Travel Memories",
+      "🛡️ Toll Tax, Parking Charges & Driver Allowance",
+      "📞 24×7 On-Trip Support from Team Nomadik"
     ],
     exclusions: [
-      "Lunches and monument entry fees not in inclusions",
-      "Camera/Video charges inside palaces",
-      "Tips and personal shopping",
-      "Alcoholic beverages"
+      "🚤 Boating Charges (Lake Pichola, Fateh Sagar Lake or any optional water activity)",
+      "🎢 Adventure Activities & Personal Experiences",
+      "🍕 Lunches and Meals Not Mentioned Under \"What's Included\"",
+      "🎫 Entry Tickets to Monuments, Museums, Palaces & Attractions",
+      "🛍️ Personal Expenses (Shopping, Laundry, Tips, Snacks, etc.)",
+      "🚕 Local Auto/Cab Charges Outside the Planned Itinerary",
+      "🌧️ Additional Expenses Due to Weather, Traffic, Roadblocks, Natural Calamities or Government Restrictions",
+      "❌ Anything Not Specifically Mentioned Under \"What's Included\""
     ],
     packingList: [
       "Comfortable light cotton clothing",

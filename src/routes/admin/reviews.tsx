@@ -28,6 +28,8 @@ import {
   CheckCircle2,
 } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
 
 export const Route = createFileRoute('/admin/reviews')({
   component: ReviewsPage,

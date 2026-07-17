@@ -118,7 +118,7 @@ function CouponsPage() {
       is_active: true,
       current_redemptions: 0,
       per_user_limit: 1,
-    })
+    } as any)
   }
 
   const handleSort = useCallback((by: string, dir: 'asc' | 'desc') => {
@@ -365,7 +365,7 @@ function CouponsPage() {
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
         <DataTable
           data={coupons}
-          columns={columns}
+          columns={columns as any}
           total={result?.total ?? 0}
           page={page}
           pageSize={pageSize}

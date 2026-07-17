@@ -100,7 +100,7 @@ function DestinationFormPage() {
     formState: { errors, isDirty },
     reset,
   } = useForm<DestinationFormValues>({
-    resolver: zodResolver(destinationSchema),
+    resolver: zodResolver(destinationSchema) as any,
     defaultValues: {
       country: 'India',
       status: 'DRAFT',
@@ -116,24 +116,20 @@ function DestinationFormPage() {
         name: destination.name,
         slug: destination.slug,
         subtitle: destination.subtitle ?? '',
-        country: destination.country,
+        description: destination.description ?? '',
+        country: destination.country ?? 'India',
         state: destination.state ?? '',
         region: destination.region ?? '',
+        priority: destination.priority ?? 0,
+        status: destination.status as any,
+        is_featured: destination.is_featured ?? false,
         hero_image: destination.hero_image ?? '',
-        hero_video: destination.hero_video ?? '',
-        short_description: destination.short_description ?? '',
-        description: destination.description ?? '',
-        altitude: destination.altitude ?? '',
-        best_time: destination.best_time ?? '',
         google_map_url: destination.google_map_url ?? '',
-        status: destination.status ? (destination.status.toUpperCase().trim() as any) : 'DRAFT',
-        is_featured: destination.is_featured,
-        priority: destination.priority,
         seo_title: destination.seo?.title ?? '',
         seo_description: destination.seo?.description ?? '',
       })
-      setThings(destination.things_to_do ?? [])
-      setFaqs(destination.faqs ?? [])
+      setThings((destination.things_to_do as ThingToDo[]) ?? [])
+      setFaqs((destination.faqs as FaqItem[]) ?? [])
     }
   }, [destination, reset])
 
@@ -141,12 +137,15 @@ function DestinationFormPage() {
   const nameValue = watch('name')
   const slugValue = watch('slug')
 
-  const generateSlug = (name: string) =>
-    name.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').trim()
-
   useEffect(() => {
     if (isNew && nameValue) {
-      setValue('slug', generateSlug(nameValue), { shouldDirty: false })
+      const generatedSlug = nameValue
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .trim()
+      setValue('slug', generatedSlug)
     }
   }, [isNew, nameValue, setValue])
 
@@ -169,7 +168,7 @@ function DestinationFormPage() {
       if (isNew) {
         return createDestination(payload as Parameters<typeof createDestination>[0])
       }
-      return updateDestination(id, payload)
+      return updateDestination(id, payload as any)
     },
     onSuccess: (dest) => {
       qc.invalidateQueries({ queryKey: ['destinations'] })
@@ -230,7 +229,7 @@ function DestinationFormPage() {
             </a>
           )}
           <Button
-            onClick={handleSubmit(onSubmit, onInvalid)}
+            onClick={handleSubmit(onSubmit as any, onInvalid)}
             disabled={saveMutation.isPending}
             className="gap-1.5"
           >
@@ -244,7 +243,7 @@ function DestinationFormPage() {
         </div>
       </motion.div>
 
-      <form onSubmit={handleSubmit(onSubmit)}>
+      <form onSubmit={handleSubmit(onSubmit as any)}>
         <Tabs defaultValue="basic" className="space-y-6">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="basic">Basic Info</TabsTrigger>

@@ -172,7 +172,9 @@ export const verifyRazorpayPaymentFn = createServerFn({ method: 'POST' })
     }
 
     // Increment booking count on journey
-    await supabase.rpc('increment', { table_name: 'journeys', field_name: 'booking_count', row_id: booking.departure_id }).catch(() => null)
+    try {
+      await supabase.rpc('increment', { table_name: 'journeys', field_name: 'booking_count', row_id: booking.departure_id })
+    } catch {}
 
     return {
       success: true,

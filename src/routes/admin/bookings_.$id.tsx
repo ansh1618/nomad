@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Dialog,
   DialogContent,
@@ -39,6 +40,15 @@ import {
   Plus,
   ArrowRight,
   TrendingDown,
+  FileText,
+  Trash2,
+  Activity,
+  FileImage,
+  Bus,
+  Bed,
+  Check,
+  Download,
+  AlertCircle,
 } from 'lucide-react'
 import {
   getBookingById,
@@ -47,6 +57,11 @@ import {
   updateBooking,
   updateTraveller,
   addManualPayment,
+  assignBus,
+  assignHotel,
+  assignTripCaptain,
+  addBookingDocument,
+  deleteBookingDocument,
 } from '@/lib/queries/bookings'
 import {
   AlertDialog,
@@ -59,7 +74,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { useAdminAuth } from '@/hooks/use-admin-auth'
-import type { Booking, BookingTraveller, Payment } from '@/types/supabase'
+import type { Booking, BookingTraveller, Payment, BookingDocument } from '@/types/supabase'
 
 export const Route = createFileRoute('/admin/bookings_/$id')({
   component: BookingDetailPage,
@@ -85,7 +100,17 @@ const PAYMENT_STATUS_BADGE: Record<string, string> = {
 }
 
 type FullBooking = Booking & {
-  users?: { full_name: string; phone: string; email: string | null; avatar_url: string | null; wallet_balance: number }
+  users?: {
+    full_name: string
+    phone: string
+    email: string | null
+    avatar_url: string | null
+    wallet_balance: number
+    gender?: string | null
+    dob?: string | null
+    city?: string | null
+    emergency_contact?: string | null
+  }
   departures?: {
     departure_date: string
     return_date: string
@@ -98,6 +123,8 @@ type FullBooking = Booking & {
   }
   booking_travellers?: BookingTraveller[]
   payments?: Payment[]
+  booking_timeline?: any[]
+  booking_documents?: BookingDocument[]
   coupons?: { code: string; discount_type: string; discount_value: number } | null
 }
 
@@ -152,6 +179,117 @@ function BookingDetailPage() {
   })
 
   const b = booking as FullBooking | null
+
+  // Allocations lookups & lists
+  const { data: buses = [] } = useQuery({
+    queryKey: ['buses_dropdown'],
+    queryFn: async () => {
+      const { data } = await supabase.from('buses').select('id, name, total_seats').order('name')
+      return data ?? []
+    }
+  })
+
+  const { data: hotels = [] } = useQuery({
+    queryKey: ['hotels_dropdown'],
+    queryFn: async () => {
+      const { data } = await supabase.from('hotels').select('id, name, city').order('name')
+      return data ?? []
+    }
+  })
+
+  const { data: captains = [] } = useQuery({
+    queryKey: ['captains_dropdown'],
+    queryFn: async () => {
+      const { data } = await supabase.from('trip_captains').select('id, full_name').order('full_name')
+      return data ?? []
+    }
+  })
+
+  const { data: occupiedSeats = [], refetch: refetchOccupiedSeats } = useQuery({
+    queryKey: ['departure_occupied_seats', b?.departure_id],
+    queryFn: async () => {
+      if (!b?.departure_id) return []
+      const { data } = await supabase
+        .from('booking_travellers')
+        .select('seat_number, full_name, gender, booking:bookings(booking_id)')
+        .eq('booking.departure_id', b.departure_id)
+      return (data as any[])?.filter(t => t.seat_number) ?? []
+    },
+    enabled: !!b?.departure_id
+  })
+
+  const { data: occupiedRooms = [], refetch: refetchOccupiedRooms } = useQuery({
+    queryKey: ['departure_occupied_rooms', b?.departure_id],
+    queryFn: async () => {
+      if (!b?.departure_id) return []
+      const { data } = await supabase
+        .from('booking_travellers')
+        .select('room_number, full_name, gender, booking:bookings(booking_id)')
+        .eq('booking.departure_id', b.departure_id)
+      return (data as any[])?.filter(t => t.room_number) ?? []
+    },
+    enabled: !!b?.departure_id
+  })
+
+  // Modal allocations states
+  const [showSeatModal, setShowSeatModal] = useState(false)
+  const [seatModalTraveler, setSeatModalTraveler] = useState<BookingTraveller | null>(null)
+
+  const [showRoomModal, setShowRoomModal] = useState(false)
+  const [roomModalTraveler, setRoomModalTraveler] = useState<BookingTraveller | null>(null)
+  const [roomInput, setRoomInput] = useState('')
+
+  // Mutations
+  const updateSeatMutation = useMutation({
+    mutationFn: (seatNumber: string | null) => {
+      if (!seatModalTraveler) throw new Error("No traveler selected")
+      return updateTraveller(seatModalTraveler.id, { seat_number: seatNumber })
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['booking_detail', id] })
+      refetchOccupiedSeats()
+      toast.success("Seat allocation updated successfully")
+      setShowSeatModal(false)
+      setSeatModalTraveler(null)
+    },
+    onError: (err: Error) => toast.error(err.message)
+  })
+
+  const updateRoomMutation = useMutation({
+    mutationFn: (roomNumber: string | null) => {
+      if (!roomModalTraveler) throw new Error("No traveler selected")
+      return updateTraveller(roomModalTraveler.id, { room_number: roomNumber })
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['booking_detail', id] })
+      refetchOccupiedRooms()
+      toast.success("Room allocation updated successfully")
+      setShowRoomModal(false)
+      setRoomModalTraveler(null)
+      setRoomInput('')
+    },
+    onError: (err: Error) => toast.error(err.message)
+  })
+
+  const addDocMutation = useMutation({
+    mutationFn: addBookingDocument,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['booking_detail', id] })
+      toast.success("Document saved successfully")
+    },
+    onError: (err: Error) => toast.error(err.message)
+  })
+
+  const deleteDocMutation = useMutation({
+    mutationFn: (payload: { documentId: string; name: string }) =>
+      deleteBookingDocument(payload.documentId, id, payload.name),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['booking_detail', id] })
+      toast.success("Document deleted successfully")
+    },
+    onError: (err: Error) => toast.error(err.message)
+  })
+
 
   const handleViewDocument = async (path: string) => {
     try {
@@ -366,24 +504,29 @@ function BookingDetailPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-6 max-w-6xl">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center gap-4"
+        className="flex items-center gap-4 border-b pb-4 bg-background/50 backdrop-blur sticky top-14 z-30"
       >
         <Button variant="ghost" size="icon" onClick={() => navigate({ to: '/admin/bookings' })}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div className="flex-1">
           <div className="flex items-center gap-3">
-            <h1 className="text-xl font-bold font-poppins font-mono">
+            <h1 className="text-xl font-bold font-poppins font-mono text-primary">
               {b.booking_id ?? id.slice(0, 8).toUpperCase()}
             </h1>
-            <Badge className={`${STATUS_BADGE[b.status] ?? 'bg-gray-100'} border-0 font-semibold`}>
+            <Badge className={`${STATUS_BADGE[b.status] ?? 'bg-gray-100'} border-0 font-semibold text-xs`}>
               {b.status.replace(/_/g, ' ')}
             </Badge>
+            {b.booking_source && (
+              <Badge variant="outline" className="text-[10px] text-muted-foreground font-semibold">
+                {b.booking_source}
+              </Badge>
+            )}
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
             Created {new Date(b.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
@@ -394,7 +537,7 @@ function BookingDetailPage() {
             variant="outline"
             size="sm"
             onClick={() => setShowEditDetails(true)}
-            className="gap-1.5"
+            className="gap-1.5 h-9"
           >
             <Edit className="h-4 w-4" /> Edit Booking
           </Button>
@@ -403,7 +546,7 @@ function BookingDetailPage() {
               variant="destructive"
               size="sm"
               onClick={() => setShowCancel(true)}
-              className="gap-1.5"
+              className="gap-1.5 h-9"
             >
               <XCircle className="h-4 w-4" /> Cancel Booking
             </Button>
@@ -412,295 +555,484 @@ function BookingDetailPage() {
       </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main content */}
+        {/* Main tabs content */}
         <div className="lg:col-span-2 space-y-4">
-          {/* Package Info */}
-          <Card>
+          <Tabs defaultValue="overview" className="w-full">
+            <TabsList className="grid w-full grid-cols-3 bg-muted/50 p-1 rounded-xl h-11 border">
+              <TabsTrigger value="overview" className="rounded-lg text-xs font-semibold py-2 font-poppins">Overview</TabsTrigger>
+              <TabsTrigger value="travellers" className="rounded-lg text-xs font-semibold py-2 font-poppins">Travellers ({b.traveller_count})</TabsTrigger>
+              <TabsTrigger value="docs_timeline" className="rounded-lg text-xs font-semibold py-2 font-poppins">Docs & Timeline</TabsTrigger>
+            </TabsList>
+
+            {/* OVERVIEW TAB */}
+            <TabsContent value="overview" className="space-y-4 mt-4 focus-visible:outline-none focus-visible:ring-0">
+              {/* Trip details */}
+              <Card className="border shadow-none">
+                <CardHeader>
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-primary" /> Trip Overview
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {b.departures?.journeys?.hero_banner && (
+                    <img
+                      src={b.departures.journeys.hero_banner}
+                      alt={b.departures.journeys.name}
+                      className="w-full h-40 object-cover rounded-xl border"
+                    />
+                  )}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Package / Destination</p>
+                      <p className="text-sm font-semibold mt-0.5 text-foreground">{b.departures?.journeys?.name ?? '—'}</p>
+                      <p className="text-xs text-muted-foreground font-medium mt-0.5">{b.departures?.journeys?.duration ?? ''}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Departure Date</p>
+                      <p className="text-sm font-semibold mt-0.5 text-foreground">
+                        {b.departures?.departure_date
+                          ? new Date(b.departures.departure_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
+                          : '—'}
+                      </p>
+                      {b.departures?.return_date && (
+                        <p className="text-xs text-muted-foreground font-medium mt-0.5">
+                          Return: {new Date(b.departures.return_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Pickup Point</p>
+                      <p className="text-sm font-semibold text-foreground mt-0.5">{b.pickup_point ?? b.departures?.pickup_location ?? '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Drop Point</p>
+                      <p className="text-sm font-semibold text-foreground mt-0.5">{b.drop_point ?? b.departures?.drop_location ?? '—'}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Preferences */}
+              {(b.room_preference || b.food_preference || b.special_requests) && (
+                <Card className="border shadow-none">
+                  <CardHeader>
+                    <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                      <Settings className="h-4 w-4 text-primary" /> Special Preferences
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3 text-xs leading-relaxed text-muted-foreground">
+                    {b.room_preference && (
+                      <div>
+                        <span className="font-bold text-foreground">Room Sharing configuration: </span>
+                        {b.room_preference}
+                      </div>
+                    )}
+                    {b.food_preference && (
+                      <div>
+                        <span className="font-bold text-foreground">Meals request: </span>
+                        {b.food_preference}
+                      </div>
+                    )}
+                    {b.special_requests && (
+                      <div>
+                        <span className="font-bold text-foreground">Special Request details: </span>
+                        {b.special_requests}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Internal notes */}
+              <Card className="border shadow-none">
+                <CardHeader>
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4 text-primary" /> Private CRM Notes
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Add internal notes for this booking (visible only to admins)..."
+                    rows={4}
+                    className="text-xs rounded-xl"
+                  />
+                  <Button size="sm" onClick={saveNotes} disabled={savingNotes} className="rounded-lg h-9">
+                    {savingNotes ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : null}
+                    Save CRM Notes
+                  </Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* TRAVELLERS TAB */}
+            <TabsContent value="travellers" className="space-y-4 mt-4 focus-visible:outline-none focus-visible:ring-0">
+              <Card className="border shadow-none">
+                <CardHeader>
+                  <CardTitle className="text-sm font-semibold flex items-center justify-between">
+                    <span>Active Explorers ({b.traveller_count})</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {(b.booking_travellers ?? []).map((traveller, i) => (
+                    <div key={traveller.id} className="p-4 rounded-xl border bg-muted/10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div className="space-y-1.5">
+                        <div className="flex items-center flex-wrap gap-2">
+                          <span className="text-[10px] font-bold text-muted-foreground bg-muted border px-1.5 py-0.5 rounded">#0{i + 1}</span>
+                          {traveller.is_primary && (
+                            <Badge className="bg-primary text-primary-foreground border-0 text-[9px] font-bold px-1.5 h-4 flex items-center justify-center">Primary</Badge>
+                          )}
+                          <span className="font-semibold text-sm font-poppins">{traveller.full_name}</span>
+                          {traveller.gender && (
+                            <Badge variant="secondary" className="text-[10px] font-medium h-4">{traveller.gender}</Badge>
+                          )}
+                          {traveller.age && (
+                            <span className="text-xs text-muted-foreground font-medium">Age: {traveller.age}</span>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground font-medium">
+                          {traveller.phone && <span className="flex items-center gap-1"><Phone className="h-3 w-3 shrink-0" />{traveller.phone}</span>}
+                          {traveller.email && <span className="flex items-center gap-1"><Mail className="h-3 w-3 shrink-0" />{traveller.email}</span>}
+                          {traveller.room_sharing && <span>Sharing Option: {traveller.room_sharing}</span>}
+                          {traveller.seat_number && (
+                            <span className="text-primary font-bold flex items-center gap-1">
+                              <Bus className="h-3.5 w-3.5" /> Seat: {traveller.seat_number}
+                            </span>
+                          )}
+                          {traveller.room_number && (
+                            <span className="text-indigo-600 font-bold flex items-center gap-1">
+                              <Bed className="h-3.5 w-3.5" /> Room: {traveller.room_number}
+                            </span>
+                          )}
+                          {traveller.id_proof_type && <span>ID: {traveller.id_proof_type} ({traveller.id_proof_number})</span>}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 border-t pt-3 md:border-t-0 md:pt-0">
+                        <Button
+                          variant="outline"
+                          size="xs"
+                          onClick={() => {
+                            setSeatModalTraveler(traveller)
+                            setShowSeatModal(true)
+                          }}
+                          className="h-8 text-[11px] gap-1 rounded-lg"
+                        >
+                          <Bus className="h-3 w-3" /> Assign Seat
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="xs"
+                          onClick={() => {
+                            setRoomModalTraveler(traveller)
+                            setRoomInput(traveller.room_number || '')
+                            setShowRoomModal(true)
+                          }}
+                          className="h-8 text-[11px] gap-1 rounded-lg"
+                        >
+                          <Bed className="h-3 w-3" /> Assign Room
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setSelectedTraveler(traveller)
+                            setShowEditTraveler(true)
+                          }}
+                          className="h-8 w-8 rounded-lg"
+                        >
+                          <Edit className="h-4 w-4 text-muted-foreground" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* DOCS & TIMELINE TAB */}
+            <TabsContent value="docs_timeline" className="space-y-4 mt-4 focus-visible:outline-none focus-visible:ring-0">
+              {/* Documents */}
+              <Card className="border shadow-none">
+                <CardHeader>
+                  <CardTitle className="text-sm font-semibold flex items-center justify-between">
+                    <span className="flex items-center gap-2"><FileText className="h-4 w-4 text-primary" /> Document Repository</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* File Upload inputs */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 rounded-xl border bg-muted/20">
+                    <div>
+                      <Label className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">Select Doc Category</Label>
+                      <Select defaultValue="Aadhaar" id="upload-doc-type">
+                        <SelectTrigger className="w-full h-8 text-xs mt-1">
+                          <SelectValue placeholder="Doc Type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Aadhaar">Aadhaar Card</SelectItem>
+                          <SelectItem value="Passport">Passport</SelectItem>
+                          <SelectItem value="Student ID">Student ID</SelectItem>
+                          <SelectItem value="Visa">Visa File</SelectItem>
+                          <SelectItem value="Tickets">Travel Tickets</SelectItem>
+                          <SelectItem value="Invoice">Booking Invoice</SelectItem>
+                          <SelectItem value="Hotel Voucher">Hotel Voucher</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">Select File Upload</Label>
+                      <input
+                        type="file"
+                        onChange={(e) => {
+                          const docType = (document.getElementById('upload-doc-type') as HTMLButtonElement)?.innerText?.trim() || 'Aadhaar';
+                          // Standardize text
+                          let formattedType = 'Aadhaar';
+                          if (docType.includes('Passport')) formattedType = 'Passport';
+                          else if (docType.includes('Student')) formattedType = 'Student ID';
+                          else if (docType.includes('Visa')) formattedType = 'Visa';
+                          else if (docType.includes('Ticket')) formattedType = 'Tickets';
+                          else if (docType.includes('Invoice')) formattedType = 'Invoice';
+                          else if (docType.includes('Hotel')) formattedType = 'Hotel Voucher';
+                          
+                          handleDocumentUpload(e, formattedType);
+                        }}
+                        className="w-full text-xs border rounded-lg p-1.5 bg-white cursor-pointer mt-1"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Documents List */}
+                  {(b.booking_documents ?? []).length === 0 ? (
+                    <div className="p-6 text-center text-xs text-muted-foreground border border-dashed rounded-xl">
+                      No documents stored yet. Upload copies of traveler Aadhaars, Passports, or tickets here.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+                      {(b.booking_documents ?? []).map((doc) => (
+                        <div key={doc.id} className="p-3 rounded-lg border flex items-center justify-between gap-3 bg-white">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center shrink-0">
+                              <FileText className="h-4.5 w-4.5 text-primary" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-xs font-semibold truncate text-foreground">{doc.name}</p>
+                              <Badge variant="secondary" className="text-[9px] font-bold px-1.5 mt-0.5">{doc.file_type}</Badge>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleViewDocument(doc.file_url)}
+                              className="h-8 w-8"
+                            >
+                              <Download className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => deleteDocMutation.mutate({ documentId: doc.id, name: doc.name })}
+                              className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Booking Timeline */}
+              <Card className="border shadow-none">
+                <CardHeader>
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-primary" /> Audit Activity Timeline
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {(!b.booking_timeline || b.booking_timeline.length === 0) ? (
+                    <p className="text-xs text-muted-foreground text-center py-4">No events logged in the timeline.</p>
+                  ) : (
+                    <div className="relative border-l pl-4 ml-2 space-y-4 text-xs">
+                      {b.booking_timeline.map((event) => (
+                        <div key={event.id} className="relative">
+                          {/* Dot indicator */}
+                          <span className="absolute -left-[21px] top-0.5 w-2.5 h-2.5 bg-primary rounded-full border border-white" />
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold text-primary uppercase text-[10px] tracking-wider bg-primary/10 px-1.5 py-0.5 rounded">
+                              {event.event.replace(/_/g, ' ')}
+                            </span>
+                            <span className="text-[9px] text-muted-foreground font-mono">
+                              {new Date(event.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                          <p className="text-muted-foreground mt-1 font-medium">{event.description}</p>
+                          <p className="text-[9px] text-muted-foreground/60 font-mono mt-0.5">actor: {event.actor}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
+
+        {/* Sidebar panels */}
+        <div className="space-y-4">
+          {/* Customer profile snippet */}
+          <Card className="border shadow-none">
             <CardHeader>
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-primary" /> Trip Details
+                <User className="h-4 w-4 text-primary" /> Customer profile
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
-              {b.departures?.journeys?.hero_banner && (
-                <img
-                  src={b.departures.journeys.hero_banner}
-                  alt={b.departures.journeys.name}
-                  className="w-full h-32 object-cover rounded-lg"
-                />
+            <CardContent className="space-y-2.5 text-xs">
+              <div>
+                <p className="font-semibold text-sm text-foreground">{b.customers?.name ?? b.users?.full_name ?? '—'}</p>
+                <p className="text-[10px] text-muted-foreground font-bold mt-0.5">Purchasing Customer</p>
+              </div>
+              {b.customers?.phone && (
+                <a href={`tel:${b.customers.phone}`} className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors font-medium">
+                  <Phone className="h-3.5 w-3.5" />
+                  {b.customers.phone}
+                </a>
               )}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-xs text-muted-foreground">Package</p>
-                  <p className="text-sm font-semibold">{b.departures?.journeys?.name ?? '—'}</p>
-                  <p className="text-xs text-muted-foreground">{b.departures?.journeys?.duration ?? ''}</p>
+              {b.customers?.email && (
+                <a href={`mailto:${b.customers.email}`} className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors font-medium">
+                  <Mail className="h-3.5 w-3.5" />
+                  {b.customers.email}
+                </a>
+              )}
+
+              {/* Extra details loader */}
+              {b.users && (
+                <div className="border-t pt-2 mt-2 space-y-1 text-muted-foreground">
+                  {b.users.gender && <div><span className="font-bold text-foreground">Gender:</span> {b.users.gender}</div>}
+                  {b.users.dob && <div><span className="font-bold text-foreground">DOB:</span> {new Date(b.users.dob).toLocaleDateString('en-IN')}</div>}
+                  {b.users.city && <div><span className="font-bold text-foreground">City:</span> {b.users.city}</div>}
+                  {b.users.emergency_contact && <div><span className="font-bold text-foreground">Emergency:</span> {b.users.emergency_contact}</div>}
                 </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Departure</p>
-                  <p className="text-sm font-semibold">
-                    {b.departures?.departure_date
-                      ? new Date(b.departures.departure_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
-                      : '—'}
-                  </p>
-                  {b.departures?.return_date && (
-                    <p className="text-xs text-muted-foreground">
-                      Return: {new Date(b.departures.return_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                    </p>
-                  )}
+              )}
+
+              {b.users?.wallet_balance !== undefined && b.users.wallet_balance > 0 && (
+                <div className="text-xs bg-emerald-50 text-emerald-700 rounded-lg p-2 font-semibold">
+                  Wallet Balance: ₹{b.users.wallet_balance.toLocaleString('en-IN')}
                 </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Pickup</p>
-                  <p className="text-sm">{b.departures?.pickup_location ?? '—'}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Drop</p>
-                  <p className="text-sm">{b.departures?.drop_location ?? '—'}</p>
-                </div>
-                {b.departures?.buses && (
-                  <div>
-                    <p className="text-xs text-muted-foreground">Bus</p>
-                    <p className="text-sm">{b.departures.buses.name}</p>
-                    <p className="text-xs text-muted-foreground font-mono">{b.departures.buses.registration_number}</p>
-                  </div>
-                )}
-                {b.departures?.hotels && (
-                  <div>
-                    <p className="text-xs text-muted-foreground">Hotel</p>
-                    <p className="text-sm">{b.departures.hotels.name}</p>
-                    <p className="text-xs text-muted-foreground">{b.departures.hotels.city}</p>
-                  </div>
-                )}
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Operational Allocations sidebar dropdowns */}
+          <Card className="border shadow-none">
+            <CardHeader>
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <Bus className="h-4 w-4 text-primary" /> Operational Assignments
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Bus Assignment */}
+              <div className="space-y-1">
+                <Label className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">Assign Coach/Vehicle</Label>
+                <Select
+                  value={b.assigned_bus_id || 'NONE'}
+                  onValueChange={(v) => assignBusMutation.mutate(v === 'NONE' ? null : v)}
+                >
+                  <SelectTrigger className="h-9 text-xs rounded-xl bg-white border">
+                    <SelectValue placeholder="No Coach Assigned" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="NONE">No Coach Assigned</SelectItem>
+                    {buses.map((bus: any) => (
+                      <SelectItem key={bus.id} value={bus.id}>{bus.name} ({bus.total_seats} seats)</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Hotel Assignment */}
+              <div className="space-y-1">
+                <Label className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">Assign Stays/Hotel</Label>
+                <Select
+                  value={b.assigned_hotel_id || 'NONE'}
+                  onValueChange={(v) => assignHotelMutation.mutate(v === 'NONE' ? null : v)}
+                >
+                  <SelectTrigger className="h-9 text-xs rounded-xl bg-white border">
+                    <SelectValue placeholder="No Hotel Assigned" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="NONE">No Hotel Assigned</SelectItem>
+                    {hotels.map((h: any) => (
+                      <SelectItem key={h.id} value={h.id}>{h.name} ({h.city})</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Captain Assignment */}
+              <div className="space-y-1">
+                <Label className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">Assign Trip Captain</Label>
+                <Select
+                  value={b.assigned_trip_captain_id || 'NONE'}
+                  onValueChange={(v) => assignCaptainMutation.mutate(v === 'NONE' ? null : v)}
+                >
+                  <SelectTrigger className="h-9 text-xs rounded-xl bg-white border">
+                    <SelectValue placeholder="No Captain Assigned" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="NONE">No Captain Assigned</SelectItem>
+                    {captains.map((cap: any) => (
+                      <SelectItem key={cap.id} value={cap.id}>{cap.full_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </CardContent>
           </Card>
 
-          {/* Travellers */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <Users className="h-4 w-4 text-primary" /> Travellers ({b.traveller_count})
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {(b.booking_travellers ?? []).map((traveller, i) => (
-                <div key={traveller.id} className="p-3 rounded-lg border bg-muted/20 flex items-start justify-between">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-bold text-muted-foreground">#{i + 1}</span>
-                      {traveller.is_primary && (
-                        <Badge className="bg-primary/10 text-primary border-0 text-[10px] font-bold">Primary</Badge>
-                      )}
-                      <span className="font-medium text-sm">{traveller.full_name}</span>
-                      {traveller.gender && (
-                        <Badge variant="outline" className="text-[10px]">{traveller.gender}</Badge>
-                      )}
-                      {traveller.age && (
-                        <span className="text-xs text-muted-foreground">Age: {traveller.age}</span>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                      {traveller.phone && <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{traveller.phone}</span>}
-                      {traveller.email && <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{traveller.email}</span>}
-                      {traveller.room_sharing && <span>Sharing: {traveller.room_sharing}</span>}
-                      {traveller.seat_number && <span>Seat: {traveller.seat_number}</span>}
-                      {traveller.food_preference && <span>Food: {traveller.food_preference}</span>}
-                      {traveller.aadhaar_doc_url && (
-                        <span className="flex items-center gap-1">
-                          Aadhar: <button type="button" onClick={() => handleViewDocument(traveller.aadhaar_doc_url!)} className="text-primary hover:underline font-semibold inline-flex items-center gap-0.5">View Doc <span className="text-[10px]">↗</span></button>
-                        </span>
-                      )}
-                      {traveller.photo_url && (
-                        <span className="flex items-center gap-1">
-                          Photo: <button type="button" onClick={() => handleViewDocument(traveller.photo_url!)} className="text-primary hover:underline font-semibold inline-flex items-center gap-0.5">View Photo <span className="text-[10px]">↗</span></button>
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setSelectedTraveler(traveller)
-                      setShowEditTraveler(true)
-                    }}
-                    className="h-8 w-8 p-0"
-                  >
-                    <Edit className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                  </Button>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-
-          {/* Payments */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <CreditCard className="h-4 w-4 text-primary" /> Payment History
-              </CardTitle>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowAddPayment(true)}
-                className="h-8 gap-1"
-              >
-                <Plus className="h-3.5 w-3.5" /> Log Payment
-              </Button>
-            </CardHeader>
-            <CardContent>
-              {payments.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">No payments recorded.</p>
-              ) : (
-                <div className="space-y-2">
-                  {payments.map((payment) => (
-                    <div key={payment.id} className="flex items-center justify-between p-3 rounded-lg border bg-muted/10">
-                      <div>
-                        <p className="text-sm font-semibold">₹{payment.amount.toLocaleString('en-IN')}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {payment.payment_type} via {payment.payment_gateway}
-                          {payment.payment_method ? ` (${payment.payment_method})` : ''}
-                        </p>
-                        {payment.gateway_payment_id && (
-                          <p className="text-xs text-muted-foreground font-mono">{payment.gateway_payment_id}</p>
-                        )}
-                      </div>
-                      <div className="text-right">
-                        <Badge className={`${PAYMENT_STATUS_BADGE[payment.status] ?? 'bg-gray-100'} border-0 text-xs`}>
-                          {payment.status}
-                        </Badge>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {new Date(payment.created_at).toLocaleDateString('en-IN')}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Internal Notes */}
-          <Card>
+          {/* Pricing Ledger summary card */}
+          <Card className="border shadow-none">
             <CardHeader>
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <MessageSquare className="h-4 w-4 text-primary" /> Internal Notes
+                <IndianRupee className="h-4 w-4 text-primary" /> Financial ledger
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <Textarea
-                value={notes || b.internal_notes || ''}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Add internal notes for this booking (not visible to customer)..."
-                rows={4}
-              />
-              <Button size="sm" onClick={saveNotes} disabled={savingNotes}>
-                {savingNotes ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : null}
-                Save Notes
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Sidebar */}
-        <div className="space-y-4">
-          {/* Customer */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <User className="h-4 w-4 text-primary" /> Customer
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <p className="font-semibold">{b.users?.full_name ?? '—'}</p>
-              {b.users?.phone && (
-                <a href={`tel:${b.users.phone}`} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  <Phone className="h-3.5 w-3.5" />
-                  {b.users.phone}
-                </a>
-              )}
-              {b.users?.email && (
-                <a href={`mailto:${b.users.email}`} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
-                  <Mail className="h-3.5 w-3.5" />
-                  {b.users.email}
-                </a>
-              )}
-              {b.users?.wallet_balance !== undefined && b.users.wallet_balance > 0 && (
-                <div className="text-sm bg-emerald-50 text-emerald-700 rounded-lg p-2 mt-2">
-                  Wallet: ₹{b.users.wallet_balance.toLocaleString('en-IN')}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Pricing Breakdown */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <IndianRupee className="h-4 w-4 text-primary" /> Pricing
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
+            <CardContent className="space-y-2 text-xs">
               {[
-                { label: 'Base Amount', value: b.base_amount },
-                { label: 'Addon Amount', value: b.addon_amount },
+                { label: 'Base Invoice price', value: b.base_amount },
+                { label: 'Addon charge total', value: b.addon_amount },
                 { label: `GST (${b.gst_rate}%)`, value: b.gst_amount },
-                ...(b.discount_amount > 0 ? [{ label: 'Discount', value: -b.discount_amount }] : []),
-                ...(b.coupon_discount > 0 ? [{ label: `Coupon (${b.coupons?.code ?? ''})`, value: -b.coupon_discount }] : []),
-                ...(b.wallet_amount_used > 0 ? [{ label: 'Wallet Used', value: -b.wallet_amount_used }] : []),
+                ...(b.discount_amount > 0 ? [{ label: 'Referral discount', value: -b.discount_amount }] : []),
+                ...(b.coupon_discount > 0 ? [{ label: `Coupon discount (${b.coupons?.code ?? ''})`, value: -b.coupon_discount }] : []),
+                ...(b.wallet_amount_used > 0 ? [{ label: 'Wallet balance applied', value: -b.wallet_amount_used }] : []),
               ].map(({ label, value }) => (
-                <div key={label} className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">{label}</span>
-                  <span className={value < 0 ? 'text-emerald-600 font-medium' : 'font-medium'}>
+                <div key={label} className="flex justify-between font-medium text-muted-foreground">
+                  <span>{label}</span>
+                  <span className={value < 0 ? 'text-emerald-600 font-bold' : ''}>
                     {value < 0 ? '-' : ''}₹{Math.abs(value).toLocaleString('en-IN')}
                   </span>
                 </div>
               ))}
-              <Separator />
-              <div className="flex justify-between text-base font-bold">
-                <span>Total</span>
+              <Separator className="my-2" />
+              <div className="flex justify-between text-sm font-bold text-foreground">
+                <span>Total Amount Due</span>
                 <span>₹{b.total_amount.toLocaleString('en-IN')}</span>
               </div>
-              <div className="flex justify-between text-sm text-emerald-600 font-medium">
-                <span>Amount Paid</span>
+              <div className="flex justify-between text-emerald-600 font-bold">
+                <span>Amount Paid Logged</span>
                 <span>₹{b.amount_paid.toLocaleString('en-IN')}</span>
               </div>
               {b.balance_due > 0 && (
-                <div className="flex justify-between text-sm text-amber-600 font-semibold">
-                  <span>Balance Due</span>
+                <div className="flex justify-between text-amber-600 font-bold">
+                  <span>Remaining Balance</span>
                   <span>₹{b.balance_due.toLocaleString('en-IN')}</span>
                 </div>
               )}
             </CardContent>
           </Card>
-
-          {/* Preferences */}
-          {(b.room_preference || b.food_preference || b.special_requests) && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm font-semibold">Preferences</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2 text-sm">
-                {b.room_preference && (
-                  <div>
-                    <span className="text-muted-foreground">Room: </span>
-                    {b.room_preference}
-                  </div>
-                )}
-                {b.food_preference && (
-                  <div>
-                    <span className="text-muted-foreground">Food: </span>
-                    {b.food_preference}
-                  </div>
-                )}
-                {b.special_requests && (
-                  <div>
-                    <span className="text-muted-foreground">Special: </span>
-                    {b.special_requests}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
         </div>
       </div>
 
@@ -1112,6 +1444,195 @@ function BookingDetailPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Visual Seat Allocation Dialog */}
+      <Dialog open={showSeatModal} onOpenChange={(open) => { if(!open) { setShowSeatModal(false); setSeatModalTraveler(null); } }}>
+        <DialogContent className="max-w-2xl bg-white border max-h-[90vh] overflow-y-auto rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-poppins font-bold flex items-center gap-2">
+              <Bus className="h-5 w-5 text-primary" /> Visual Seat Allocator
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Assign a coach seat for <span className="font-bold text-foreground">{seatModalTraveler?.full_name}</span>. Red seats are occupied by other explorers.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4 space-y-4">
+            <div className="flex justify-center gap-4 text-xs font-semibold">
+              <div className="flex items-center gap-1.5"><span className="w-4 h-4 bg-muted border rounded" /> Available</div>
+              <div className="flex items-center gap-1.5"><span className="w-4 h-4 bg-destructive/10 border-destructive border rounded" /> Occupied</div>
+              <div className="flex items-center gap-1.5"><span className="w-4 h-4 bg-emerald-500 rounded text-white" /> Selected</div>
+            </div>
+
+            {/* Coach layout layout */}
+            <div className="w-64 mx-auto border-2 border-border rounded-3xl p-4 bg-muted/5 relative">
+              {/* Steering wheel */}
+              <div className="flex justify-between items-center pb-6 border-b mb-6 border-dashed">
+                <span className="text-[10px] text-muted-foreground uppercase font-bold">Front of Coach</span>
+                <span className="w-6 h-6 rounded-full border-4 border-muted-foreground flex items-center justify-center font-bold text-[8px] text-muted-foreground">W</span>
+              </div>
+
+              {/* Grid map */}
+              <div className="grid grid-cols-4 gap-2 text-center">
+                {Array.from({ length: 10 }, (_, rowIdx) => {
+                  const cols = ['A', 'B', 'C', 'D'];
+                  return cols.map((col, colIdx) => {
+                    const seatNum = `${rowIdx + 1}${col}`;
+                    const isOccupied = occupiedSeats.find(s => String(s.seat_number) === seatNum);
+                    const isCurrent = seatModalTraveler?.seat_number === seatNum;
+
+                    return (
+                      <div key={seatNum} className="flex flex-col items-center">
+                        {colIdx === 2 && <div className="w-4" /> /* Isle spacer */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (isOccupied) {
+                              toast.info(`Occupied by: ${isOccupied.full_name} (${isOccupied.gender || 'N/A'})`);
+                            } else {
+                              updateSeatMutation.mutate(seatNum);
+                            }
+                          }}
+                          disabled={updateSeatMutation.isPending}
+                          className={`w-9 h-9 text-[10px] font-bold rounded-lg flex flex-col items-center justify-center transition-all ${
+                            isCurrent
+                              ? 'bg-emerald-500 text-white shadow-soft shadow-emerald-500/30'
+                              : isOccupied
+                              ? 'bg-destructive/10 border border-destructive text-destructive cursor-not-allowed hover:bg-destructive/15'
+                              : 'bg-white border border-border hover:border-primary hover:bg-primary/5 text-foreground'
+                          }`}
+                        >
+                          <span>{seatNum}</span>
+                        </button>
+                      </div>
+                    );
+                  });
+                })}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="flex justify-between sm:justify-between">
+            {seatModalTraveler?.seat_number && (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => updateSeatMutation.mutate(null)}
+                disabled={updateSeatMutation.isPending}
+                className="h-9 rounded-lg text-xs"
+              >
+                Clear Seat Assignment
+              </Button>
+            )}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => { setShowSeatModal(false); setSeatModalTraveler(null); }}
+              className="h-9 rounded-lg text-xs"
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Room Allocation Dialog */}
+      <Dialog open={showRoomModal} onOpenChange={(open) => { if(!open) { setShowRoomModal(false); setRoomModalTraveler(null); } }}>
+        <DialogContent className="max-w-md bg-white border max-h-[90vh] overflow-y-auto rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-poppins font-bold flex items-center gap-2">
+              <Bed className="h-5 w-5 text-primary" /> Room Allocator
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Assign hotel room numbers for <span className="font-bold text-foreground">{roomModalTraveler?.full_name}</span>. Maintains room-sharing checks.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4 space-y-4">
+            <div>
+              <Label className="text-xs font-semibold">Input Room Code / Room Number</Label>
+              <div className="flex gap-2 mt-1.5">
+                <Input
+                  value={roomInput}
+                  onChange={(e) => setRoomInput(e.target.value)}
+                  placeholder="e.g. Room 101, Room 204-A"
+                  className="h-9 text-xs rounded-xl"
+                />
+                <Button
+                  onClick={() => updateRoomMutation.mutate(roomInput)}
+                  disabled={updateRoomMutation.isPending || !roomInput.trim()}
+                  className="h-9 rounded-xl text-xs"
+                >
+                  Save Room
+                </Button>
+              </div>
+            </div>
+
+            {/* Occupants list helper */}
+            {roomInput.trim() && (
+              <div className="p-3 border rounded-xl bg-muted/10 space-y-1.5">
+                <p className="text-[10px] uppercase font-bold text-muted-foreground">Current Roommates in {roomInput}</p>
+                {occupiedRooms.filter(r => String(r.room_number).toLowerCase() === roomInput.toLowerCase().trim()).length === 0 ? (
+                  <p className="text-xs text-muted-foreground italic">Room is currently empty.</p>
+                ) : (
+                  <div className="space-y-1 text-xs">
+                    {occupiedRooms
+                      .filter(r => String(r.room_number).toLowerCase() === roomInput.toLowerCase().trim())
+                      .map((occ, oIdx) => (
+                        <div key={oIdx} className="flex justify-between font-medium">
+                          <span>{occ.full_name}</span>
+                          <span className="text-muted-foreground">({occ.gender || 'N/A'})</span>
+                        </div>
+                      ))
+                    }
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Quick rooms selector suggestions */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Quick suggestion rooms</Label>
+              <div className="flex flex-wrap gap-1.5 mt-1.5">
+                {['Room 101', 'Room 102', 'Room 103', 'Room 104', 'Room 105', 'Room 201', 'Room 202'].map((rm) => (
+                  <button
+                    key={rm}
+                    type="button"
+                    onClick={() => setRoomInput(rm)}
+                    className={`px-2.5 py-1 text-xs rounded-lg border text-medium transition-colors ${
+                      roomInput === rm ? 'bg-primary text-white border-primary' : 'bg-white hover:bg-muted/30 text-foreground'
+                    }`}
+                  >
+                    {rm}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="flex justify-between sm:justify-between">
+            {roomModalTraveler?.room_number && (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => updateRoomMutation.mutate(null)}
+                disabled={updateRoomMutation.isPending}
+                className="h-9 rounded-lg text-xs"
+              >
+                Unassign Room
+              </Button>
+            )}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => { setShowRoomModal(false); setRoomModalTraveler(null); }}
+              className="h-9 rounded-lg text-xs"
+            >
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

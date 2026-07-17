@@ -1,7 +1,7 @@
 import { useState, useEffect, createContext, useContext } from "react";
 import { supabase } from "@/lib/supabase";
 import type { User, Session } from "@supabase/supabase-js";
-import type { AdminRole } from "@/types/supabase";
+export type AdminRole = 'SUPER_ADMIN' | 'ADMIN' | 'TRIP_MANAGER' | 'ACCOUNTANT' | 'SUPPORT';
 
 interface AdminUser {
   id: string;
