@@ -42,3 +42,10 @@ dist-ssr
 .env.development.local
 .env.*
 !.env.example
+
+# Scratch/debug scripts — these often contain hardcoded keys, never commit
+scratch_*.js
+check_*.js
+test_*.js
+seed*.ts
+seed*.js
