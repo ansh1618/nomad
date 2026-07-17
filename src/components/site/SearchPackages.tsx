@@ -2,6 +2,7 @@ import { useState } from "react";
 import { format } from "date-fns";
 import { MapPin, Wallet, CalendarIcon, Users, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "@tanstack/react-router";
 import {
   Select,
   SelectContent,
@@ -12,21 +13,25 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Reveal } from "./Reveal";
-import { triggerNomadikPlanner } from "./TripPlannerDialog";
 import { cn } from "@/lib/utils";
 import { Route } from "@/routes/index";
 
 const budgets = ["Under ₹10,000", "₹10,000 – ₹20,000", "₹20,000 – ₹40,000", "₹40,000+"];
 const groupSizes = [
-  { label: "Solo Explorer", value: "solo" },
-  { label: "Couple / Twin", value: "couple" },
-  { label: "3-5 Friends", value: "group-small" },
-  { label: "5+ Explorers", value: "group-large" },
+  "Solo (1 Explorer)",
+  "Couple (2 Explorers)",
+  "Small Group (3-5)",
+  "Large Group (6+)"
 ];
 
-function Field({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
+interface FieldProps {
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}
+
+function Field({ icon, children }: FieldProps) {
   return (
-    <div className="flex flex-col gap-1.5 text-left">
+    <div className="flex flex-col gap-2">
       <div className="flex items-center gap-2 text-[10px] font-poppins font-bold uppercase tracking-wider text-muted-foreground">
         {icon}
       </div>
@@ -37,6 +42,7 @@ function Field({ icon, children }: { icon: React.ReactNode; children: React.Reac
 
 export function SearchPackages() {
   const { destinations } = Route.useLoaderData();
+  const navigate = useNavigate();
   const [date, setDate] = useState<Date>();
   const [selectedDest, setSelectedDest] = useState<string>("");
   const [selectedBudget, setSelectedBudget] = useState<string>("");
@@ -44,11 +50,11 @@ export function SearchPackages() {
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Launch the premium TripPlanner Dialog prefilled
-    triggerNomadikPlanner({
-      tab: "planner",
-      journeySlug: selectedDest ? `${selectedDest}-weekend` : undefined,
-    });
+    if (selectedDest) {
+      navigate({ to: `/destinations_/$slug`, params: { slug: selectedDest } as any });
+    } else {
+      navigate({ to: "/destinations" });
+    }
   };
 
   return (

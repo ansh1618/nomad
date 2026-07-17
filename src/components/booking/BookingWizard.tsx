@@ -1,6 +1,20 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { ArrowLeft, Check, ShieldCheck } from "lucide-react";
+import {
+  ArrowLeft,
+  Check,
+  ShieldCheck,
+  Calendar,
+  Clock,
+  Compass,
+  MapPin,
+  Users,
+  ChevronDown,
+  Building,
+  HelpCircle,
+  FileText,
+  Star,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 import { TravellerDetailsStep } from "./TravellerDetailsStep";
@@ -35,6 +49,7 @@ const STEPS = [
 
 export function BookingWizard({ journey, departures }: { journey: any; departures: any[] }) {
   const [currentStep, setCurrentStep] = useState(0);
+  const [activeSummaryTab, setActiveSummaryTab] = useState<"billing" | "itinerary" | "inclusions" | "info">("billing");
   const [bookingData, setBookingData] = useState<BookingState>({
     departureId: departures[0]?.id || null,
     travellers: [],
@@ -49,6 +64,8 @@ export function BookingWizard({ journey, departures }: { journey: any; departure
   const nextStep = () => setCurrentStep((prev) => Math.min(prev + 1, STEPS.length - 1));
   const prevStep = () => setCurrentStep((prev) => Math.max(prev - 1, 0));
 
+  const selectedDeparture = departures.find(d => d.id === bookingData.departureId);
+
   return (
     <div className="max-w-7xl mx-auto px-5 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8 font-sans">
       
@@ -56,17 +73,67 @@ export function BookingWizard({ journey, departures }: { journey: any; departure
       <div className="lg:col-span-8 space-y-6">
         
         {/* Header */}
-        <div className="flex items-center gap-4">
-          <Link to="/journeys/$journeyId" params={{ journeyId: journey.slug }} className="p-2 bg-white rounded-full shadow-sm hover:bg-muted transition">
-            <ArrowLeft className="h-5 w-5 text-muted-foreground" />
-          </Link>
-          <div>
-            <h1 className="text-2xl font-display font-bold text-primary">Secure Your Journey</h1>
-            <p className="text-sm text-muted-foreground">{journey.name} • {journey.duration}</p>
+        <div className="flex items-center justify-between border-b pb-4">
+          <div className="flex items-center gap-4">
+            <Link to="/journeys/$journeySlug" params={{ journeySlug: journey.slug }} className="p-2 bg-white rounded-full shadow-sm hover:bg-muted transition">
+              <ArrowLeft className="h-5 w-5 text-muted-foreground" />
+            </Link>
+            <div>
+              <h1 className="text-2xl font-display font-bold text-primary">Secure Your Journey</h1>
+              <p className="text-sm text-muted-foreground">{journey.name} • {journey.duration}</p>
+            </div>
           </div>
         </div>
 
-        {/* Stepper */}
+        {/* Departure Date Selection Dropdown */}
+        <div className="bg-white p-5 rounded-3xl shadow-sm border border-border space-y-3">
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-accent" />
+            <label className="text-xs font-poppins font-bold uppercase tracking-wider text-primary block">
+              Choose Departure Date Batch
+            </label>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3 items-center">
+            <div className="relative flex-1 w-full">
+              <select
+                value={bookingData.departureId || ""}
+                onChange={(e) => {
+                  const depId = e.target.value;
+                  const dep = departures.find(d => d.id === depId);
+                  setBookingData(prev => ({
+                    ...prev,
+                    departureId: depId || null,
+                    baseAmount: dep ? dep.basePrice : 0,
+                    totalAmount: dep ? dep.basePrice * Math.max(prev.travellers.length, 1) : 0
+                  }));
+                }}
+                className="w-full h-11 px-4 pr-10 border border-border rounded-xl bg-white text-xs font-semibold font-poppins text-foreground focus:outline-none appearance-none cursor-pointer"
+              >
+                {departures.length === 0 ? (
+                  <option value="">No departures available</option>
+                ) : (
+                  departures.map((dep) => {
+                    const start = new Date(dep.date);
+                    const formattedDate = start.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+                    return (
+                      <option key={dep.id} value={dep.id}>
+                        Batch: {formattedDate} — ₹{dep.basePrice.toLocaleString('en-IN')} ({dep.availableSeats} spots remain)
+                      </option>
+                    );
+                  })
+                )}
+              </select>
+              <ChevronDown className="absolute right-3.5 top-3.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+            </div>
+            {selectedDeparture?.availableSeats && (
+              <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/50 px-4 py-2.5 rounded-xl shrink-0 w-full sm:w-auto text-center font-poppins">
+                {selectedDeparture.availableSeats} seats remaining
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Stepper progress */}
         <div className="bg-white p-4 rounded-2xl shadow-sm border border-border flex justify-between items-center overflow-x-auto">
           {STEPS.map((step, index) => {
             const isActive = index === currentStep;
@@ -99,64 +166,199 @@ export function BookingWizard({ journey, departures }: { journey: any; departure
         </div>
       </div>
 
-      {/* RIGHT CONTENT: Sticky Summary */}
+      {/* RIGHT CONTENT: Sticky Premium Summary & Information Panel */}
       <div className="lg:col-span-4 space-y-6">
-        <div className="sticky top-24 bg-primary text-white p-6 rounded-3xl shadow-elegant space-y-6">
-          <div className="space-y-1">
-            <span className="text-[10px] text-white/50 uppercase tracking-wider font-semibold">Booking Summary</span>
-            <h3 className="text-xl font-display font-bold">{journey.name}</h3>
-          </div>
+        <div className="sticky top-24 bg-white border border-border rounded-3xl shadow-elegant overflow-hidden flex flex-col">
           
-          <div className="space-y-3 pt-4 border-t border-white/10 text-sm">
-            <div className="flex justify-between items-center">
-              <span className="text-white/70">Travellers</span>
-              <span className="font-semibold">{Math.max(bookingData.travellers.length, 1)}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-white/70">Departure</span>
-              <span className="font-semibold text-right">
-                {(() => {
-                  const dep = departures.find(d => d.id === bookingData.departureId)
-                  if (!dep) return "Not selected"
-                  const start = new Date(dep.date)
-                  let end = dep.returnDate ? new Date(dep.returnDate) : null
-
-                  const durationDays = journey.duration_days || 3
-                  if (!end || isNaN(end.getTime()) || end.getTime() === start.getTime() || end.getFullYear() > 2100) {
-                    end = new Date(start)
-                    end.setDate(start.getDate() + Math.max(0, durationDays - 1))
-                  }
-
-                  const startDay = start.getDate()
-                  const endDay = end.getDate()
-                  const startMonth = start.toLocaleDateString('en-US', { month: 'short' })
-                  const endMonth = end.toLocaleDateString('en-US', { month: 'short' })
-                  if (startMonth === endMonth) {
-                    return `${startDay} - ${endDay} ${startMonth}`
-                  }
-                  return `${startDay} ${startMonth} - ${endDay} ${endMonth}`
-                })()}
+          {/* Header image / banner */}
+          <div className="h-32 relative bg-primary overflow-hidden">
+            {journey.image ? (
+              <img src={journey.image} alt={journey.name} className="w-full h-full object-cover opacity-60" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-white/40">
+                <Compass className="h-8 w-8" />
+              </div>
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+            <div className="absolute bottom-4 left-4 text-white">
+              <span className="text-[9px] uppercase tracking-wider bg-gold text-gold-foreground font-poppins font-bold px-2 py-0.5 rounded">
+                {journey.duration}
               </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-white/70">Seats</span>
-              <span className="font-semibold">{bookingData.selectedSeats.length || "-"}</span>
+              <h3 className="text-lg font-display font-bold mt-1 text-white leading-tight">{journey.name}</h3>
             </div>
           </div>
 
-          <div className="pt-4 border-t border-white/10">
-            <div className="flex justify-between items-end">
-              <span className="text-xs text-white/70">Total Amount</span>
-              <span className="text-2xl font-display font-bold text-gold">
-                ₹{bookingData.totalAmount.toLocaleString('en-IN')}
-              </span>
-            </div>
-            <span className="text-[10px] text-white/40 block text-right mt-1">Includes all taxes and fees</span>
+          {/* Interactive Navigation Tabs */}
+          <div className="grid grid-cols-4 border-b border-border bg-muted/20 text-xs font-semibold text-center font-poppins">
+            <button
+              onClick={() => setActiveSummaryTab("billing")}
+              className={`py-3 border-b-2 transition-colors ${activeSummaryTab === "billing" ? "border-accent text-accent font-bold bg-white" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+            >
+              Billing
+            </button>
+            <button
+              onClick={() => setActiveSummaryTab("itinerary")}
+              className={`py-3 border-b-2 transition-colors ${activeSummaryTab === "itinerary" ? "border-accent text-accent font-bold bg-white" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+            >
+              Itinerary
+            </button>
+            <button
+              onClick={() => setActiveSummaryTab("inclusions")}
+              className={`py-3 border-b-2 transition-colors ${activeSummaryTab === "inclusions" ? "border-accent text-accent font-bold bg-white" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+            >
+              Inclusions
+            </button>
+            <button
+              onClick={() => setActiveSummaryTab("info")}
+              className={`py-3 border-b-2 transition-colors ${activeSummaryTab === "info" ? "border-accent text-accent font-bold bg-white" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+            >
+              Info
+            </button>
           </div>
 
-          <div className="flex items-center gap-2 text-xs text-white/50 bg-white/5 p-3 rounded-xl">
-            <ShieldCheck className="h-4 w-4 text-secondary" />
-            <span>256-bit secure checkout by Razorpay</span>
+          {/* Tab Content Panel */}
+          <div className="p-5 flex-1 max-h-[50vh] overflow-y-auto min-h-[250px]">
+            
+            {/* BILLING LEDGER TAB */}
+            {activeSummaryTab === "billing" && (
+              <div className="space-y-4 font-sans text-xs">
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground font-medium">Selected Date Batch</span>
+                    <span className="font-semibold text-right text-foreground">
+                      {selectedDeparture ? new Date(selectedDeparture.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : "Not selected"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground font-medium">Base Price per Explorer</span>
+                    <span className="font-semibold text-foreground">₹{bookingData.baseAmount.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground font-medium">No. of Travellers</span>
+                    <span className="font-bold text-primary">{Math.max(bookingData.travellers.length, 1)}</span>
+                  </div>
+                  {bookingData.selectedSeats.length > 0 && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground font-medium">Reserved Seats</span>
+                      <span className="font-mono font-bold text-accent bg-accent/5 px-2 py-0.5 rounded border border-accent/15">
+                        {bookingData.selectedSeats.join(', ')}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="pt-4 border-t border-border">
+                  <div className="flex justify-between items-end">
+                    <span className="text-xs text-muted-foreground font-semibold">Total Amount Due</span>
+                    <span className="text-2xl font-display font-bold text-primary">
+                      ₹{bookingData.totalAmount.toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                  <span className="text-[9px] text-muted-foreground block text-right mt-1 font-poppins">Includes all taxes and fees</span>
+                </div>
+
+                <div className="flex items-center gap-2 text-[10px] text-muted-foreground bg-emerald-50 border border-emerald-100 p-3 rounded-xl">
+                  <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />
+                  <span className="font-medium">Secure Payment Processing via Cashfree & Google Pay</span>
+                </div>
+              </div>
+            )}
+
+            {/* ITINERARY TAB */}
+            {activeSummaryTab === "itinerary" && (
+              <div className="space-y-4 font-sans text-xs">
+                {journey.dayByDay && journey.dayByDay.length > 0 ? (
+                  <div className="space-y-3.5 pl-3 border-l-2 border-dashed border-border">
+                    {journey.dayByDay.map((day: any, dIdx: number) => (
+                      <div key={dIdx} className="relative">
+                        <span className="absolute -left-[19px] top-0.5 w-3.5 h-3.5 bg-accent text-[8px] text-white font-bold rounded-full flex items-center justify-center shadow">
+                          {dIdx + 1}
+                        </span>
+                        <h4 className="font-semibold text-foreground">{day.title}</h4>
+                        {day.description && <p className="text-[10px] text-muted-foreground leading-relaxed mt-0.5">{day.description}</p>}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground italic text-center py-6">Itinerary details loading...</p>
+                )}
+              </div>
+            )}
+
+            {/* INCLUSIONS & EXCLUSIONS TAB */}
+            {activeSummaryTab === "inclusions" && (
+              <div className="space-y-4 font-sans text-xs">
+                {/* Inclusions */}
+                {journey.inclusions && journey.inclusions.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="font-bold text-[10px] uppercase text-emerald-700 tracking-wider">What's Included</p>
+                    <ul className="space-y-1.5 pl-1.5">
+                      {journey.inclusions.map((inc: string, idx: number) => (
+                        <li key={idx} className="flex gap-1.5 items-start text-[11px] text-muted-foreground">
+                          <Check className="h-3 w-3 text-emerald-600 shrink-0 mt-0.5" />
+                          <span>{inc}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Exclusions */}
+                {journey.exclusions && journey.exclusions.length > 0 && (
+                  <div className="space-y-2 pt-2 border-t">
+                    <p className="font-bold text-[10px] uppercase text-red-700 tracking-wider">What's Not Included</p>
+                    <ul className="space-y-1.5 pl-1.5">
+                      {journey.exclusions.map((exc: string, idx: number) => (
+                        <li key={idx} className="flex gap-1.5 items-start text-[11px] text-muted-foreground">
+                          <X className="h-3 w-3 text-red-500 shrink-0 mt-0.5" />
+                          <span>{exc}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* INFO & QUICK FACTS TAB */}
+            {activeSummaryTab === "info" && (
+              <div className="space-y-4 font-sans text-xs">
+                <div className="grid grid-cols-2 gap-3 text-[11px]">
+                  <div className="p-2 border rounded-xl bg-muted/20">
+                    <span className="text-[9px] text-muted-foreground block uppercase font-bold">Transport</span>
+                    <span className="font-semibold flex items-center gap-1 mt-0.5 text-foreground">
+                      <Clock className="w-3.5 h-3.5 text-accent shrink-0" />
+                      {journey.transport || "AC Vehicle"}
+                    </span>
+                  </div>
+                  <div className="p-2 border rounded-xl bg-muted/20">
+                    <span className="text-[9px] text-muted-foreground block uppercase font-bold">Stay / Hotel</span>
+                    <span className="font-semibold flex items-center gap-1 mt-0.5 text-foreground">
+                      <Building className="w-3.5 h-3.5 text-accent shrink-0" />
+                      {journey.stayInfo ? journey.stayInfo.split(" ").slice(0, 3).join(" ") : "Boutique Stays"}
+                    </span>
+                  </div>
+                  {journey.pickupPoint && (
+                    <div className="p-2 border rounded-xl bg-muted/20 col-span-2">
+                      <span className="text-[9px] text-muted-foreground block uppercase font-bold">Pickup point</span>
+                      <span className="font-semibold flex items-center gap-1 mt-0.5 text-foreground">
+                        <MapPin className="w-3.5 h-3.5 text-accent shrink-0" />
+                        {journey.pickupPoint}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="p-3 border rounded-xl bg-amber-50/50 border-amber-100 flex gap-2 items-start text-[10px] text-muted-foreground">
+                  <HelpCircle className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-bold text-primary">Need immediate booking help?</p>
+                    <p className="mt-0.5">Please WhatsApp support at <strong>+91 9999999999</strong> for fast confirmations.</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
           </div>
         </div>
       </div>
@@ -164,3 +366,4 @@ export function BookingWizard({ journey, departures }: { journey: any; departure
     </div>
   );
 }
+

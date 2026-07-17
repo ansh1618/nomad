@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { BookingWizard } from "@/components/booking/BookingWizard";
 import { getJourneyBySlug } from "@/lib/queries-client";
 import { RouteLoadingState, RouteErrorState } from "@/components/site/RouteStates";
@@ -48,10 +48,10 @@ const fetchActiveDepartures = async (journeyId: string) => {
   }));
 };
 
-export const Route = createFileRoute("/book/$journeyId")({
+export const Route = createFileRoute("/book/$journeySlug")({
   loader: async ({ params }) => {
-    // 1. Fetch Journey Details
-    const journey = await getJourneyBySlug(params.journeyId);
+    // 1. Fetch Journey Details using the journeySlug param
+    const journey = await getJourneyBySlug(params.journeySlug);
     if (!journey) {
       throw new Error("Journey not found");
     }

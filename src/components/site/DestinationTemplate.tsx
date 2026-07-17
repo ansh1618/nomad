@@ -4,7 +4,6 @@ import { Star, Clock, MapPin, Compass, Car, CloudSun, Calendar, ShieldCheck, Use
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Reveal } from "./Reveal";
-import { triggerNomadikPlanner } from "./TripPlannerDialog";
 import { cn } from "@/lib/utils";
 import { useLoaderData } from "@tanstack/react-router";
 
@@ -65,8 +64,8 @@ export function DestinationTemplate({ slug }: DestinationTemplateProps) {
             </p>
           </Reveal>
           <Reveal delay={3} className="pt-4 flex flex-col sm:flex-row justify-center gap-3">
-            <Button size="lg" variant="hero" onClick={() => triggerNomadikPlanner({ journeySlug: matchedJourneys[0]?.slug })}>
-              Start Your Journey
+            <Button size="lg" variant="hero" asChild>
+              <a href="#journeys">Start Your Journey</a>
             </Button>
             <Button size="lg" variant="outlineLight" asChild>
               <a href="#journeys">Browse Journeys</a>
@@ -140,26 +139,28 @@ export function DestinationTemplate({ slug }: DestinationTemplateProps) {
             {matchedJourneys.map((j, i) => (
               <Reveal key={j.slug} delay={i} className="group">
                 <article className="hover-lift overflow-hidden rounded-3xl bg-card border border-border shadow-soft flex flex-col h-full">
-                  <div className="relative aspect-[16/10] overflow-hidden">
-                    <img
-                      src={j.image}
-                      alt={j.name}
-                      loading="lazy"
-                      className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                    
-                    {/* Animated seat indicator */}
-                    <div className="absolute top-4 left-4 glass-dark rounded-full px-3 py-1 text-[11px] font-poppins font-bold text-white flex items-center gap-1.5 animate-pulse">
-                      <span className="h-2 w-2 rounded-full bg-[#E53E3E]" />
-                      Only {j.remainingSeats ?? j.maxCapacity ?? 0} Seats Left!
-                    </div>
+                  <Link to="/journeys/$journeyId" params={{ journeyId: j.slug }} className="block cursor-pointer">
+                    <div className="relative aspect-[16/10] overflow-hidden">
+                      <img
+                        src={j.image}
+                        alt={j.name}
+                        loading="lazy"
+                        className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                      
+                      {/* Animated seat indicator */}
+                      <div className="absolute top-4 left-4 glass-dark rounded-full px-3 py-1 text-[11px] font-poppins font-bold text-white flex items-center gap-1.5 animate-pulse">
+                        <span className="h-2 w-2 rounded-full bg-[#E53E3E]" />
+                        Only {j.remainingSeats ?? j.maxCapacity ?? 0} Seats Left!
+                      </div>
 
-                    <div className="absolute bottom-4 left-4 flex items-center gap-1.5 text-white">
-                      <MapPin className="h-4 w-4 text-gold" />
-                      <span className="font-display text-2xl font-bold">{j.name}</span>
+                      <div className="absolute bottom-4 left-4 flex items-center gap-1.5 text-white">
+                        <MapPin className="h-4 w-4 text-gold" />
+                        <span className="font-display text-2xl font-bold">{j.name}</span>
+                      </div>
                     </div>
-                  </div>
+                  </Link>
 
                   <div className="p-6 flex flex-col flex-1 justify-between space-y-6">
                     {/* Experience Info first */}
@@ -189,11 +190,11 @@ export function DestinationTemplate({ slug }: DestinationTemplateProps) {
                         <span className="font-display text-2xl font-bold text-primary">{j.price} <span className="text-xs text-muted-foreground font-sans font-normal">/ Person</span></span>
                       </div>
                       <Link
-                        to="/journeys/$journeyId"
-                        params={{ journeyId: j.slug }}
-                        className="bg-secondary text-white font-poppins font-semibold px-5 py-2.5 rounded-xl hover:bg-primary transition shadow-soft text-sm"
+                        to="/book/$journeySlug"
+                        params={{ journeySlug: j.slug }}
+                        className="bg-secondary text-white font-poppins font-semibold px-5 py-2.5 rounded-xl hover:bg-primary transition shadow-soft text-sm text-center"
                       >
-                        Start Your Journey
+                        Book Now
                       </Link>
                     </div>
                   </div>

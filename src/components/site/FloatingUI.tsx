@@ -4,8 +4,7 @@ import { ArrowUp, MessageCircle, MessagesSquare, X, Compass, Send, Phone } from 
 import { toast } from "sonner";
 import { BRAND } from "@/config/brand";
 import { getDestinations, getJourneys } from "@/lib/queries-client";
-import { triggerNomadikPlanner } from "@/components/site/TripPlannerDialog";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 
 interface Message {
   id: string;
@@ -15,6 +14,7 @@ interface Message {
 }
 
 export function FloatingUI() {
+  const navigate = useNavigate();
   const { scrollYProgress } = useScroll();
   const progress = useSpring(scrollYProgress, { stiffness: 120, damping: 30, mass: 0.3 });
   
@@ -199,11 +199,11 @@ export function FloatingUI() {
             <button
               onClick={() => {
                 setChatOpen(false);
-                triggerNomadikPlanner();
+                navigate({ to: "/destinations" });
               }}
               className="w-full text-center text-xs bg-gold-gradient text-gold-foreground font-bold py-2.5 rounded-xl shadow-soft hover:brightness-105 transition-all font-poppins"
             >
-              Open Interactive Planner
+              Browse Destinations
             </button>
           </div>
         );
@@ -405,11 +405,11 @@ export function FloatingUI() {
               <button
                 onClick={() => {
                   setChatOpen(false);
-                  triggerNomadikPlanner();
+                  navigate({ to: "/destinations" });
                 }}
                 className="w-full text-center text-xs bg-gold-gradient text-gold-foreground font-bold py-2.5 rounded-xl shadow-soft hover:brightness-105 transition-all font-poppins"
               >
-                Open Interactive Planner
+                Browse Destinations
               </button>
             </div>
           );

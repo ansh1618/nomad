@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { Reveal } from "./Reveal";
-import { triggerNomadikPlanner } from "./TripPlannerDialog";
 import { Button } from "@/components/ui/button";
 import { getCmsSection } from "@/lib/queries/cms";
 import { Link } from "@tanstack/react-router";

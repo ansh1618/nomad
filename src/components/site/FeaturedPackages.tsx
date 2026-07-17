@@ -2,7 +2,6 @@ import { Link } from "@tanstack/react-router";
 import { Clock, Check, Star, Car, Compass, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "./Reveal";
-import { triggerNomadikPlanner } from "./TripPlannerDialog";
 import { Route } from "@/routes/index";
 import { useQuery } from "@tanstack/react-query";
 import { getCmsSection } from "@/lib/queries/cms";
@@ -139,9 +138,11 @@ export function FeaturedPackages() {
                     <Button
                       variant="hero"
                       className="flex-1 text-xs shadow-gold"
-                      onClick={() => triggerNomadikPlanner({ journeySlug: j.slug })}
+                      asChild
                     >
-                      Start Journey
+                      <Link to="/book/$journeySlug" params={{ journeySlug: j.slug }}>
+                        Book Now
+                      </Link>
                     </Button>
                   </div>
                 </div>

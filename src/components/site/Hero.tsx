@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from "motion/react";
 import { Star, ShieldCheck, Compass, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "@tanstack/react-router";
-import { triggerNomadikPlanner } from "./TripPlannerDialog";
 import heroImg from "@/assets/hero.jpg";
 import { getCmsSection, getHeroSlides } from "@/lib/queries/cms";
 

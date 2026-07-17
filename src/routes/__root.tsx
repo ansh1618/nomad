@@ -120,7 +120,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 import { AuthProvider, useAuth } from "@/components/site/AuthContext";
 import { AuthModal } from "@/components/site/AuthModal";
 import { AnnouncementBar } from "@/components/site/AnnouncementBar";
-import { TripPlannerDialog } from "@/components/site/TripPlannerDialog";
 import { AlertTriangle } from "lucide-react";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -166,7 +165,6 @@ function MainAppLayout() {
         <Outlet />
       </div>
       <AuthModal />
-      <TripPlannerDialog />
     </div>
   );
 }

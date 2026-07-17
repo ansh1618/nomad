@@ -1236,7 +1236,7 @@ export function JourneyDetailTemplate({ slug }: JourneyDetailTemplateProps) {
           </div>
         </div>
 
-        {/* Right Column: Integrated Multi-Step Booking Sidebar */}
+        {/* Right Column: Premium Booking CTA Sidebar */}
         <div className="lg:col-span-4 space-y-6">
           <div className="sticky top-24 bg-white rounded-2xl border border-[#E4E2DA] overflow-hidden shadow-soft">
             
@@ -1251,676 +1251,57 @@ export function JourneyDetailTemplate({ slug }: JourneyDetailTemplateProps) {
               </p>
             </div>
 
-            {/* Sidebar Booking Selector body */}
-            <div className="p-5 space-y-5">
-              
-              {/* Stepper Header indicator */}
-              <div className="flex items-center justify-between border-b pb-3">
-                <h3 className="font-poppins font-bold text-sm text-primary">Book Trip</h3>
-                <span className="text-[10px] font-poppins font-bold uppercase tracking-wider text-muted-foreground bg-muted px-2.5 py-1 rounded-md">
-                  Step {bookingStep} of 4
-                </span>
+            {/* Sidebar Booking Card body */}
+            <div className="p-6 space-y-6">
+              <div className="space-y-4">
+                <h3 className="font-display text-lg font-bold text-primary">Secure Your Seat</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed font-sans">
+                  Join India's fastest growing travel tribe. Expertly planned routes, premium stays, and curated road itineraries.
+                </p>
               </div>
 
-              {/* ================= STEP 1: Date Picker Calendar ================= */}
-              {bookingStep === 1 && (
-                <div className="space-y-4">
-                  {/* Available Departures select dropdown */}
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between gap-4">
-                      <span className="text-sm font-semibold text-gray-500 font-poppins shrink-0">Dates</span>
-                      <div className="relative flex-1">
-                        <button
-                          type="button"
-                          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                          className="w-full flex items-center justify-between py-2.5 px-4 border border-[#E4E2DA] rounded-xl bg-white hover:border-accent/50 transition-all text-xs font-poppins text-foreground font-semibold shadow-sm focus:outline-none"
-                        >
-                          <span className="text-gray-700">
-                            {selectedDeparture 
-                              ? `${formatDepartureDateRange(selectedDeparture.departure_date, selectedDeparture.return_date)} · ${selectedDeparture.available_seats ?? 20} spots` 
-                              : 'Select a Date'}
-                          </span>
-                          <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
-                        </button>
-                        
-                        {isDropdownOpen && (
-                          <div className="absolute z-[120] top-[calc(100%+6px)] left-0 w-full bg-white border border-[#E4E2DA] rounded-xl shadow-elegant overflow-hidden py-1 max-h-56 overflow-y-auto">
-                            {departures.length === 0 ? (
-                              <p className="text-xs text-muted-foreground italic p-3 text-center font-poppins">
-                                No upcoming departures
-                              </p>
-                            ) : (
-                              departures.map((dep) => {
-                                const isSelected = selectedDepartureId === dep.id
-                                return (
-                                  <button
-                                    key={dep.id}
-                                    type="button"
-                                    onClick={() => {
-                                      setSelectedDepartureId(dep.id)
-                                      setIsDropdownOpen(false)
-                                      setShowValError(false)
-                                    }}
-                                    className={`w-full text-left py-3 px-4 text-xs font-poppins transition-colors flex items-center justify-between hover:bg-[#F8F7F3] ${
-                                      isSelected ? 'bg-accent/10 text-primary font-bold' : 'text-gray-700 font-medium'
-                                    }`}
-                                  >
-                                    <span>
-                                      {formatDepartureDateRange(dep.departure_date, dep.return_date)} · {dep.available_seats ?? 20} spots
-                                    </span>
-                                    <span className="text-[10px] font-semibold text-accent/80">
-                                      ₹{(dep.dynamic_price ?? dep.base_price).toLocaleString('en-IN')}
-                                    </span>
-                                  </button>
-                                )
-                              })
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
+              {/* Quick Trip Highlights / Metrics */}
+              <div className="space-y-3.5 border-t border-b border-border py-4 text-xs font-poppins">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground flex items-center gap-1.5"><Clock className="h-4 w-4 text-accent" /> Duration</span>
+                  <span className="font-semibold text-foreground">{journey.duration}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground flex items-center gap-1.5"><Bus className="h-4 w-4 text-accent" /> Transport</span>
+                  <span className="font-semibold text-foreground">{journey.transport || "AC Tempo Traveller"}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground flex items-center gap-1.5"><Building2 className="h-4 w-4 text-accent" /> Accommodation</span>
+                  <span className="font-semibold text-foreground">Boutique Stays</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground flex items-center gap-1.5"><Users className="h-4 w-4 text-accent" /> Group Size</span>
+                  <span className="font-semibold text-foreground">12-18 Explorers</span>
+                </div>
+              </div>
 
-                    {selectedDeparture && (
-                      <div className="pt-3 border-t border-[#E4E2DA] mt-3">
-                        <p className="text-[#FF6A00] font-bold text-lg font-poppins animate-pulse">
-                          {selectedDeparture.available_seats ?? 20} Spots Remain
-                        </p>
-                      </div>
-                    )}
-                  </div>
+              {/* Departures scheduled indicator */}
+              {departures.length > 0 && (
+                <div className="bg-emerald-50 border border-emerald-100 p-3 rounded-xl flex items-center gap-2 text-xs">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
+                  <span className="text-emerald-800 font-medium font-poppins">{departures.length} upcoming date batches open!</span>
+                </div>
+              )}
 
-                  {/* Calendar selector */}
-                  <div className="space-y-1.5 pt-3 border-t border-[#E4E2DA]">
-                    <label className="text-[10px] font-poppins font-bold uppercase tracking-wider text-muted-foreground block">
-                      Or Select via Calendar
-                    </label>
-                    <div className="border border-[#E4E2DA] rounded-xl overflow-hidden p-2 flex justify-center bg-white">
-                      <Calendar
-                        mode="single"
-                        selected={selectedDeparture ? new Date(selectedDeparture.departure_date) : undefined}
-                        onSelect={handleCalendarSelect}
-                        modifiers={{
-                          hasDeparture: departureDates,
-                        }}
-                        modifiersClassNames={{
-                          hasDeparture: 'relative after:absolute after:bottom-1 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:bg-[#E53E3E] after:rounded-full font-bold text-primary',
-                        }}
-                        className="p-1"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Validation Error warning if no date is chosen */}
-                  {showValError && !selectedDeparture && (
-                    <div className="bg-[#E53E3E] text-white p-3 rounded-lg text-xs font-poppins font-medium flex items-center gap-2">
-                      <X className="h-4 w-4 shrink-0" />
-                      <span>Please select a departure date from the list or calendar.</span>
-                    </div>
-                  )}
-
+              {/* Secure Checkout button */}
+              <div className="space-y-3">
+                <Link to="/book/$journeySlug" params={{ journeySlug: slug }} className="block w-full">
                   <Button
-                    onClick={handleStep1Continue}
-                    disabled={departures.length === 0}
-                    className="w-full h-11 text-xs font-poppins font-bold tracking-wider uppercase text-white bg-[#E53E3E] hover:bg-[#E53E3E]/90"
+                    className="w-full h-12 bg-accent text-white font-poppins font-bold text-xs tracking-wider uppercase rounded-xl hover:bg-[#D97706] transition-all shadow-md"
                   >
-                    CONTINUE
+                    Book Journey Slot →
                   </Button>
+                </Link>
+                <div className="flex items-center justify-center gap-1.5 text-[10px] text-muted-foreground font-poppins">
+                  <ShieldCheck className="h-3.5 w-3.5 text-secondary" />
+                  <span>256-bit Secure Checkout by Razorpay</span>
                 </div>
-              )}
-
-              {/* ================= STEP 2: Traveller Details Form ================= */}
-              {bookingStep === 2 && (
-                <div className="space-y-4">
-                  {/* Full Name */}
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-poppins font-bold uppercase tracking-wider text-muted-foreground">Full Name</label>
-                    <input
-                      type="text"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      placeholder="Enter full name"
-                      className={`w-full h-10 border rounded-lg px-3 text-xs font-poppins ${step2Errors.fullName ? 'border-[#E53E3E]' : 'border-[#E4E2DA]'}`}
-                    />
-                    {step2Errors.fullName && <p className="text-[10px] text-[#E53E3E] font-poppins">{step2Errors.fullName}</p>}
-                  </div>
-
-                  {/* Email */}
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-poppins font-bold uppercase tracking-wider text-muted-foreground">Email Address</label>
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="Enter email address"
-                      className={`w-full h-10 border rounded-lg px-3 text-xs font-poppins ${step2Errors.email ? 'border-[#E53E3E]' : 'border-[#E4E2DA]'}`}
-                    />
-                    {step2Errors.email && <p className="text-[10px] text-[#E53E3E] font-poppins">{step2Errors.email}</p>}
-                  </div>
-
-                  {/* Phone */}
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-poppins font-bold uppercase tracking-wider text-muted-foreground">Phone Number</label>
-                    <input
-                      type="text"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="Enter contact number"
-                      className={`w-full h-10 border rounded-lg px-3 text-xs font-poppins ${step2Errors.phone ? 'border-[#E53E3E]' : 'border-[#E4E2DA]'}`}
-                    />
-                    {step2Errors.phone && <p className="text-[10px] text-[#E53E3E] font-poppins">{step2Errors.phone}</p>}
-                    <label className="flex items-center gap-2 pt-1 select-none cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={isWhatsapp}
-                        onChange={(e) => setIsWhatsapp(e.target.checked)}
-                        className="rounded border-[#E4E2DA] text-[#E53E3E] focus:ring-[#E53E3E]"
-                      />
-                      <span className="text-[10px] font-poppins text-muted-foreground">Is this number on WhatsApp?</span>
-                    </label>
-                  </div>
-
-                  {/* Address */}
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-poppins font-bold uppercase tracking-wider text-muted-foreground">Address</label>
-                    <input
-                      type="text"
-                      value={address}
-                      onChange={(e) => setAddress(e.target.value)}
-                      placeholder="Enter address"
-                      className={`w-full h-10 border rounded-lg px-3 text-xs font-poppins ${step2Errors.address ? 'border-[#E53E3E]' : 'border-[#E4E2DA]'}`}
-                    />
-                    {step2Errors.address && <p className="text-[10px] text-[#E53E3E] font-poppins">{step2Errors.address}</p>}
-                  </div>
-
-                  {/* Age & Gender Grid */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-[9px] font-poppins font-bold uppercase tracking-wider text-muted-foreground">Age</label>
-                      <input
-                        type="number"
-                        value={age}
-                        onChange={(e) => setAge(e.target.value)}
-                        placeholder="Age"
-                        className={`w-full h-10 border rounded-lg px-3 text-xs font-poppins ${step2Errors.age ? 'border-[#E53E3E]' : 'border-[#E4E2DA]'}`}
-                      />
-                      {step2Errors.age && <p className="text-[10px] text-[#E53E3E] font-poppins">{step2Errors.age}</p>}
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[9px] font-poppins font-bold uppercase tracking-wider text-muted-foreground">Gender</label>
-                      <select
-                        value={gender}
-                        onChange={(e) => setGender(e.target.value)}
-                        className="w-full h-10 border border-[#E4E2DA] rounded-lg px-3 text-xs font-poppins bg-white"
-                      >
-                        <option value="">Select Gender</option>
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
-                        <option value="Other">Other</option>
-                      </select>
-                      {step2Errors.gender && <p className="text-[10px] text-[#E53E3E] font-poppins">{step2Errors.gender}</p>}
-                    </div>
-                  </div>
-
-                  {/* Guardian's Number */}
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-poppins font-bold uppercase tracking-wider text-muted-foreground">Guardian's Number</label>
-                    <input
-                      type="text"
-                      value={guardianNumber}
-                      onChange={(e) => setGuardianNumber(e.target.value)}
-                      placeholder="Emergency contact"
-                      className="w-full h-10 border border-[#E4E2DA] rounded-lg px-3 text-xs font-poppins"
-                    />
-                  </div>
-
-                  {/* File Pickers */}
-                  <div className="space-y-3 pt-1">
-                    <div className="space-y-1">
-                      <label className="text-[9px] font-poppins font-bold uppercase tracking-wider text-muted-foreground block">
-                        Aadhar Card Photo *
-                      </label>
-                      <div className={`flex items-center gap-2 border rounded-lg p-2 bg-[#F8F7F3]/30 ${step2Errors.aadhar ? 'border-[#E53E3E]' : 'border-[#E4E2DA]'}`}>
-                        <label className="bg-white border border-[#E4E2DA] rounded px-3 py-1.5 text-[10px] font-semibold font-poppins cursor-pointer shrink-0 hover:bg-[#F8F7F3]">
-                          Choose File
-                          <input
-                            type="file"
-                            accept="image/*,.pdf"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0]
-                              if (file) {
-                                setAadharFile(file)
-                                setAadharFileName(file.name)
-                              }
-                            }}
-                            className="hidden"
-                          />
-                        </label>
-                        <span className="text-[10px] text-muted-foreground truncate">
-                          {aadharFileName || 'No file chosen'}
-                        </span>
-                      </div>
-                      {step2Errors.aadhar && <p className="text-[10px] text-[#E53E3E] font-poppins">{step2Errors.aadhar}</p>}
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-[9px] font-poppins font-bold uppercase tracking-wider text-muted-foreground block">
-                        Profile Photo *
-                      </label>
-                      <div className={`flex items-center gap-2 border rounded-lg p-2 bg-[#F8F7F3]/30 ${step2Errors.profile ? 'border-[#E53E3E]' : 'border-[#E4E2DA]'}`}>
-                        <label className="bg-white border border-[#E4E2DA] rounded px-3 py-1.5 text-[10px] font-semibold font-poppins cursor-pointer shrink-0 hover:bg-[#F8F7F3]">
-                          Choose File
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0]
-                              if (file) {
-                                setProfileFile(file)
-                                setProfileFileName(file.name)
-                              }
-                            }}
-                            className="hidden"
-                          />
-                        </label>
-                        <span className="text-[10px] text-muted-foreground truncate">
-                          {profileFileName || 'No file chosen'}
-                        </span>
-                      </div>
-                      {step2Errors.profile && <p className="text-[10px] text-[#E53E3E] font-poppins">{step2Errors.profile}</p>}
-                      <p className="text-[8px] text-muted-foreground font-poppins leading-tight">A clear photo of the traveller (Max 2MB)</p>
-                    </div>
-                  </div>
-
-                  {/* Booking Referred By */}
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-poppins font-bold uppercase tracking-wider text-muted-foreground block">
-                      Booking Referred By (Team Member)
-                    </label>
-                    <select
-                      value={referredBy}
-                      onChange={(e) => setReferredBy(e.target.value)}
-                      className="w-full h-10 border border-[#E4E2DA] rounded-lg px-3 text-xs font-poppins bg-white"
-                    >
-                      <option value="">Choose team member...</option>
-                      <option value="Sales Team A">Sales Team A</option>
-                      <option value="Sales Team B">Sales Team B</option>
-                      <option value="Direct Online">Direct Online</option>
-                    </select>
-                    <span className="text-[8px] text-muted-foreground font-poppins leading-tight">Select the team member who assisted you (if any)</span>
-                  </div>
-
-                  {/* How Did You Hear About Us */}
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-poppins font-bold uppercase tracking-wider text-muted-foreground block">
-                      How Did You Hear About Us?
-                    </label>
-                    <select
-                      value={howHeard}
-                      onChange={(e) => setHowHeard(e.target.value)}
-                      className="w-full h-10 border border-[#E4E2DA] rounded-lg px-3 text-xs font-poppins bg-white"
-                    >
-                      <option value="">Select marketing channel</option>
-                      <option value="Instagram">Instagram</option>
-                      <option value="Facebook">Facebook</option>
-                      <option value="Google Ads">Google Ads</option>
-                      <option value="Friends/Family">Friends / Recommendation</option>
-                      <option value="Other">Other</option>
-                    </select>
-                  </div>
-
-                  {/* Back & Continue Buttons */}
-                  <div className="flex gap-3 pt-3">
-                    <button
-                      type="button"
-                      onClick={() => setBookingStep(1)}
-                      className="flex-1 h-11 border border-[#E4E2DA] text-xs font-bold font-poppins uppercase tracking-wider rounded-lg text-primary hover:bg-[#F8F7F3]"
-                    >
-                      BACK
-                    </button>
-                    <Button
-                      onClick={handleStep2Continue}
-                      className="flex-1 h-11 text-xs font-poppins font-bold tracking-wider uppercase text-white bg-[#E53E3E] hover:bg-[#E53E3E]/90"
-                    >
-                      CONTINUE
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {/* ================= STEP 3: Transport & Seats Selection ================= */}
-              {bookingStep === 3 && (
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-poppins font-bold uppercase tracking-wider text-muted-foreground block">
-                      Choose Transport Class
-                    </label>
-
-                    {/* Standard AC Traveller */}
-                    <label className={`block border p-4 rounded-xl cursor-pointer select-none transition-all ${
-                      transportType === 'standard' ? 'border-[#C8A96A] bg-[#C8A96A]/5 shadow-sm' : 'border-[#E4E2DA] hover:border-[#C8A96A]/40'
-                    }`}>
-                      <div className="flex items-start gap-3">
-                        <input
-                          type="radio"
-                          name="transport"
-                          checked={transportType === 'standard'}
-                          onChange={() => setTransportType('standard')}
-                          className="mt-1 text-[#E53E3E] focus:ring-[#E53E3E]"
-                        />
-                        <div className="space-y-1">
-                          <span className="block text-xs font-bold text-primary font-poppins">AC Tempo Traveller</span>
-                          <span className="block text-[10px] text-muted-foreground font-poppins leading-tight">
-                            Standard comfortable pushback seats. Good legroom, shared operations.
-                          </span>
-                          <span className="block text-[10px] text-emerald-600 font-bold font-poppins">Included in Base Price</span>
-                        </div>
-                      </div>
-                    </label>
-
-                    {/* Premium Sleeper Volvo Bus */}
-                    <label className={`block border p-4 rounded-xl cursor-pointer select-none transition-all ${
-                      transportType === 'sleeper' ? 'border-[#C8A96A] bg-[#C8A96A]/5 shadow-sm' : 'border-[#E4E2DA] hover:border-[#C8A96A]/40'
-                    }`}>
-                      <div className="flex items-start gap-3">
-                        <input
-                          type="radio"
-                          name="transport"
-                          checked={transportType === 'sleeper'}
-                          onChange={() => setTransportType('sleeper')}
-                          className="mt-1 text-[#E53E3E] focus:ring-[#E53E3E]"
-                        />
-                        <div className="space-y-1">
-                          <span className="block text-xs font-bold text-primary font-poppins">Luxury Volvo Sleeper</span>
-                          <span className="block text-[10px] text-muted-foreground font-poppins leading-tight">
-                            Premium overnight sleeper berths. Perfect for full rest before the trek.
-                          </span>
-                          <span className="block text-[10px] text-[#C8A96A] font-bold font-poppins">+₹1,000 /person</span>
-                        </div>
-                      </div>
-                    </label>
-                  </div>
-
-                  {/* Seat preference buttons */}
-                  <div className="space-y-2 pt-2 border-t">
-                    <label className="text-[10px] font-poppins font-bold uppercase tracking-wider text-muted-foreground block">
-                      Seat Preference
-                    </label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {(['window', 'aisle', 'none'] as const).map((pref) => {
-                        const isSelected = seatPreference === pref
-                        return (
-                          <button
-                            key={pref}
-                            type="button"
-                            onClick={() => setSeatPreference(pref)}
-                            className={`py-2 text-[10px] font-poppins font-bold uppercase tracking-wider rounded-lg border transition-all ${
-                              isSelected
-                                ? 'border-[#E53E3E] bg-[#E53E3E]/5 text-[#E53E3E]'
-                                : 'border-[#E4E2DA] bg-white hover:bg-[#F8F7F3] text-muted-foreground'
-                            }`}
-                          >
-                            {pref === 'none' ? 'No Preference' : pref}
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Back & Continue Buttons */}
-                  <div className="flex gap-3 pt-3">
-                    <button
-                      type="button"
-                      onClick={() => setBookingStep(2)}
-                      className="flex-1 h-11 border border-[#E4E2DA] text-xs font-bold font-poppins uppercase tracking-wider rounded-lg text-primary hover:bg-[#F8F7F3]"
-                    >
-                      BACK
-                    </button>
-                    <Button
-                      onClick={() => setBookingStep(4)}
-                      className="flex-1 h-11 text-xs font-poppins font-bold tracking-wider uppercase text-white bg-[#E53E3E] hover:bg-[#E53E3E]/90"
-                    >
-                      CONTINUE
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {/* ================= STEP 4: Package, Sharing, Coupons & Billing (Matches design screenshot) ================= */}
-              {bookingStep === 4 && (
-                <div className="space-y-5">
-                  
-                  {/* SELECT FINAL PACKAGE */}
-                  <div className="space-y-1.5">
-                    <label className="text-[9px] font-poppins font-bold uppercase tracking-wider text-muted-foreground block">
-                      Select Final Package
-                    </label>
-                    <div className="border border-[#E53E3E] rounded-xl p-4 bg-white flex items-center justify-between shadow-sm relative">
-                      <div className="space-y-1">
-                        <span className="block text-xs font-bold text-primary font-poppins">Standard Package</span>
-                        <span className="block text-[10px] text-muted-foreground font-poppins">{journey.duration || '5 Days / 4 Nights'}</span>
-                      </div>
-                      <div className="text-right">
-                        <span className="block text-base font-bold text-primary font-poppins">
-                          ₹{sharingPrice.toLocaleString('en-IN')}
-                        </span>
-                        <span className="block text-[8px] font-bold text-[#E53E3E] uppercase font-poppins">SELECTED</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* ROOM SHARING TYPE */}
-                  <div className="space-y-1.5">
-                    <label className="text-[9px] font-poppins font-bold uppercase tracking-wider text-muted-foreground block">
-                      Room Sharing Type
-                    </label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {[
-                        { type: 'double', label: 'DOUBLE', price: basePrice + 800 },
-                        { type: 'triple', label: 'TRIPLE', price: basePrice + 500 },
-                        { type: 'quad', label: 'QUAD', price: basePrice },
-                      ].map((item) => {
-                        const isSelected = sharingType === item.type
-                        return (
-                          <button
-                            key={item.type}
-                            type="button"
-                            onClick={() => setSharingType(item.type as any)}
-                            className={`p-2 rounded-lg text-center font-poppins transition-all border ${
-                              isSelected
-                                ? 'bg-[#E53E3E] border-[#E53E3E] text-white font-bold'
-                                : 'bg-white border-[#E4E2DA] text-slate-700 hover:border-[#E53E3E]/50'
-                            }`}
-                          >
-                            <span className="block text-[10px] font-bold">{item.label}</span>
-                            <span className={`block text-[9px] font-semibold ${isSelected ? 'text-white/90' : 'text-[#E53E3E]'}`}>
-                              ₹{item.price.toLocaleString('en-IN')}
-                            </span>
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-
-                  {/* DISCOUNT COUPON */}
-                  <div className="space-y-1.5">
-                    <label className="text-[9px] font-poppins font-bold uppercase tracking-wider text-muted-foreground block">
-                      Discount Coupon
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={couponCode}
-                        onChange={(e) => setCouponCode(e.target.value)}
-                        placeholder="ENTER CODE"
-                        disabled={couponApplied}
-                        className="flex-1 h-9 border border-[#E4E2DA] rounded-lg px-3 text-xs font-poppins placeholder-muted-foreground bg-white"
-                      />
-                      <button
-                        type="button"
-                        onClick={handleApplyCoupon}
-                        disabled={couponApplied || !couponCode.trim()}
-                        className="h-9 px-4 bg-black text-white text-[10px] font-poppins font-bold uppercase tracking-wider rounded-lg disabled:opacity-50"
-                      >
-                        APPLY
-                      </button>
-                    </div>
-                    {couponApplied && <p className="text-[9px] text-emerald-600 font-bold font-poppins">NOMAD20 coupon active: -₹500 discount.</p>}
-                    {couponError && <p className="text-[9px] text-[#E53E3E] font-poppins font-medium">{couponError}</p>}
-                  </div>
-
-                  {/* BILLING DISPLAY BOX */}
-                  <div className="border border-[#E4E2DA] rounded-xl p-4 space-y-3 bg-white">
-                    <div className="flex justify-between items-center text-xs font-poppins text-muted-foreground">
-                      <span>Base Package ({sharingType.toUpperCase()} Sharing)</span>
-                      <span className="font-medium text-slate-700">₹{sharingPrice.toLocaleString('en-IN')}</span>
-                    </div>
-                    {transportType === 'sleeper' && (
-                      <div className="flex justify-between items-center text-xs font-poppins text-muted-foreground">
-                        <span>Luxury Volvo Sleeper Add-on</span>
-                        <span className="font-medium text-slate-700">+₹1,000</span>
-                      </div>
-                    )}
-                    {couponApplied && (
-                      <div className="flex justify-between items-center text-xs font-poppins text-emerald-600 font-medium">
-                        <span>Coupon Discount</span>
-                        <span>-₹{discountAmount.toLocaleString('en-IN')}</span>
-                      </div>
-                    )}
-                    <div className="border-t border-[#E4E2DA] pt-2.5 flex justify-between items-center">
-                      <span className="text-xs font-bold text-primary font-poppins">Total Payable</span>
-                      <span className="text-lg font-bold text-[#E53E3E] font-poppins">
-                        ₹{finalPrice.toLocaleString('en-IN')}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* PAYMENT SCHEDULE */}
-                  <div className="space-y-1.5">
-                    <label className="text-[9px] font-poppins font-bold uppercase tracking-wider text-muted-foreground block">
-                      Payment Schedule
-                    </label>
-                    <div className="grid grid-cols-2 gap-3">
-                      {[
-                        { key: 'full', title: 'Full Payment', sub: `Pay ₹${finalPrice.toLocaleString('en-IN')} now` },
-                        { key: 'slot', title: 'Book Slot', sub: 'Pay ₹2,000 now' },
-                      ].map((sched) => {
-                        const isSelected = paymentSchedule === sched.key
-                        return (
-                          <button
-                            key={sched.key}
-                            type="button"
-                            onClick={() => setPaymentSchedule(sched.key as any)}
-                            className={`p-3 rounded-lg text-left font-poppins border transition-all ${
-                              isSelected
-                                ? 'border-[#E53E3E] bg-[#E53E3E]/5 text-primary'
-                                : 'border-[#E4E2DA] bg-white text-muted-foreground hover:bg-[#F8F7F3]'
-                            }`}
-                          >
-                            <span className="block text-[10px] font-bold">{sched.title}</span>
-                            <span className="block text-[8px] text-muted-foreground mt-0.5">{sched.sub}</span>
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-
-                  {/* SPECIAL REQUESTS */}
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-poppins font-bold uppercase tracking-wider text-muted-foreground block">
-                      Special Requests
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={specialRequests}
-                      onChange={(e) => setSpecialRequests(e.target.value)}
-                      placeholder="Any special requirements?"
-                      className="w-full border border-[#E4E2DA] rounded-lg p-2.5 text-xs font-poppins placeholder-muted-foreground bg-white"
-                    />
-                  </div>
-
-                  {/* Terms & Conditions Checkbox */}
-                  <div className={`border rounded-lg p-3 ${termsError ? 'border-[#E53E3E] bg-[#E53E3E]/5' : 'border-[#E4E2DA]'}`}>
-                    <label className="flex items-start gap-2.5 select-none cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={agreeTerms}
-                        onChange={(e) => {
-                          setAgreeTerms(e.target.checked)
-                          if (e.target.checked) setTermsError(false)
-                        }}
-                        className="mt-0.5 rounded border-[#E4E2DA] text-[#E53E3E] focus:ring-[#E53E3E]"
-                      />
-                      <span className="text-[9px] font-poppins text-muted-foreground leading-tight">
-                        I confirm that the details provided are correct, and I agree to the{' '}
-                        <a href="/terms" target="_blank" className="underline text-[#E53E3E] font-semibold">Terms & Conditions</a> and the{' '}
-                        <a href="/policies" target="_blank" className="underline text-[#E53E3E] font-semibold">Cancellation & Refund Policy</a>.
-                      </span>
-                    </label>
-                  </div>
-
-                  {/* Back & Complete Booking Buttons */}
-                  <div className="flex gap-3 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => setBookingStep(3)}
-                      className="flex-1 h-11 border border-[#E4E2DA] text-xs font-bold font-poppins uppercase tracking-wider rounded-lg text-slate-700 hover:bg-[#F8F7F3]"
-                    >
-                      BACK
-                    </button>
-                    <Button
-                      onClick={handleFinalSubmit}
-                      disabled={isSubmitting}
-                      className="flex-1 h-11 text-xs font-poppins font-bold tracking-wider uppercase text-white bg-[#333333] hover:bg-[#222222]"
-                    >
-                      {isSubmitting ? (
-                        <div className="flex items-center justify-center gap-1.5">
-                          <Loader2 className="h-4 w-4 animate-spin text-white" />
-                          <span>PROCESSING...</span>
-                        </div>
-                      ) : (
-                        <span>COMPLETE BOOKING</span>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {/* ================= STEP 5: Success Confirmation ================= */}
-              {bookingStep === 5 && bookingSuccess && (
-                <div className="space-y-4 text-center py-4">
-                  <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center mx-auto text-emerald-600">
-                    <Check className="h-6 w-6 font-bold" />
-                  </div>
-                  
-                  <div className="space-y-1">
-                    <h3 className="font-display text-lg font-bold text-primary">Booking Successful!</h3>
-                    <p className="text-xs text-muted-foreground font-poppins">
-                      Your booking reference is <span className="font-bold text-primary">{successBookingId}</span>
-                    </p>
-                  </div>
-
-                  <p className="text-xs text-muted-foreground leading-relaxed font-poppins">
-                    A confirmation email has been sent to <span className="font-semibold text-primary">{email}</span>. Our trip captain will coordinate with you via WhatsApp soon.
-                  </p>
-
-                  <div className="pt-2 border-t">
-                    <Button
-                      onClick={() => {
-                        setBookingStep(1)
-                        setFullName('')
-                        setEmail('')
-                        setPhone('')
-                        setAadharFileName('')
-                        setProfileFileName('')
-                        setAgreeTerms(false)
-                      }}
-                      className="w-full h-10 text-xs font-poppins font-bold tracking-wider uppercase text-white bg-primary hover:bg-primary/95"
-                    >
-                      Book Another Seat
-                    </Button>
-                  </div>
-                </div>
-              )}
+              </div>
 
             </div>
           </div>
@@ -2414,15 +1795,13 @@ export function JourneyDetailTemplate({ slug }: JourneyDetailTemplateProps) {
               <span className="text-[10px] text-white/50 uppercase font-poppins block font-bold tracking-wider">convoy starting at</span>
               <span className="text-2xl font-bold text-gold">₹{journey.starting_price?.toLocaleString('en-IN') || '6,499'}</span>
             </div>
-            <Button 
-              onClick={() => {
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-                setBookingStep(1);
-              }}
-              className="w-full sm:w-auto h-12 px-8 bg-accent text-white font-poppins font-bold text-sm tracking-wider rounded-2xl hover:bg-[#D97706] transition-all shadow-lg hover:shadow-xl"
-            >
-              Book {journey.name.split(" ")[0]} Seat
-            </Button>
+            <Link to="/book/$journeySlug" params={{ journeySlug: slug }} className="w-full sm:w-auto">
+              <Button 
+                className="w-full sm:w-auto h-12 px-8 bg-accent text-white font-poppins font-bold text-sm tracking-wider rounded-2xl hover:bg-[#D97706] transition-all shadow-lg hover:shadow-xl"
+              >
+                Book {journey.name.split(" ")[0]} Seat
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
@@ -2433,17 +1812,14 @@ export function JourneyDetailTemplate({ slug }: JourneyDetailTemplateProps) {
           <p className="text-[10px] text-muted-foreground uppercase font-poppins">Starting from</p>
           <p className="text-lg font-bold text-primary font-poppins">₹{finalPrice.toLocaleString('en-IN')}</p>
         </div>
-        <Button 
-          onClick={() => {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            setBookingStep(1);
-          }} 
-          disabled={!selectedDeparture} 
-          size="sm" 
-          className="font-poppins"
-        >
-          Book Now →
-        </Button>
+        <Link to="/book/$journeySlug" params={{ journeySlug: slug }}>
+          <Button 
+            size="sm" 
+            className="font-poppins"
+          >
+            Book Now →
+          </Button>
+        </Link>
       </div>
 
     </div>
