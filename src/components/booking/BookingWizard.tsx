@@ -39,7 +39,6 @@ export type BookingState = {
 
 const STEPS = [
   "Traveller Details",
-  "Transport",
   "Accommodation",
   "Add-ons",
   "Review",
@@ -163,12 +162,11 @@ export function BookingWizard({ journey, departures, onBack }: { journey: any; d
         {/* Form Container */}
         <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-border min-h-[400px]">
           {currentStep === 0 && <TravellerDetailsStep data={bookingData} updateData={setBookingData} onNext={nextStep} />}
-          {currentStep === 1 && <TransportSelectionStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} />}
-          {currentStep === 2 && <AccommodationSelectionStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} />}
-          {currentStep === 3 && <AddonsAndCouponsStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} />}
-          {currentStep === 4 && <ReviewSummaryStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} />}
-          {currentStep === 5 && <PaymentStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} />}
-          {currentStep === 6 && <SuccessConfirmationStep data={bookingData} journey={journey} />}
+          {currentStep === 1 && <AccommodationSelectionStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} />}
+          {currentStep === 2 && <AddonsAndCouponsStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} />}
+          {currentStep === 3 && <ReviewSummaryStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} />}
+          {currentStep === 4 && <PaymentStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} />}
+          {currentStep === 5 && <SuccessConfirmationStep data={bookingData} journey={journey} />}
         </div>
       </div>
 

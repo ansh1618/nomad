@@ -110,14 +110,33 @@ export const createBookingFn = createServerFn({ method: "POST" })
         throw new Error("Failed to create booking record.");
       }
 
+      const calculateAge = (dobString: string) => {
+        if (!dobString) return null;
+        const today = new Date();
+        const birthDate = new Date(dobString);
+        if (isNaN(birthDate.getTime())) return null;
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+          age--;
+        }
+        return age;
+      };
+
       const travellersToInsert = data.travellers.map((t: any) => ({
         booking_id: booking.id,
-        is_primary: t.isPrimary,
+        is_primary: t.isPrimary || false,
         full_name: t.fullName,
-        phone: t.phone,
-        email: t.email,
-        assigned_seat_id: t.seatId,
-        assigned_room_id: t.roomId,
+        phone: t.phone || null,
+        email: t.email || null,
+        gender: t.gender || null,
+        age: t.dob ? calculateAge(t.dob) : (t.age ? parseInt(t.age) : null),
+        id_proof_type: 'Aadhaar',
+        id_proof_number: t.aadhaarNumber || null,
+        assigned_seat_id: t.seatId || null,
+        assigned_room_id: t.roomId || null,
+        address: t.address || null,
+        guardian_number: t.emergencyContactPhone || null,
       }));
 
       const { error: travellersError } = await supabase
