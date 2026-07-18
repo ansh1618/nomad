@@ -10,104 +10,75 @@ export function AccommodationSelectionStep({ data, updateData, onNext, onPrev, j
 
   useEffect(() => {
     async function fetchRooms() {
-      if (!data.departureId) {
-        setIsLoading(false);
-        return;
-      }
-
-      let fetchedDepRooms: any[] = [];
+      setIsLoading(true);
       try {
-        const { data: depRooms, error } = await supabase
-          .from("departure_rooms")
-          .select(`
-            hotel_room_id,
-            allocated_count,
-            hotel_rooms (
+        let activeHotelId = null;
+
+        // 1. Try to get hotel_id from the selected departure
+        if (data.departureId) {
+          const { data: dep } = await supabase
+            .from("departures")
+            .select("hotel_id")
+            .eq("id", data.departureId)
+            .single();
+          if (dep?.hotel_id) {
+            activeHotelId = dep.hotel_id;
+          }
+        }
+
+        // 2. If no departure hotel, try package/journey level hotel_id
+        if (!activeHotelId) {
+          activeHotelId = journey?.hotel_id || journey?.accommodation?.id;
+        }
+
+        if (activeHotelId) {
+          const { data: dbRooms, error: roomsError } = await supabase
+            .from("hotel_rooms")
+            .select(`
               id,
               room_type,
+              sharing_type,
               capacity,
+              price_modifier,
               hotels (
+                id,
                 name,
-                gallery
+                gallery,
+                city,
+                state,
+                address
               )
-            )
-          `)
-          .eq("departure_id", data.departureId);
+            `)
+            .eq("hotel_id", activeHotelId)
+            .eq("is_active", true);
 
-        if (error) {
-          console.error("Error fetching rooms:", error);
-        } else if (depRooms) {
-          fetchedDepRooms = depRooms;
+          if (!roomsError && dbRooms && dbRooms.length > 0) {
+            const mapped = dbRooms.map((r: any) => {
+              const hotel = r.hotels;
+              const galleryList = (hotel?.gallery as any[])?.map((item: any) => typeof item === 'string' ? item : item.url).filter(Boolean) || [];
+              const fallbackUrl = 'https://images.unsplash.com/photo-1551882547-ff40c0d5fc4f?w=400&q=80';
+              
+              return {
+                id: r.id,
+                type: r.room_type || `${r.sharing_type} Sharing`,
+                hotel: hotel?.name || "Premium Stay",
+                pricePerPerson: Number(r.price_modifier || 0),
+                image: galleryList[0] || fallbackUrl,
+                description: `Comfortable ${r.room_type || r.sharing_type} stay at ${hotel?.name || 'verified property'} in ${hotel?.city || 'the mountains'}.`,
+                capacity: r.capacity || 2,
+              };
+            });
+            setRooms(mapped);
+            setIsLoading(false);
+            return;
+          }
         }
       } catch (err) {
-        console.error("Failed to query departure_rooms:", err);
+        console.warn("Failed to fetch dynamic accommodation rooms:", err);
       }
 
-      if (fetchedDepRooms && fetchedDepRooms.length > 0) {
-        const mappedRooms = fetchedDepRooms.map((dr: any) => {
-          const hotelRoom = dr.hotel_rooms;
-          const hotel = hotelRoom?.hotels;
-          const gallery = hotel?.gallery as string[] | null;
-          
-          return {
-            id: hotelRoom?.id || dr.hotel_room_id,
-            type: hotelRoom?.room_type || "Standard Room",
-            hotel: hotel?.name || "Premium Stay",
-            pricePerPerson: 0, // Base price covers standard rooms
-            image: gallery?.[0] || 'https://images.unsplash.com/photo-1551882547-ff40c0d5fc4f?w=400&q=80',
-            description: `Comfortable ${hotelRoom?.room_type || 'room'} accommodating up to ${hotelRoom?.capacity || 2} people.`,
-            capacity: hotelRoom?.capacity || 2,
-          };
-        });
-        
-        // Remove duplicates if any
-        const uniqueRooms = mappedRooms.filter((v, i, a) => a.findIndex(t => (t.id === v.id)) === i);
-        setRooms(uniqueRooms);
-      } else if (journey?.accommodation && ((journey.accommodation as any).id || (journey.accommodation as any).name)) {
-        // Dynamic fallback to staying accommodation configs configured in packages edit staying tab!
-        const rawStay = journey.accommodation as any;
-        const stay = {
-          hotel_name: rawStay.name,
-          location: rawStay.city ? `${rawStay.city}${rawStay.state ? `, ${rawStay.state}` : ''}` : (rawStay.address || rawStay.location),
-          cover_image: rawStay.cover_image || (rawStay.gallery as any[])?.[0]?.url || (rawStay.gallery as any[])?.[0] || '',
-          gallery: (rawStay.gallery as any[])?.map((img: any) => typeof img === 'string' ? img : img.url).filter(Boolean) || [],
-          room_types: rawStay.hotel_rooms?.map((r: any) => r.room_type || r.sharing_type).filter(Boolean) || rawStay.room_types || [],
-        };
-        const roomTypes = stay.room_types && stay.room_types.length > 0
-          ? stay.room_types
-          : ['Double Sharing', 'Triple Sharing', 'Quad Sharing'];
-        const coverImg = stay.cover_image || 'https://images.unsplash.com/photo-1551882547-ff40c0d5fc4f?w=400&q=80';
-        const galleryList = stay.gallery || [];
-
-        const mappedRooms = roomTypes.map((type: string, idx: number) => {
-          let capacity = 2;
-          if (type.toLowerCase().includes('triple')) capacity = 3;
-          else if (type.toLowerCase().includes('quad')) capacity = 4;
-          else if (type.toLowerCase().includes('single')) capacity = 1;
-
-          let pricePerPerson = 0;
-          if (type.toLowerCase().includes('double') || type.toLowerCase().includes('twin')) pricePerPerson = 800;
-          else if (type.toLowerCase().includes('triple')) pricePerPerson = 500;
-
-          return {
-            id: `stay-room-${idx}`,
-            type: type,
-            hotel: stay.hotel_name || "Premium Stay",
-            pricePerPerson: pricePerPerson,
-            image: galleryList[idx] || coverImg,
-            description: `Comfortable ${type} stay at ${stay.hotel_name || 'verified property'} in ${stay.location || 'stay valley'}.`,
-            capacity: capacity,
-          };
-        });
-        setRooms(mappedRooms);
-      } else {
-        // Fallback dummy layout if no rooms or accommodations are set up
-        setRooms([
-          { id: 'r1', type: 'Quad Sharing', hotel: 'Mountain View Stay', pricePerPerson: 0, image: 'https://images.unsplash.com/photo-1551882547-ff40c0d5fc4f?w=400&q=80', description: 'Cozy room with 4 beds.' },
-          { id: 'r2', type: 'Triple Sharing', hotel: 'Mountain View Stay', pricePerPerson: 1000, image: 'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=400&q=80', description: 'Spacious room for 3.' },
-          { id: 'r3', type: 'Twin Sharing', hotel: 'Premium Resort Jibhi', pricePerPerson: 2500, image: 'https://images.unsplash.com/photo-1522771731474-c94bfaf80c7d?w=400&q=80', description: 'Luxury twin sharing.' }
-        ]);
-      }
+      // No accommodation found
+      setRooms([]);
       setIsLoading(false);
     }
     fetchRooms();
@@ -132,6 +103,12 @@ export function AccommodationSelectionStep({ data, updateData, onNext, onPrev, j
         <div className="flex flex-col items-center justify-center py-12 text-muted-foreground bg-white border border-border rounded-2xl">
           <Loader2 className="h-8 w-8 animate-spin mb-4 text-accent" />
           <p>Finding available rooms...</p>
+        </div>
+      ) : rooms.length === 0 ? (
+        <div className="py-16 text-center text-muted-foreground bg-white border border-border rounded-2xl">
+          <Hotel className="h-10 w-10 mx-auto text-muted-foreground/50 mb-3" />
+          <p className="font-poppins font-semibold text-foreground">No accommodation assigned</p>
+          <p className="text-xs mt-1">Please proceed to next step.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -175,10 +152,10 @@ export function AccommodationSelectionStep({ data, updateData, onNext, onPrev, j
       )}
 
       <div className="flex justify-between pt-4">
-        <Button variant="outline" onClick={onPrev}>Back to Transport</Button>
+        <Button variant="outline" onClick={onPrev}>Back to Traveller Details</Button>
         <Button 
           onClick={onNext} 
-          disabled={data.selectedRooms.length === 0}
+          disabled={rooms.length > 0 && data.selectedRooms.length === 0}
           className="bg-primary hover:bg-primary/90"
         >
           Continue to Add-ons

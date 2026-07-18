@@ -169,22 +169,33 @@ function HotelFormPage() {
         savedHotel = await updateHotel(id, payload as any)
       }
 
-      // Sync Rooms
+      // Sync Rooms using upsert / targeted delete to avoid constraint violations
       const { supabase } = await import('@/lib/supabase')
-      // Delete old rooms
-      await supabase.from('hotel_rooms').delete().eq('hotel_id', savedHotel.id)
+      const newRoomIds = rooms.map(r => r.id).filter(Boolean);
+      
+      // Delete rooms that were removed in the UI
+      if (newRoomIds.length > 0) {
+        await supabase.from('hotel_rooms')
+          .delete()
+          .eq('hotel_id', savedHotel.id)
+          .not('id', 'in', `(${newRoomIds.join(',')})`);
+      } else {
+        await supabase.from('hotel_rooms').delete().eq('hotel_id', savedHotel.id);
+      }
+
       if (rooms.length > 0) {
-        const { error } = await supabase.from('hotel_rooms').insert(
-          rooms.map(r => ({
-            hotel_id: savedHotel.id,
-            room_type: r.room_type,
-            sharing_type: r.sharing_type,
-            capacity: r.capacity,
-            price_modifier: r.price_modifier,
-            is_active: true,
-          }))
-        )
-        if (error) throw new Error(error.message)
+        const roomsToUpsert = rooms.map(r => ({
+          ...(r.id ? { id: r.id } : {}),
+          hotel_id: savedHotel.id,
+          room_type: r.room_type,
+          sharing_type: r.sharing_type,
+          capacity: r.capacity,
+          price_modifier: r.price_modifier,
+          is_active: true,
+        }));
+        
+        const { error } = await supabase.from('hotel_rooms').upsert(roomsToUpsert);
+        if (error) throw new Error(error.message);
       }
 
       return savedHotel

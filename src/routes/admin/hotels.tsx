@@ -194,7 +194,7 @@ function HotelsPage() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-40">
               <DropdownMenuItem asChild>
-                <Link to="/admin/hotels/$id" params={{ id: h.id }}>
+                <Link to="/admin/hotels_/$id" params={{ id: h.id }}>
                   <Pencil className="h-3.5 w-3.5 mr-2" /> Edit Details
                 </Link>
               </DropdownMenuItem>
@@ -238,7 +238,7 @@ function HotelsPage() {
             {result?.total ?? 0} hotel vendor{(result?.total ?? 0) !== 1 ? 's' : ''} total
           </p>
         </div>
-        <Link to="/admin/hotels/$id" params={{ id: 'new' }}>
+        <Link to="/admin/hotels_/$id" params={{ id: 'new' }}>
           <Button className="gap-1.5">
             <Plus className="h-4 w-4" /> Add Hotel Stay
           </Button>
