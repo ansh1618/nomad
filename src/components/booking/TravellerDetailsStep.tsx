@@ -119,7 +119,7 @@ export function TravellerDetailsStep({ data, updateData, onNext }: any) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="text-[11px] font-semibold uppercase text-muted-foreground">Full Name (As per ID) *</label>
-                <Input value={t.fullName} onChange={e => updateTraveller(t.id, 'fullName', e.target.value)} placeholder="John Doe" />
+                <Input value={t.fullName} onChange={e => updateTraveller(t.id, 'fullName', e.target.value)} />
                 {errors[`${t.id}-fullName`] && <p className="text-[10px] text-red-500 mt-0.5">{errors[`${t.id}-fullName`]}</p>}
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -144,23 +144,23 @@ export function TravellerDetailsStep({ data, updateData, onNext }: any) {
 
               <div className="space-y-1">
                 <label className="text-[11px] font-semibold uppercase text-muted-foreground">Phone Number {t.isPrimary && "*"}</label>
-                <Input value={t.phone} onChange={e => updateTraveller(t.id, 'phone', e.target.value)} placeholder="+91 9876543210" />
+                <Input value={t.phone} onChange={e => updateTraveller(t.id, 'phone', e.target.value)} />
                 {errors[`${t.id}-phone`] && <p className="text-[10px] text-red-500 mt-0.5">{errors[`${t.id}-phone`]}</p>}
               </div>
               <div className="space-y-1">
                 <label className="text-[11px] font-semibold uppercase text-muted-foreground">Email Address {t.isPrimary && "*"}</label>
-                <Input type="email" value={t.email} onChange={e => updateTraveller(t.id, 'email', e.target.value)} placeholder="john@example.com" />
+                <Input type="email" value={t.email} onChange={e => updateTraveller(t.id, 'email', e.target.value)} />
                 {errors[`${t.id}-email`] && <p className="text-[10px] text-red-500 mt-0.5">{errors[`${t.id}-email`]}</p>}
               </div>
 
               <div className="space-y-1">
                 <label className="text-[11px] font-semibold uppercase text-[#E53E3E]">Aadhaar Number *</label>
-                <Input value={t.aadhaarNumber} onChange={e => updateTraveller(t.id, 'aadhaarNumber', e.target.value)} placeholder="1234 5678 9012" />
+                <Input value={t.aadhaarNumber} onChange={e => updateTraveller(t.id, 'aadhaarNumber', e.target.value)} />
                 {errors[`${t.id}-aadhaarNumber`] && <p className="text-[10px] text-red-500 mt-0.5">{errors[`${t.id}-aadhaarNumber`]}</p>}
               </div>
               <div className="space-y-1">
                 <label className="text-[11px] font-semibold uppercase text-muted-foreground">Passport (Optional)</label>
-                <Input value={t.passportNumber} onChange={e => updateTraveller(t.id, 'passportNumber', e.target.value)} placeholder="A1234567" />
+                <Input value={t.passportNumber} onChange={e => updateTraveller(t.id, 'passportNumber', e.target.value)} />
               </div>
             </div>
 
@@ -187,12 +187,12 @@ export function TravellerDetailsStep({ data, updateData, onNext }: any) {
               <div className="border-t border-border pt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[11px] font-semibold uppercase text-[#E53E3E]">Emergency Contact Name *</label>
-                  <Input value={t.emergencyContactName} onChange={e => updateTraveller(t.id, 'emergencyContactName', e.target.value)} placeholder="Jane Doe" />
+                  <Input value={t.emergencyContactName} onChange={e => updateTraveller(t.id, 'emergencyContactName', e.target.value)} />
                   {errors[`${t.id}-emergencyContactName`] && <p className="text-[10px] text-red-500 mt-0.5">{errors[`${t.id}-emergencyContactName`]}</p>}
                 </div>
                 <div className="space-y-1">
                   <label className="text-[11px] font-semibold uppercase text-[#E53E3E]">Emergency Contact Phone *</label>
-                  <Input value={t.emergencyContactPhone} onChange={e => updateTraveller(t.id, 'emergencyContactPhone', e.target.value)} placeholder="+91 9876543210" />
+                  <Input value={t.emergencyContactPhone} onChange={e => updateTraveller(t.id, 'emergencyContactPhone', e.target.value)} />
                   {errors[`${t.id}-emergencyContactPhone`] && <p className="text-[10px] text-red-500 mt-0.5">{errors[`${t.id}-emergencyContactPhone`]}</p>}
                 </div>
               </div>
