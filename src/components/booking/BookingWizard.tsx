@@ -49,7 +49,7 @@ const STEPS = [
 
 export function BookingWizard({ 
   journey, 
-  departures, 
+  departures: rawDepartures, 
   onBack,
   isSidebar = false
 }: { 
@@ -58,6 +58,14 @@ export function BookingWizard({
   onBack?: () => void;
   isSidebar?: boolean;
 }) {
+  const departures = (rawDepartures || []).map((d: any) => ({
+    id: d.id,
+    date: d.date ?? d.departure_date,
+    returnDate: d.returnDate ?? d.return_date ?? d.departure_date,
+    basePrice: Number(d.basePrice ?? d.dynamic_price ?? d.base_price ?? 0),
+    availableSeats: d.availableSeats ?? d.available_seats ?? 20
+  }));
+
   const [currentStep, setCurrentStep] = useState(0);
   const [activeSummaryTab, setActiveSummaryTab] = useState<"billing" | "itinerary" | "inclusions" | "info">("billing");
   const [bookingData, setBookingData] = useState<BookingState>({
