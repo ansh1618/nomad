@@ -5,7 +5,7 @@ import { createBookingFn, createRazorpayOrderFn, verifyRazorpayPaymentFn } from 
 import { supabase } from "@/lib/supabase";
 
 
-export function PaymentStep({ data, updateData, onNext, onPrev }: any) {
+export function PaymentStep({ data, updateData, onNext, onPrev, journey }: any) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState("");
 
@@ -34,7 +34,8 @@ export function PaymentStep({ data, updateData, onNext, onPrev }: any) {
         gstAmount: 0, // Simplified for now
         totalAmount: data.totalAmount,
         couponId: data.coupon?.id,
-        discountAmount: data.coupon?.discount || 0
+        discountAmount: data.coupon?.discount || 0,
+        hotelId: journey?.hotel_id || journey?.accommodation?.id || null
       };
 
       const booking = await createBookingFn({ data: bookingData });

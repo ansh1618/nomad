@@ -45,6 +45,7 @@ const hotelSchema = z.object({
   address: z.string().optional(),
   city: z.string().optional(),
   state: z.string().optional(),
+  country: z.string().optional().default('India'),
   star_rating: z.number().int().min(1).max(5).default(3),
   description: z.string().optional(),
   check_in_time: z.string().default('14:00'),
@@ -54,6 +55,12 @@ const hotelSchema = z.object({
   contact_email: z.string().optional(),
   website: z.string().optional(),
   is_active: z.boolean().default(true),
+  is_verified: z.boolean().default(false),
+  available_rooms: z.preprocess((val) => {
+    if (val === "" || val === null || val === undefined) return 0;
+    const num = Number(val);
+    return isNaN(num) ? 0 : Math.round(num);
+  }, z.number().int().min(0).default(0)),
   notes: z.string().optional(),
 })
 
@@ -99,6 +106,9 @@ function HotelFormPage() {
       check_in_time: '14:00',
       check_out_time: '11:00',
       is_active: true,
+      country: 'India',
+      is_verified: false,
+      available_rooms: 0,
     },
   })
 
@@ -121,6 +131,9 @@ function HotelFormPage() {
         website: hotel.website ?? '',
         is_active: hotel.is_active,
         notes: hotel.notes ?? '',
+        country: hotel.country ?? 'India',
+        is_verified: hotel.is_verified ?? false,
+        available_rooms: hotel.available_rooms ?? 0,
       })
       setGallery((hotel.gallery as any[])?.map((item) => typeof item === 'string' ? item : item.url || '') ?? [])
       setAmenities(hotel.amenities ?? [])
@@ -475,9 +488,31 @@ function HotelFormPage() {
                 </div>
               </div>
 
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label>Country</Label>
+                  <Input {...register('country')} placeholder="e.g. India" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Available Rooms Capacity</Label>
+                  <Input {...register('available_rooms', { valueAsNumber: true })} type="number" placeholder="e.g. 10" />
+                </div>
+              </div>
+
               <div className="space-y-1.5">
                 <Label>Operations Notes / Custom Rules</Label>
                 <Textarea {...register('notes')} placeholder="Add billing cycles, special checkin protocols, etc..." rows={5} />
+              </div>
+
+              <div className="flex items-center justify-between border-t pt-4">
+                <div>
+                  <Label>Verified Stay</Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">Control if stay displays verified badge on public templates</p>
+                </div>
+                <Switch
+                  checked={watch('is_verified')}
+                  onCheckedChange={(v) => setValue('is_verified', v, { shouldDirty: true })}
+                />
               </div>
 
               <div className="flex items-center justify-between border-t pt-4">

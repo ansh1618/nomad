@@ -79,6 +79,7 @@ const createBookingSchema = z.object({
   totalAmount: z.number(),
   couponId: z.string().uuid().optional(),
   discountAmount: z.number().default(0),
+  hotelId: z.string().uuid().nullable().optional(),
 });
 
 export const createBookingFn = createServerFn({ method: "POST" })
@@ -100,6 +101,7 @@ export const createBookingFn = createServerFn({ method: "POST" })
           coupon_id: data.couponId,
           discount_amount: data.discountAmount,
           total_amount: data.totalAmount,
+          assigned_hotel_id: data.hotelId || null,
         })
         .select("id, booking_id")
         .single();

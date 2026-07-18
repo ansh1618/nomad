@@ -125,16 +125,16 @@ export async function getJourneyBySlug(slug: string) {
     highlights: it.length > 0 
       ? it.map((day: any) => day.title).slice(0, 3)
       : (data.highlights || []),
-    hotel: data.hotel,
+    hotel: data.hotels || null,
     food: data.food,
     dayByDay: it,
-    stayInfo: data.hotel || "",
+    stayInfo: data.hotels?.name || "",
     foodInfo: data.food || "",
     transportDetails: data.transport || "",
     inclusions: data.inclusions || [],
     exclusions: data.exclusions || [],
     packingList: data.packing_list || [],
-    accommodation: data.accommodation || null
+    accommodation: data.hotels || null
   };
 }
 

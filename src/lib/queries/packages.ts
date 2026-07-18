@@ -45,7 +45,7 @@ const JOURNEY_SELECT = `
   package_faqs(id, display_order, faq_library(*)),
   custom_package_faqs(*),
   transport(*),
-  accommodation(*)
+  hotels:hotels(*, hotel_rooms(*))
 `
 
 const JOURNEY_LIST_SELECT = `

@@ -112,62 +112,7 @@ const getFallbackTransport = (slug: string) => {
   }
 }
 
-const getFallbackAccommodation = (slug: string) => {
-  const s = slug.toLowerCase()
-  if (s.includes('jibhi')) {
-    return {
-      hotel_name: "Riverview Cottage / Swiss Camps",
-      hotel_category: "3 Star Premium Stay",
-      location: "Jibhi Valley, Himachal Pradesh",
-      google_maps: "https://maps.google.com",
-      check_in: "12:00 PM",
-      check_out: "11:00 AM",
-      cover_image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80",
-      gallery: [
-        "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=600&q=80",
-        "https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=600&q=80",
-        "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=600&q=80"
-      ],
-      room_types: ["Double Sharing", "Triple Sharing", "Quad Sharing"],
-      amenities: ["Wi-Fi", "Geyser / Hot Water", "Bonfire Area", "In-house Cafe", "Room Service", "Power Backup"]
-    }
-  }
-  if (s.includes('manali')) {
-    return {
-      hotel_name: "Hotel Snow Crest Manor / Similar",
-      hotel_category: "3 Star Premium Hotel",
-      location: "Near Mall Road, Manali",
-      google_maps: "https://maps.google.com",
-      check_in: "12:00 PM",
-      check_out: "11:00 AM",
-      cover_image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80",
-      gallery: [
-        "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=600&q=80",
-        "https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=600&q=80",
-        "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=600&q=80"
-      ],
-      room_types: ["Double Sharing", "Triple Sharing", "Quad Sharing"],
-      amenities: ["Wi-Fi", "Geyser / Heater", "Multi-Cuisine Restaurant", "Mountain Views", "LED TV", "Parking"]
-    }
-  }
-  // Default to Udaipur / general
-  return {
-    hotel_name: "Hotel Raj Palace / Heritage Resort",
-    hotel_category: "3 Star Premium Hotel",
-    location: "Lake City, Udaipur",
-    google_maps: "https://maps.google.com",
-    check_in: "12:00 PM",
-    check_out: "11:00 AM",
-    cover_image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80",
-    gallery: [
-      "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=600&q=80",
-      "https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=600&q=80",
-      "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=600&q=80"
-    ],
-    room_types: ["Double Sharing", "Triple Sharing", "Quad Sharing"],
-    amenities: ["Wi-Fi", "Geyser / Hot Water", "Rooftop Restaurant", "Lake View Rooms", "Laundry service", "Travel Desk"]
-  }
-}
+// Centralized database-driven stay retrieval used on details templates.
 
 import { ItineraryUnlockModal } from './ItineraryUnlockModal'
 
@@ -353,9 +298,23 @@ export function JourneyDetailTemplate({ slug }: JourneyDetailTemplateProps) {
     ? journey.transport[0]
     : getFallbackTransport(slug)
 
-  const stay = (journey.accommodation && journey.accommodation.length > 0)
-    ? journey.accommodation[0]
-    : getFallbackAccommodation(slug)
+  const rawStay = (journey.accommodation && (journey.accommodation as any).id)
+    ? journey.accommodation
+    : (journey as any).hotels || null
+
+  const stay = rawStay ? {
+    hotel_name: rawStay.name,
+    hotel_category: rawStay.star_rating ? `${rawStay.star_rating} Star Stay` : null,
+    location: rawStay.city ? `${rawStay.city}${rawStay.state ? `, ${rawStay.state}` : ''}` : (rawStay.address || rawStay.location),
+    google_maps: rawStay.website,
+    check_in: rawStay.check_in_time || '12:00 PM',
+    check_out: rawStay.check_out_time || '11:00 AM',
+    cover_image: rawStay.cover_image || (rawStay.gallery as any[])?.[0]?.url || (rawStay.gallery as any[])?.[0] || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80',
+    gallery: (rawStay.gallery as any[])?.map((img: any) => typeof img === 'string' ? img : img.url).filter(Boolean) || [],
+    room_types: rawStay.hotel_rooms?.map((r: any) => r.room_type || r.sharing_type).filter(Boolean) || rawStay.room_types || [],
+    amenities: rawStay.amenities || [],
+    is_verified: rawStay.is_verified || false
+  } : null
   // Combine mapped library FAQs and custom FAQs, fallback to journeys.faqs JSONB array
   const packageFaqsList = (journey as any).package_faqs?.map((pf: any) => pf.faq_library).filter(Boolean) || []
   const customFaqsList = (journey as any).custom_package_faqs || []
@@ -936,7 +895,7 @@ export function JourneyDetailTemplate({ slug }: JourneyDetailTemplateProps) {
                   )}
 
                   {/* ==================== 🏨 ACCOMMODATION SECTION ==================== */}
-                  {stay && stay.hotel_name && (
+                  {stay && stay.hotel_name ? (
                     <div className="mt-8 bg-white border border-[#E4E2DA] rounded-3xl p-6 shadow-soft space-y-6 font-poppins text-left">
                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-[#E4E2DA]">
                         <div>
@@ -945,9 +904,9 @@ export function JourneyDetailTemplate({ slug }: JourneyDetailTemplateProps) {
                           </span>
                           <h3 className="font-display text-xl font-bold text-primary mt-1">{stay.hotel_name}</h3>
                           <div className="flex items-center gap-2 mt-1">
-                            <span className="text-xs text-muted-foreground">{stay.location || 'Himachal Pradesh'}</span>
+                            <span className="text-xs text-muted-foreground">{stay.location || 'India'}</span>
                             <span className="text-xs text-amber-500 font-semibold flex items-center gap-0.5">
-                              ★ {stay.hotel_category || '3 Star Stay'}
+                              ★ {stay.hotel_category || 'Stay'}
                             </span>
                           </div>
                         </div>
@@ -969,9 +928,11 @@ export function JourneyDetailTemplate({ slug }: JourneyDetailTemplateProps) {
                           <img src={stay.cover_image} alt="" className="h-full w-full object-cover" />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
                           <div className="absolute bottom-4 left-4 flex flex-wrap gap-1.5 z-10">
-                            <span className="text-[9px] uppercase tracking-wider font-bold bg-[#C8A96A] text-white px-2.5 py-0.5 rounded-full">
-                              Verified Stay
-                            </span>
+                            {stay.is_verified && (
+                              <span className="text-[9px] uppercase tracking-wider font-bold bg-emerald-600 text-white px-2.5 py-0.5 rounded-full">
+                                Verified Stay
+                              </span>
+                            )}
                             {stay.check_in && <span className="text-[9px] uppercase tracking-wider font-bold bg-slate-900/60 text-white px-2 py-0.5 rounded">In: {stay.check_in}</span>}
                             {stay.check_out && <span className="text-[9px] uppercase tracking-wider font-bold bg-slate-900/60 text-white px-2 py-0.5 rounded">Out: {stay.check_out}</span>}
                           </div>
@@ -1019,6 +980,10 @@ export function JourneyDetailTemplate({ slug }: JourneyDetailTemplateProps) {
                           </div>
                         </div>
                       )}
+                    </div>
+                  ) : (
+                    <div className="mt-8 bg-white border border-[#E4E2DA] rounded-3xl p-6 shadow-soft text-center font-poppins text-muted-foreground text-xs italic">
+                      🏨 No accommodation assigned
                     </div>
                   )}
 

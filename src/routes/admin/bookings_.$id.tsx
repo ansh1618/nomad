@@ -48,6 +48,7 @@ import {
   Bed,
   Check,
   Download,
+  Building,
   AlertCircle,
 } from 'lucide-react'
 import {
@@ -396,6 +397,51 @@ function BookingDetailPage() {
     onError: (err: Error) => toast.error(err.message),
   })
 
+  const assignBusMutation = useMutation({
+    mutationFn: async (busId: string | null) => {
+      const { error } = await supabase
+        .from('bookings')
+        .update({ assigned_bus_id: busId })
+        .eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['booking_detail', id] })
+      toast.success('Coach assignment updated')
+    },
+    onError: (err: any) => toast.error(err.message),
+  })
+
+  const assignHotelMutation = useMutation({
+    mutationFn: async (hotelId: string | null) => {
+      const { error } = await supabase
+        .from('bookings')
+        .update({ assigned_hotel_id: hotelId })
+        .eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['booking_detail', id] })
+      toast.success('Hotel assignment updated')
+    },
+    onError: (err: any) => toast.error(err.message),
+  })
+
+  const assignCaptainMutation = useMutation({
+    mutationFn: async (captainId: string | null) => {
+      const { error } = await supabase
+        .from('bookings')
+        .update({ assigned_trip_captain_id: captainId })
+        .eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['booking_detail', id] })
+      toast.success('Trip Captain assignment updated')
+    },
+    onError: (err: any) => toast.error(err.message),
+  })
+
   const saveNotes = async () => {
     setSavingNotes(true)
     try {
@@ -609,6 +655,68 @@ function BookingDetailPage() {
                       <p className="text-sm font-semibold text-foreground mt-0.5">{b.drop_point ?? b.departures?.drop_location ?? '—'}</p>
                     </div>
                   </div>
+                </CardContent>
+              </Card>
+
+              {/* Assigned Hotel Details */}
+              <Card className="border shadow-none">
+                <CardHeader>
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <Building className="h-4 w-4 text-primary" /> Assigned Stay / Hotel
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 text-xs">
+                  {b.assigned_hotel ? (
+                    (() => {
+                      const hotel = b.assigned_hotel as any;
+                      return (
+                        <div className="space-y-3">
+                          <div>
+                            <p className="font-bold text-sm text-foreground">{hotel.name}</p>
+                            <p className="text-[10px] text-muted-foreground mt-0.5">{hotel.city}, {hotel.state || hotel.country || 'India'}</p>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-4 border-t pt-3">
+                            {hotel.star_rating && (
+                              <div>
+                                <span className="text-[10px] text-muted-foreground block uppercase font-bold">Category</span>
+                                <span className="font-semibold text-foreground">{hotel.star_rating} Star Stay</span>
+                              </div>
+                            )}
+                            {b.room_preference && (
+                              <div>
+                                <span className="text-[10px] text-muted-foreground block uppercase font-bold">Selected Sharing</span>
+                                <span className="font-semibold text-foreground">{b.room_preference}</span>
+                              </div>
+                            )}
+                            {(hotel.contact_name || hotel.contact_phone) && (
+                              <div className="col-span-2">
+                                <span className="text-[10px] text-muted-foreground block uppercase font-bold">Vendor Contact Info</span>
+                                <span className="font-semibold text-foreground">
+                                  {hotel.contact_name || 'Vendor'} ({hotel.contact_phone || 'No phone'}{hotel.contact_email ? ` • ${hotel.contact_email}` : ''})
+                                </span>
+                              </div>
+                            )}
+                          </div>
+
+                          {hotel.website && (
+                            <div className="pt-2">
+                              <a
+                                href={hotel.website}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1.5 bg-primary text-white text-[10px] font-bold px-3 py-1.5 rounded-xl hover:bg-primary/95 transition shadow-sm"
+                              >
+                                <MapPin className="h-3 w-3" /> View Hotel Location / Maps
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()
+                  ) : (
+                    <p className="text-muted-foreground italic">No accommodation / hotel assigned yet.</p>
+                  )}
                 </CardContent>
               </Card>
 

@@ -376,12 +376,14 @@ export interface Journey {
   updated_by: string | null
   created_at: string
   updated_at: string
+  hotel_id?: string | null
   // joined
   destinations?: Partial<Destination>
   trip_captains?: Partial<TripCaptain>
   itinerary_days?: ItineraryDay[]
   package_faqs?: PackageFaq[]
   custom_package_faqs?: CustomPackageFaq[]
+  hotels?: Partial<Hotel> | null
 }
 
 export interface Bus {
@@ -443,6 +445,9 @@ export interface Hotel {
   created_by: string | null
   created_at: string
   updated_at: string
+  country: string | null
+  is_verified: boolean
+  available_rooms: number
   // joined
   hotel_rooms?: HotelRoom[]
 }
@@ -683,6 +688,7 @@ export interface Booking {
   departures?: Partial<Departure> & {
     journeys?: Partial<Journey>
   }
+  assigned_hotel?: Partial<Hotel> | null
   booking_travellers?: BookingTraveller[]
   payments?: Payment[]
   booking_timeline?: BookingTimeline[]

@@ -161,7 +161,7 @@ export function BookingWizard({ journey, departures }: { journey: any; departure
           {currentStep === 2 && <AccommodationSelectionStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} />}
           {currentStep === 3 && <AddonsAndCouponsStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} />}
           {currentStep === 4 && <ReviewSummaryStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} />}
-          {currentStep === 5 && <PaymentStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} />}
+          {currentStep === 5 && <PaymentStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} />}
           {currentStep === 6 && <SuccessConfirmationStep data={bookingData} journey={journey} />}
         </div>
       </div>
@@ -323,9 +323,21 @@ export function BookingWizard({ journey, departures }: { journey: any; departure
             {/* INFO & QUICK FACTS TAB */}
             {activeSummaryTab === "info" && (
               <div className="space-y-4 font-sans text-xs">
-                {journey.accommodation && journey.accommodation.length > 0 ? (
+                {journey.accommodation && ((journey.accommodation as any).id || (journey.accommodation as any).name) ? (
                   (() => {
-                    const stay = journey.accommodation[0];
+                    const rawStay = journey.accommodation as any;
+                    const stay = {
+                      hotel_name: rawStay.name,
+                      hotel_category: rawStay.star_rating ? `${rawStay.star_rating} Star` : null,
+                      location: rawStay.city ? `${rawStay.city}${rawStay.state ? `, ${rawStay.state}` : ''}` : (rawStay.address || rawStay.location),
+                      google_maps: rawStay.website,
+                      check_in: rawStay.check_in_time || '12:00 PM',
+                      check_out: rawStay.check_out_time || '11:00 AM',
+                      cover_image: rawStay.cover_image || (rawStay.gallery as any[])?.[0]?.url || (rawStay.gallery as any[])?.[0] || '',
+                      gallery: (rawStay.gallery as any[])?.map((img: any) => typeof img === 'string' ? img : img.url).filter(Boolean) || [],
+                      room_types: rawStay.hotel_rooms?.map((r: any) => r.room_type || r.sharing_type).filter(Boolean) || rawStay.room_types || [],
+                      amenities: rawStay.amenities || []
+                    };
                     return (
                       <div className="space-y-4 border-t pt-3">
                         <div className="flex items-center justify-between">

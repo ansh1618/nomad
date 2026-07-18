@@ -65,6 +65,7 @@ import {
 import { getPublishedDestinations } from '@/lib/queries/destinations'
 import { getAllTripCaptains } from '@/lib/queries/admin'
 import { getFaqLibraryPresets } from '@/lib/queries/cms'
+import { getAllHotels } from '@/lib/queries/hotels-buses'
 import { useAdminAuth } from '@/hooks/use-admin-auth'
 import type { FaqItem, PolicyItem } from '@/types/supabase'
 
@@ -146,6 +147,7 @@ const packageSchema = z.object({
   hero_banner: z.string().optional(),
   seo_title: z.string().optional(),
   seo_description: z.string().optional(),
+  hotel_id: z.string().optional().nullable(),
 })
 
 type PackageFormValues = z.infer<typeof packageSchema>
@@ -398,6 +400,11 @@ function PackageFormPage() {
     queryFn: getAllTripCaptains,
   })
 
+  const { data: hotels = [] } = useQuery({
+    queryKey: ['hotels_dropdown_active'],
+    queryFn: getAllHotels,
+  })
+
   const { data: libraryPresets = [] } = useQuery({
     queryKey: ['faq_library_presets'],
     queryFn: getFaqLibraryPresets
@@ -412,16 +419,17 @@ function PackageFormPage() {
     reset,
   } = useForm<PackageFormValues>({
     resolver: zodResolver(packageSchema) as any,
-    defaultValues: {
-      difficulty: 'EASY',
-      group_size_min: 1,
-      group_size_max: 25,
-      status: 'DRAFT',
-      is_featured: false,
-      priority: 0,
-      category: 'WEEKEND',
-    },
-  })
+      defaultValues: {
+        difficulty: 'EASY',
+        group_size_min: 1,
+        group_size_max: 25,
+        status: 'DRAFT',
+        is_featured: false,
+        priority: 0,
+        category: 'WEEKEND',
+        hotel_id: '',
+      },
+    })
 
   // Populate on edit
   useEffect(() => {
@@ -451,6 +459,7 @@ function PackageFormPage() {
         seo_title: pkg.seo?.title ?? '',
         seo_description: pkg.seo?.description ?? '',
         category: pkg.category ?? 'WEEKEND',
+        hotel_id: pkg.hotel_id ?? '',
       })
       setItinerary((pkg.itinerary_days ?? []).map((d) => ({
         day_number: d.day_number,
@@ -553,6 +562,7 @@ function PackageFormPage() {
         seo: seo_title || seo_description ? { title: seo_title, description: seo_description } : null,
         created_by: admin?.id ?? null,
         updated_by: admin?.id ?? null,
+        hotel_id: rest.hotel_id === 'NONE' || !rest.hotel_id ? null : rest.hotel_id,
       }
 
       let savedPkg
@@ -1358,137 +1368,33 @@ function PackageFormPage() {
           <Card className="rounded-2xl border-border shadow-sm font-poppins">
             <CardHeader className="pb-3 border-b">
               <CardTitle className="text-base font-bold flex items-center gap-2">
-                <HelpCircle className="h-5 w-5 text-indigo-500 shrink-0" />
-                Accommodation Hotel Configuration
+                <ImageIcon className="h-5 w-5 text-indigo-500 shrink-0" />
+                Accommodation Stay Assignment
               </CardTitle>
-              <p className="text-xs text-muted-foreground mt-0.5">Configure hotel name, category, check-in, map coordinates, and sharing amenities.</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Select a verified property from the centralized Hotels Database CRM.</p>
             </CardHeader>
-            <CardContent className="pt-6 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-1.5 md:col-span-2">
-                  <Label>Hotel Name *</Label>
-                  <Input
-                    value={accommodation.hotel_name || ''}
-                    onChange={(e) => setAccommodation({ ...accommodation, hotel_name: e.target.value })}
-                    placeholder="e.g., Hotel Raj Palace"
-                  />
-                  <p className="text-[10px] text-muted-foreground">Clear this field to disable/delete stay details for this package.</p>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Star Category</Label>
-                  <Select
-                    value={accommodation.hotel_category || '3 Star'}
-                    onValueChange={(val) => setAccommodation({ ...accommodation, hotel_category: val })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="2 Star">2 Star Comfort</SelectItem>
-                      <SelectItem value="3 Star">3 Star Premium</SelectItem>
-                      <SelectItem value="4 Star">4 Star Luxury</SelectItem>
-                      <SelectItem value="5 Star">5 Star Elite</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-1.5">
-                  <Label>City / Location</Label>
-                  <Input
-                    value={accommodation.location || ''}
-                    onChange={(e) => setAccommodation({ ...accommodation, location: e.target.value })}
-                    placeholder="e.g., Udaipur"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Check-in Time</Label>
-                  <Input
-                    value={accommodation.check_in || '12:00 PM'}
-                    onChange={(e) => setAccommodation({ ...accommodation, check_in: e.target.value })}
-                    placeholder="e.g., 12:00 PM"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Check-out Time</Label>
-                  <Input
-                    value={accommodation.check_out || '11:00 AM'}
-                    onChange={(e) => setAccommodation({ ...accommodation, check_out: e.target.value })}
-                    placeholder="e.g., 11:00 AM"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label>Google Maps Embed or Link</Label>
-                <Input
-                  value={accommodation.google_maps || ''}
-                  onChange={(e) => setAccommodation({ ...accommodation, google_maps: e.target.value })}
-                  placeholder="e.g., https://goo.gl/maps/..."
-                />
-              </div>
-
-              {/* Cover Image & Gallery */}
-              <div className="space-y-4">
-                <ImageField
-                  label="Hotel Cover Image"
-                  value={accommodation.cover_image ?? ''}
-                  onChange={(url) => setAccommodation({ ...accommodation, cover_image: url })}
-                  folder="/hotels"
-                />
-
-                <div className="space-y-2">
-                  <Label>Hotel Slider Gallery Images (Room, Washroom, Outside views)</Label>
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-                    {(accommodation.gallery || []).map((url: string, idx: number) => (
-                      <div key={idx} className="relative h-20 rounded-lg overflow-hidden border">
-                        <img src={url} alt="" className="h-full w-full object-cover" />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const updated = (accommodation.gallery || []).filter((_: any, i: number) => i !== idx)
-                            setAccommodation({ ...accommodation, gallery: updated })
-                          }}
-                          className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1 shadow hover:bg-red-700"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </button>
-                      </div>
+            <CardContent className="pt-6 space-y-4">
+              <div className="space-y-1.5 max-w-md">
+                <Label htmlFor="hotel_id"> CENTRAL HOTEL / STAY </Label>
+                <Select
+                  value={watch('hotel_id') || 'NONE'}
+                  onValueChange={(val) => setValue('hotel_id', val === 'NONE' ? null : val, { shouldDirty: true })}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="No Stay Assigned" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="NONE">No Accommodation Assigned</SelectItem>
+                    {hotels.map((h: any) => (
+                      <SelectItem key={h.id} value={h.id}>
+                        {h.name} ({h.city}, {h.state} • {h.star_rating}★)
+                      </SelectItem>
                     ))}
-                    <div className="h-20 rounded-lg border-2 border-dashed flex items-center justify-center bg-slate-50 hover:bg-slate-100 cursor-pointer">
-                      <ImageField
-                        label=""
-                        value=""
-                        onChange={(url) => {
-                          if (url) {
-                            const updated = [...(accommodation.gallery || []), url]
-                            setAccommodation({ ...accommodation, gallery: updated })
-                          }
-                        }}
-                        folder="/hotels"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Dynamic Lists */}
-              <div className="space-y-4">
-                <StringListEditor
-                  label="Room Sharing Options"
-                  list={accommodation.room_types || []}
-                  setList={(items) => setAccommodation({ ...accommodation, room_types: items })}
-                  itemKey="acc_rooms"
-                  placeholder="e.g., Double Sharing"
-                />
-                <StringListEditor
-                  label="Hotel Amenities"
-                  list={accommodation.amenities || []}
-                  setList={(items) => setAccommodation({ ...accommodation, amenities: items })}
-                  itemKey="acc_amenities"
-                  placeholder="e.g., Geyser"
-                />
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-muted-foreground">
+                  The selected hotel's check-in/out times, location maps, gallery, category, and room share policies will load dynamically.
+                </p>
               </div>
             </CardContent>
           </Card>

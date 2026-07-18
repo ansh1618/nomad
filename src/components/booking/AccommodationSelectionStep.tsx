@@ -63,9 +63,16 @@ export function AccommodationSelectionStep({ data, updateData, onNext, onPrev, j
         // Remove duplicates if any
         const uniqueRooms = mappedRooms.filter((v, i, a) => a.findIndex(t => (t.id === v.id)) === i);
         setRooms(uniqueRooms);
-      } else if (journey?.accommodation && journey.accommodation.length > 0) {
+      } else if (journey?.accommodation && ((journey.accommodation as any).id || (journey.accommodation as any).name)) {
         // Dynamic fallback to staying accommodation configs configured in packages edit staying tab!
-        const stay = journey.accommodation[0];
+        const rawStay = journey.accommodation as any;
+        const stay = {
+          hotel_name: rawStay.name,
+          location: rawStay.city ? `${rawStay.city}${rawStay.state ? `, ${rawStay.state}` : ''}` : (rawStay.address || rawStay.location),
+          cover_image: rawStay.cover_image || (rawStay.gallery as any[])?.[0]?.url || (rawStay.gallery as any[])?.[0] || '',
+          gallery: (rawStay.gallery as any[])?.map((img: any) => typeof img === 'string' ? img : img.url).filter(Boolean) || [],
+          room_types: rawStay.hotel_rooms?.map((r: any) => r.room_type || r.sharing_type).filter(Boolean) || rawStay.room_types || [],
+        };
         const roomTypes = stay.room_types && stay.room_types.length > 0
           ? stay.room_types
           : ['Double Sharing', 'Triple Sharing', 'Quad Sharing'];

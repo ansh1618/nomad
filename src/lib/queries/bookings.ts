@@ -19,6 +19,7 @@ const BOOKING_SELECT = `
     buses(id, name, registration_number),
     hotels(id, name, city)
   ),
+  assigned_hotel:hotels(*),
   booking_travellers(*),
   payments(*),
   booking_timeline(id, event, description, actor, created_at),
