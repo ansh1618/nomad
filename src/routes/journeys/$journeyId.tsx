@@ -1,7 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
 import { JourneyDetailTemplate } from "@/components/site/JourneyDetailTemplate";
-import { BookingWizard } from "@/components/booking/BookingWizard";
 import { Navbar } from "@/components/site/Navbar";
 import { Footer } from "@/components/site/Footer";
 import { FloatingUI } from "@/components/site/FloatingUI";
@@ -75,42 +73,12 @@ export const Route = createFileRoute("/journeys/$journeyId")({
 
 function JourneyRoute() {
   const { journeyId } = Route.useParams();
-  const { journey, departures } = Route.useLoaderData();
-  const [isBooking, setIsBooking] = useState(() => {
-    if (typeof window !== "undefined") {
-      return new URLSearchParams(window.location.search).get("book") === "true";
-    }
-    return false;
-  });
-
-  const handleBookNow = () => {
-    setIsBooking(true);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const handleBack = () => {
-    setIsBooking(false);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
 
   return (
     <div className="bg-background min-h-screen flex flex-col justify-between">
       <Navbar />
       <main className="flex-1">
-        {isBooking ? (
-          <div className="bg-muted/10 min-h-screen">
-            <BookingWizard 
-              journey={journey} 
-              departures={departures} 
-              onBack={handleBack} 
-            />
-          </div>
-        ) : (
-          <JourneyDetailTemplate 
-            slug={journeyId} 
-            onBookNow={handleBookNow} 
-          />
-        )}
+        <JourneyDetailTemplate slug={journeyId} />
       </main>
       <Footer />
       <FloatingUI />

@@ -41,6 +41,7 @@ import { getStoriesByPackage } from '@/lib/queries/stories'
 import { getUpcomingDepartures } from '@/lib/queries/departures'
 import { getApprovedReviews } from '@/lib/queries/admin'
 import type { Departure, ItineraryDay } from '@/types/supabase'
+import { BookingWizard } from '@/components/booking/BookingWizard'
 import { toast } from 'sonner'
 import { validateCoupon } from '@/lib/booking-api'
 import { createGuestBookingFn } from '@/lib/booking-fns'
@@ -123,6 +124,29 @@ interface JourneyDetailTemplateProps {
 
 export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplateProps) {
   const navigate = useNavigate()
+  const [isBooking, setIsBooking] = useState(false)
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setIsBooking(new URLSearchParams(window.location.search).get('book') === 'true')
+    }
+  }, [])
+
+  const handleBookNowClick = () => {
+    setIsBooking(true);
+    if (typeof window !== "undefined") {
+      const newUrl = `${window.location.pathname}?book=true`;
+      window.history.pushState({ path: newUrl }, '', newUrl);
+      
+      setTimeout(() => {
+        const sidebar = document.getElementById("booking-sidebar-card");
+        if (sidebar) {
+          sidebar.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+    }
+  };
+
   const [activeDay, setActiveDay] = useState<number | null>(1)
   const [activeFaqIndex, setActiveFaqIndex] = useState<number | null>(null)
   const [activeFaqKey, setActiveFaqKey] = useState<string | null>(null)
@@ -1205,80 +1229,88 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
         {/* Right Column: Premium Booking CTA Sidebar */}
         <div className="lg:col-span-4 space-y-6">
           <div className="sticky top-24 bg-white rounded-2xl border border-[#E4E2DA] overflow-hidden shadow-soft">
-            
-            {/* Dark Starting From block */}
-            <div className="bg-[#16212C] text-white p-5 space-y-1">
-              <span className="text-[10px] text-white/50 uppercase tracking-widest font-poppins font-bold block">
-                Starting From
-              </span>
-              <p className="font-display text-3xl font-bold text-[#C8A96A]">
-                ₹{finalPrice.toLocaleString('en-IN')}{' '}
-                <span className="text-xs font-poppins text-white/60 font-normal">/person</span>
-              </p>
-            </div>
-
-            {/* Sidebar Booking Card body */}
-            <div className="p-6 space-y-6">
-              <div className="space-y-4">
-                <h3 className="font-display text-lg font-bold text-primary">Secure Your Seat</h3>
-                <p className="text-xs text-muted-foreground leading-relaxed font-sans">
-                  Join India's fastest growing travel tribe. Expertly planned routes, premium stays, and curated road itineraries.
-                </p>
+            {isBooking ? (
+              <div className="p-4 sm:p-5">
+                <BookingWizard
+                  journey={journey}
+                  departures={departures}
+                  onBack={() => {
+                    setIsBooking(false);
+                    if (typeof window !== "undefined") {
+                      const newUrl = window.location.pathname;
+                      window.history.pushState({ path: newUrl }, '', newUrl);
+                    }
+                  }}
+                  isSidebar={true}
+                />
               </div>
+            ) : (
+              <>
+                {/* Dark Starting From block */}
+                <div className="bg-[#16212C] text-white p-5 space-y-1">
+                  <span className="text-[10px] text-white/50 uppercase tracking-widest font-poppins font-bold block">
+                    Starting From
+                  </span>
+                  <p className="font-display text-3xl font-bold text-[#C8A96A]">
+                    ₹{finalPrice.toLocaleString('en-IN')}{' '}
+                    <span className="text-xs font-poppins text-white/60 font-normal">/person</span>
+                  </p>
+                </div>
 
-              {/* Quick Trip Highlights / Metrics */}
-              <div className="space-y-3.5 border-t border-b border-border py-4 text-xs font-poppins">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground flex items-center gap-1.5"><Clock className="h-4 w-4 text-accent" /> Duration</span>
-                  <span className="font-semibold text-foreground">{journey.duration}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground flex items-center gap-1.5"><Bus className="h-4 w-4 text-accent" /> Transport</span>
-                  <span className="font-semibold text-foreground">{journey.transport || "AC Tempo Traveller"}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground flex items-center gap-1.5"><Building2 className="h-4 w-4 text-accent" /> Accommodation</span>
-                  <span className="font-semibold text-foreground">Boutique Stays</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground flex items-center gap-1.5"><Users className="h-4 w-4 text-accent" /> Group Size</span>
-                  <span className="font-semibold text-foreground">12-18 Explorers</span>
-                </div>
-              </div>
+                {/* Sidebar Booking Card body */}
+                <div className="p-6 space-y-6">
+                  <div className="space-y-4">
+                    <h3 className="font-display text-lg font-bold text-primary">Secure Your Seat</h3>
+                    <p className="text-xs text-muted-foreground leading-relaxed font-sans">
+                      Join India's fastest growing travel tribe. Expertly planned routes, premium stays, and curated road itineraries.
+                    </p>
+                  </div>
 
-              {/* Departures scheduled indicator */}
-              {departures.length > 0 && (
-                <div className="bg-emerald-50 border border-emerald-100 p-3 rounded-xl flex items-center gap-2 text-xs">
-                  <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
-                  <span className="text-emerald-800 font-medium font-poppins">{departures.length} upcoming date batches open!</span>
-                </div>
-              )}
+                  {/* Quick Trip Highlights / Metrics */}
+                  <div className="space-y-3.5 border-t border-b border-border py-4 text-xs font-poppins">
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground flex items-center gap-1.5"><Clock className="h-4 w-4 text-accent" /> Duration</span>
+                      <span className="font-semibold text-foreground">{journey.duration}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground flex items-center gap-1.5"><Bus className="h-4 w-4 text-accent" /> Transport</span>
+                      <span className="font-semibold text-foreground">{journey.transport || "AC Tempo Traveller"}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground flex items-center gap-1.5"><Building2 className="h-4 w-4 text-accent" /> Accommodation</span>
+                      <span className="font-semibold text-foreground">Boutique Stays</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground flex items-center gap-1.5"><Users className="h-4 w-4 text-accent" /> Group Size</span>
+                      <span className="font-semibold text-foreground">12-18 Explorers</span>
+                    </div>
+                  </div>
 
-              {/* Secure Checkout button */}
-              <div className="space-y-3">
-                {onBookNow ? (
-                  <Button
-                    onClick={onBookNow}
-                    className="w-full h-12 bg-accent text-white font-poppins font-bold text-xs tracking-wider uppercase rounded-xl hover:bg-[#D97706] transition-all shadow-md"
-                  >
-                    Book Journey Slot →
-                  </Button>
-                ) : (
-                  <Link to="/book/$journeySlug" params={{ journeySlug: slug }} className="block w-full">
+                  {/* Departures scheduled indicator */}
+                  {departures.length > 0 && (
+                    <div className="bg-emerald-50 border border-emerald-100 p-3 rounded-xl flex items-center gap-2 text-xs">
+                      <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
+                      <span className="text-emerald-800 font-medium font-poppins">{departures.length} upcoming date batches open!</span>
+                    </div>
+                  )}
+
+                  {/* Secure Checkout button */}
+                  <div className="space-y-3">
                     <Button
+                      onClick={handleBookNowClick}
                       className="w-full h-12 bg-accent text-white font-poppins font-bold text-xs tracking-wider uppercase rounded-xl hover:bg-[#D97706] transition-all shadow-md"
                     >
                       Book Journey Slot →
                     </Button>
-                  </Link>
-                )}
-                <div className="flex items-center justify-center gap-1.5 text-[10px] text-muted-foreground font-poppins">
-                  <ShieldCheck className="h-3.5 w-3.5 text-secondary" />
-                  <span>256-bit Secure Checkout by Razorpay</span>
-                </div>
-              </div>
+                    <div className="flex items-center justify-center gap-1.5 text-[10px] text-muted-foreground font-poppins">
+                      <ShieldCheck className="h-3.5 w-3.5 text-secondary" />
+                      <span>256-bit Secure Checkout by Razorpay</span>
+                    </div>
+                  </div>
 
-            </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -1770,13 +1802,12 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
               <span className="text-[10px] text-white/50 uppercase font-poppins block font-bold tracking-wider">convoy starting at</span>
               <span className="text-2xl font-bold text-gold">₹{journey.starting_price?.toLocaleString('en-IN') || '6,499'}</span>
             </div>
-            <Link to="/book/$journeySlug" params={{ journeySlug: slug }} className="w-full sm:w-auto">
-              <Button 
-                className="w-full sm:w-auto h-12 px-8 bg-accent text-white font-poppins font-bold text-sm tracking-wider rounded-2xl hover:bg-[#D97706] transition-all shadow-lg hover:shadow-xl"
-              >
-                Book {journey.name.split(" ")[0]} Seat
-              </Button>
-            </Link>
+            <Button 
+              onClick={handleBookNowClick}
+              className="w-full sm:w-auto h-12 px-8 bg-accent text-white font-poppins font-bold text-sm tracking-wider rounded-2xl hover:bg-[#D97706] transition-all shadow-lg hover:shadow-xl"
+            >
+              Book {journey.name.split(" ")[0]} Seat
+            </Button>
           </div>
         </div>
       </section>
@@ -1787,24 +1818,13 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
           <p className="text-[10px] text-muted-foreground uppercase font-poppins">Starting from</p>
           <p className="text-lg font-bold text-primary font-poppins">₹{finalPrice.toLocaleString('en-IN')}</p>
         </div>
-        {onBookNow ? (
-          <Button 
-            onClick={onBookNow}
-            size="sm" 
-            className="font-poppins"
-          >
-            Book Now →
-          </Button>
-        ) : (
-          <Link to="/book/$journeySlug" params={{ journeySlug: slug }}>
-            <Button 
-              size="sm" 
-              className="font-poppins"
-            >
-              Book Now →
-            </Button>
-          </Link>
-        )}
+        <Button 
+          onClick={handleBookNowClick}
+          size="sm" 
+          className="font-poppins"
+        >
+          Book Now →
+        </Button>
       </div>
 
     </div>

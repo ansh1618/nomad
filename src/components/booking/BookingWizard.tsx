@@ -47,7 +47,17 @@ const STEPS = [
   "Confirmation"
 ];
 
-export function BookingWizard({ journey, departures, onBack }: { journey: any; departures: any[]; onBack?: () => void }) {
+export function BookingWizard({ 
+  journey, 
+  departures, 
+  onBack,
+  isSidebar = false
+}: { 
+  journey: any; 
+  departures: any[]; 
+  onBack?: () => void;
+  isSidebar?: boolean;
+}) {
   const [currentStep, setCurrentStep] = useState(0);
   const [activeSummaryTab, setActiveSummaryTab] = useState<"billing" | "itinerary" | "inclusions" | "info">("billing");
   const [bookingData, setBookingData] = useState<BookingState>({
@@ -61,10 +71,135 @@ export function BookingWizard({ journey, departures, onBack }: { journey: any; d
     totalAmount: departures[0]?.basePrice || 0,
   });
 
-  const nextStep = () => setCurrentStep((prev) => Math.min(prev + 1, STEPS.length - 1));
-  const prevStep = () => setCurrentStep((prev) => Math.max(prev - 1, 0));
+  const nextStep = () => {
+    setCurrentStep((prev) => Math.min(prev + 1, STEPS.length - 1));
+    if (typeof window !== "undefined") {
+      const card = document.getElementById("booking-sidebar-card");
+      if (card) {
+        card.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }
+  };
+
+  const prevStep = () => {
+    setCurrentStep((prev) => Math.max(prev - 1, 0));
+    if (typeof window !== "undefined") {
+      const card = document.getElementById("booking-sidebar-card");
+      if (card) {
+        card.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }
+  };
 
   const selectedDeparture = departures.find(d => d.id === bookingData.departureId);
+
+  if (isSidebar) {
+    return (
+      <div id="booking-sidebar-card" className="space-y-4 font-sans text-xs">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b pb-3">
+          <div className="flex items-center gap-2">
+            {onBack && (
+              <button 
+                onClick={onBack} 
+                className="p-1 hover:bg-muted rounded-full transition cursor-pointer"
+              >
+                <ArrowLeft className="h-4 w-4 text-muted-foreground" />
+              </button>
+            )}
+            <div>
+              <h2 className="text-sm font-display font-bold text-primary">Secure Your Seat</h2>
+              <p className="text-[10px] text-muted-foreground">{journey.name}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Text-based Compact Stepper */}
+        {currentStep < 5 && (
+          <div className="bg-muted/40 px-3 py-2 rounded-xl border border-border flex items-center justify-between text-[10px] font-poppins font-bold">
+            <span className="text-muted-foreground uppercase tracking-wider">Step {currentStep + 1} of {STEPS.length - 1}</span>
+            <span className="text-accent uppercase tracking-wider">{STEPS[currentStep]}</span>
+          </div>
+        )}
+
+        {/* Departure Date Selection */}
+        {currentStep === 0 && (
+          <div className="space-y-2 bg-muted/20 p-3 rounded-2xl border border-border">
+            <div className="flex items-center gap-1.5">
+              <Calendar className="h-3.5 w-3.5 text-accent" />
+              <label className="text-[10px] font-poppins font-bold uppercase tracking-wider text-primary block">
+                Choose Departure Date
+              </label>
+            </div>
+            <div className="space-y-2">
+              <div className="relative">
+                <select
+                  value={bookingData.departureId || ""}
+                  onChange={(e) => {
+                    const depId = e.target.value;
+                    const dep = departures.find(d => d.id === depId);
+                    setBookingData(prev => ({
+                      ...prev,
+                      departureId: depId || null,
+                      baseAmount: dep ? dep.basePrice : 0,
+                      totalAmount: dep ? dep.basePrice * Math.max(prev.travellers.length, 1) : 0
+                    }));
+                  }}
+                  className="w-full h-9 px-3 pr-8 border border-border rounded-xl bg-white text-[11px] font-semibold font-poppins text-foreground focus:outline-none appearance-none cursor-pointer"
+                >
+                  {departures.length === 0 ? (
+                    <option value="">No departures available</option>
+                  ) : (
+                    departures.map((dep) => {
+                      const start = new Date(dep.date);
+                      const formattedDate = start.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+                      return (
+                        <option key={dep.id} value={dep.id}>
+                          {formattedDate} — ₹{dep.basePrice.toLocaleString('en-IN')}
+                        </option>
+                      );
+                    })
+                  )}
+                </select>
+                <ChevronDown className="absolute right-2.5 top-3 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+              </div>
+              {selectedDeparture?.availableSeats && (
+                <div className="text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-100 py-1.5 px-3 rounded-lg text-center font-poppins">
+                  🟢 {selectedDeparture.availableSeats} seats remaining in this batch
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Current Step Component */}
+        <div className="bg-white rounded-2xl border border-border p-3 sm:p-4 min-h-[300px]">
+          {currentStep === 0 && <TravellerDetailsStep data={bookingData} updateData={setBookingData} onNext={nextStep} />}
+          {currentStep === 1 && <AccommodationSelectionStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} />}
+          {currentStep === 2 && <AddonsAndCouponsStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} />}
+          {currentStep === 3 && <ReviewSummaryStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} />}
+          {currentStep === 4 && <PaymentStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} />}
+          {currentStep === 5 && <SuccessConfirmationStep data={bookingData} journey={journey} />}
+        </div>
+
+        {/* Sidebar Mini Summary Accordion (only visible before completion) */}
+        {currentStep < 5 && (
+          <div className="bg-muted/10 border border-border rounded-2xl p-3 space-y-2 font-sans">
+            <div className="flex justify-between items-center text-xs font-bold text-primary">
+              <span>Total Billable</span>
+              <span className="text-sm text-accent">₹{bookingData.totalAmount.toLocaleString('en-IN')}</span>
+            </div>
+            {bookingData.travellers.length > 0 && (
+              <div className="text-[10px] text-muted-foreground flex justify-between font-medium">
+                <span>{bookingData.travellers.length} Explorer{bookingData.travellers.length > 1 ? 's' : ''} x ₹{bookingData.baseAmount.toLocaleString('en-IN')}</span>
+                {bookingData.selectedRooms.length > 0 && <span>+ Room Extra</span>}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-5 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8 font-sans">
