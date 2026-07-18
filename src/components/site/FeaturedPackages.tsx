@@ -140,7 +140,7 @@ export function FeaturedPackages() {
                       className="flex-1 text-xs shadow-gold"
                       asChild
                     >
-                      <Link to="/book/$journeySlug" params={{ journeySlug: j.slug }}>
+                      <Link to="/journeys/$journeyId" params={{ journeyId: j.slug }} search={{ book: true }}>
                         Book Now
                       </Link>
                     </Button>

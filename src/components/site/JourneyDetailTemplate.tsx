@@ -118,9 +118,10 @@ import { ItineraryUnlockModal } from './ItineraryUnlockModal'
 
 interface JourneyDetailTemplateProps {
   slug: string
+  onBookNow?: () => void
 }
 
-export function JourneyDetailTemplate({ slug }: JourneyDetailTemplateProps) {
+export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplateProps) {
   const navigate = useNavigate()
   const [activeDay, setActiveDay] = useState<number | null>(1)
   const [activeFaqIndex, setActiveFaqIndex] = useState<number | null>(null)
@@ -1255,13 +1256,22 @@ export function JourneyDetailTemplate({ slug }: JourneyDetailTemplateProps) {
 
               {/* Secure Checkout button */}
               <div className="space-y-3">
-                <Link to="/book/$journeySlug" params={{ journeySlug: slug }} className="block w-full">
+                {onBookNow ? (
                   <Button
+                    onClick={onBookNow}
                     className="w-full h-12 bg-accent text-white font-poppins font-bold text-xs tracking-wider uppercase rounded-xl hover:bg-[#D97706] transition-all shadow-md"
                   >
                     Book Journey Slot →
                   </Button>
-                </Link>
+                ) : (
+                  <Link to="/book/$journeySlug" params={{ journeySlug: slug }} className="block w-full">
+                    <Button
+                      className="w-full h-12 bg-accent text-white font-poppins font-bold text-xs tracking-wider uppercase rounded-xl hover:bg-[#D97706] transition-all shadow-md"
+                    >
+                      Book Journey Slot →
+                    </Button>
+                  </Link>
+                )}
                 <div className="flex items-center justify-center gap-1.5 text-[10px] text-muted-foreground font-poppins">
                   <ShieldCheck className="h-3.5 w-3.5 text-secondary" />
                   <span>256-bit Secure Checkout by Razorpay</span>
@@ -1777,14 +1787,24 @@ export function JourneyDetailTemplate({ slug }: JourneyDetailTemplateProps) {
           <p className="text-[10px] text-muted-foreground uppercase font-poppins">Starting from</p>
           <p className="text-lg font-bold text-primary font-poppins">₹{finalPrice.toLocaleString('en-IN')}</p>
         </div>
-        <Link to="/book/$journeySlug" params={{ journeySlug: slug }}>
+        {onBookNow ? (
           <Button 
+            onClick={onBookNow}
             size="sm" 
             className="font-poppins"
           >
             Book Now →
           </Button>
-        </Link>
+        ) : (
+          <Link to="/book/$journeySlug" params={{ journeySlug: slug }}>
+            <Button 
+              size="sm" 
+              className="font-poppins"
+            >
+              Book Now →
+            </Button>
+          </Link>
+        )}
       </div>
 
     </div>

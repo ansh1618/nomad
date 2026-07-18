@@ -175,7 +175,7 @@ function DestinationsCatalogPage() {
                           className="h-8 text-[11px] px-3 font-poppins"
                           asChild
                         >
-                          <Link to="/journeys/$journeyId" params={{ journeyId: j.slug }}>
+                          <Link to="/journeys/$journeyId" params={{ journeyId: j.slug }} search={{ book: true }}>
                             Book Now
                           </Link>
                         </Button>

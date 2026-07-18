@@ -47,7 +47,7 @@ const STEPS = [
   "Confirmation"
 ];
 
-export function BookingWizard({ journey, departures }: { journey: any; departures: any[] }) {
+export function BookingWizard({ journey, departures, onBack }: { journey: any; departures: any[]; onBack?: () => void }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [activeSummaryTab, setActiveSummaryTab] = useState<"billing" | "itinerary" | "inclusions" | "info">("billing");
   const [bookingData, setBookingData] = useState<BookingState>({
@@ -75,9 +75,15 @@ export function BookingWizard({ journey, departures }: { journey: any; departure
         {/* Header */}
         <div className="flex items-center justify-between border-b pb-4">
           <div className="flex items-center gap-4">
-            <Link to="/journeys/$journeySlug" params={{ journeySlug: journey.slug }} className="p-2 bg-white rounded-full shadow-sm hover:bg-muted transition">
-              <ArrowLeft className="h-5 w-5 text-muted-foreground" />
-            </Link>
+            {onBack ? (
+              <button onClick={onBack} className="p-2 bg-white rounded-full shadow-sm hover:bg-muted transition cursor-pointer">
+                <ArrowLeft className="h-5 w-5 text-muted-foreground" />
+              </button>
+            ) : (
+              <Link to="/journeys/$journeySlug" params={{ journeySlug: journey.slug }} className="p-2 bg-white rounded-full shadow-sm hover:bg-muted transition">
+                <ArrowLeft className="h-5 w-5 text-muted-foreground" />
+              </Link>
+            )}
             <div>
               <h1 className="text-2xl font-display font-bold text-primary">Secure Your Journey</h1>
               <p className="text-sm text-muted-foreground">{journey.name} • {journey.duration}</p>

@@ -190,8 +190,9 @@ export function DestinationTemplate({ slug }: DestinationTemplateProps) {
                         <span className="font-display text-2xl font-bold text-primary">{j.price} <span className="text-xs text-muted-foreground font-sans font-normal">/ Person</span></span>
                       </div>
                       <Link
-                        to="/book/$journeySlug"
-                        params={{ journeySlug: j.slug }}
+                        to="/journeys/$journeyId"
+                        params={{ journeyId: j.slug }}
+                        search={{ book: true }}
                         className="bg-secondary text-white font-poppins font-semibold px-5 py-2.5 rounded-xl hover:bg-primary transition shadow-soft text-sm text-center"
                       >
                         Book Now
