@@ -249,6 +249,22 @@ export async function getPackageBySlug(slug: string): Promise<Journey | null> {
     }
   }
 
+  // Fetch hotels separately if not present and journey has hotel_id
+  if (!(journey as any).hotels && journey.hotel_id) {
+    try {
+      const { data: hotel, error: hotelError } = await supabase
+        .from('hotels')
+        .select('*, hotel_rooms(*)')
+        .eq('id', journey.hotel_id)
+        .single()
+      if (!hotelError && hotel) {
+        journey = { ...journey, hotels: hotel } as any
+      }
+    } catch (e) {
+      console.warn('[getPackageBySlug] Could not fetch hotels separately:', e)
+    }
+  }
+
   const j = journey as any
   if (j.price && !journey.starting_price) journey = { ...journey, starting_price: Number(j.price) }
   if (j.gallery?.length > 0 && !journey.hero_banner) journey = { ...journey, hero_banner: j.gallery[0] }
