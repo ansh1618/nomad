@@ -4,7 +4,7 @@ import { Hotel, Users, CheckCircle2, BedDouble, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 
-export function AccommodationSelectionStep({ data, updateData, onNext, onPrev }: any) {
+export function AccommodationSelectionStep({ data, updateData, onNext, onPrev, journey }: any) {
   const [rooms, setRooms] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -15,29 +15,36 @@ export function AccommodationSelectionStep({ data, updateData, onNext, onPrev }:
         return;
       }
 
-      const { data: depRooms, error } = await supabase
-        .from("departure_rooms")
-        .select(`
-          hotel_room_id,
-          allocated_count,
-          hotel_rooms (
-            id,
-            room_type,
-            capacity,
-            hotels (
-              name,
-              gallery
+      let fetchedDepRooms: any[] = [];
+      try {
+        const { data: depRooms, error } = await supabase
+          .from("departure_rooms")
+          .select(`
+            hotel_room_id,
+            allocated_count,
+            hotel_rooms (
+              id,
+              room_type,
+              capacity,
+              hotels (
+                name,
+                gallery
+              )
             )
-          )
-        `)
-        .eq("departure_id", data.departureId);
+          `)
+          .eq("departure_id", data.departureId);
 
-      if (error) {
-        console.error("Error fetching rooms:", error);
+        if (error) {
+          console.error("Error fetching rooms:", error);
+        } else if (depRooms) {
+          fetchedDepRooms = depRooms;
+        }
+      } catch (err) {
+        console.error("Failed to query departure_rooms:", err);
       }
 
-      if (depRooms && depRooms.length > 0) {
-        const mappedRooms = depRooms.map((dr: any) => {
+      if (fetchedDepRooms && fetchedDepRooms.length > 0) {
+        const mappedRooms = fetchedDepRooms.map((dr: any) => {
           const hotelRoom = dr.hotel_rooms;
           const hotel = hotelRoom?.hotels;
           const gallery = hotel?.gallery as string[] | null;
@@ -56,8 +63,38 @@ export function AccommodationSelectionStep({ data, updateData, onNext, onPrev }:
         // Remove duplicates if any
         const uniqueRooms = mappedRooms.filter((v, i, a) => a.findIndex(t => (t.id === v.id)) === i);
         setRooms(uniqueRooms);
+      } else if (journey?.accommodation && journey.accommodation.length > 0) {
+        // Dynamic fallback to staying accommodation configs configured in packages edit staying tab!
+        const stay = journey.accommodation[0];
+        const roomTypes = stay.room_types && stay.room_types.length > 0
+          ? stay.room_types
+          : ['Double Sharing', 'Triple Sharing', 'Quad Sharing'];
+        const coverImg = stay.cover_image || 'https://images.unsplash.com/photo-1551882547-ff40c0d5fc4f?w=400&q=80';
+        const galleryList = stay.gallery || [];
+
+        const mappedRooms = roomTypes.map((type: string, idx: number) => {
+          let capacity = 2;
+          if (type.toLowerCase().includes('triple')) capacity = 3;
+          else if (type.toLowerCase().includes('quad')) capacity = 4;
+          else if (type.toLowerCase().includes('single')) capacity = 1;
+
+          let pricePerPerson = 0;
+          if (type.toLowerCase().includes('double') || type.toLowerCase().includes('twin')) pricePerPerson = 800;
+          else if (type.toLowerCase().includes('triple')) pricePerPerson = 500;
+
+          return {
+            id: `stay-room-${idx}`,
+            type: type,
+            hotel: stay.hotel_name || "Premium Stay",
+            pricePerPerson: pricePerPerson,
+            image: galleryList[idx] || coverImg,
+            description: `Comfortable ${type} stay at ${stay.hotel_name || 'verified property'} in ${stay.location || 'stay valley'}.`,
+            capacity: capacity,
+          };
+        });
+        setRooms(mappedRooms);
       } else {
-        // Fallback dummy layout if no rooms are set up
+        // Fallback dummy layout if no rooms or accommodations are set up
         setRooms([
           { id: 'r1', type: 'Quad Sharing', hotel: 'Mountain View Stay', pricePerPerson: 0, image: 'https://images.unsplash.com/photo-1551882547-ff40c0d5fc4f?w=400&q=80', description: 'Cozy room with 4 beds.' },
           { id: 'r2', type: 'Triple Sharing', hotel: 'Mountain View Stay', pricePerPerson: 1000, image: 'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=400&q=80', description: 'Spacious room for 3.' },
@@ -67,7 +104,7 @@ export function AccommodationSelectionStep({ data, updateData, onNext, onPrev }:
       setIsLoading(false);
     }
     fetchRooms();
-  }, [data.departureId]);
+  }, [data.departureId, journey]);
 
   const selectRoom = (roomId: string, priceModifier: number) => {
     updateData((prev: any) => ({

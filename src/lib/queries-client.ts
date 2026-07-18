@@ -133,7 +133,8 @@ export async function getJourneyBySlug(slug: string) {
     transportDetails: data.transport || "",
     inclusions: data.inclusions || [],
     exclusions: data.exclusions || [],
-    packingList: data.packing_list || []
+    packingList: data.packing_list || [],
+    accommodation: data.accommodation || null
   };
 }
 

@@ -158,7 +158,7 @@ export function BookingWizard({ journey, departures }: { journey: any; departure
         <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-border min-h-[400px]">
           {currentStep === 0 && <TravellerDetailsStep data={bookingData} updateData={setBookingData} onNext={nextStep} />}
           {currentStep === 1 && <TransportSelectionStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} />}
-          {currentStep === 2 && <AccommodationSelectionStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} />}
+          {currentStep === 2 && <AccommodationSelectionStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} />}
           {currentStep === 3 && <AddonsAndCouponsStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} />}
           {currentStep === 4 && <ReviewSummaryStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} />}
           {currentStep === 5 && <PaymentStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} />}
@@ -323,31 +323,143 @@ export function BookingWizard({ journey, departures }: { journey: any; departure
             {/* INFO & QUICK FACTS TAB */}
             {activeSummaryTab === "info" && (
               <div className="space-y-4 font-sans text-xs">
-                <div className="grid grid-cols-2 gap-3 text-[11px]">
-                  <div className="p-2 border rounded-xl bg-muted/20">
-                    <span className="text-[9px] text-muted-foreground block uppercase font-bold">Transport</span>
-                    <span className="font-semibold flex items-center gap-1 mt-0.5 text-foreground">
-                      <Clock className="w-3.5 h-3.5 text-accent shrink-0" />
-                      {journey.transport || "AC Vehicle"}
-                    </span>
-                  </div>
-                  <div className="p-2 border rounded-xl bg-muted/20">
-                    <span className="text-[9px] text-muted-foreground block uppercase font-bold">Stay / Hotel</span>
-                    <span className="font-semibold flex items-center gap-1 mt-0.5 text-foreground">
-                      <Building className="w-3.5 h-3.5 text-accent shrink-0" />
-                      {journey.stayInfo ? journey.stayInfo.split(" ").slice(0, 3).join(" ") : "Boutique Stays"}
-                    </span>
-                  </div>
-                  {journey.pickupPoint && (
-                    <div className="p-2 border rounded-xl bg-muted/20 col-span-2">
-                      <span className="text-[9px] text-muted-foreground block uppercase font-bold">Pickup point</span>
+                {journey.accommodation && journey.accommodation.length > 0 ? (
+                  (() => {
+                    const stay = journey.accommodation[0];
+                    return (
+                      <div className="space-y-4 border-t pt-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-bold text-accent uppercase tracking-wider">Stay Configured</span>
+                          {stay.google_maps && (
+                            <a
+                              href={stay.google_maps}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-[10px] font-semibold text-primary hover:underline flex items-center gap-1"
+                            >
+                              <MapPin className="h-3 w-3 text-accent" /> View Map
+                            </a>
+                          )}
+                        </div>
+
+                        {/* Stay Card */}
+                        <div className="border rounded-2xl overflow-hidden bg-white shadow-soft">
+                          {stay.cover_image && (
+                            <div className="relative aspect-[16/9] w-full">
+                              <img
+                                src={stay.cover_image}
+                                alt={stay.hotel_name}
+                                className="h-full w-full object-cover"
+                              />
+                              <div className="absolute top-2 left-2 bg-emerald-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
+                                <Check className="h-3 w-3" /> Verified Stay
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="p-3.5 space-y-3">
+                            <div>
+                              <div className="flex items-center justify-between">
+                                <h4 className="font-bold text-xs text-primary leading-tight font-display">{stay.hotel_name}</h4>
+                              </div>
+                              <p className="text-[10px] text-muted-foreground mt-0.5">{stay.location}</p>
+                              {stay.hotel_category && (
+                                <div className="flex items-center gap-1 mt-1 text-amber-500 font-bold text-[9px]">
+                                  <Star className="h-3 w-3 fill-current" />
+                                  <span>{stay.hotel_category} Stay</span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Check In / Out */}
+                            {(stay.check_in || stay.check_out) && (
+                              <div className="flex gap-2 text-[9px] font-semibold border-t border-b py-2">
+                                {stay.check_in && (
+                                  <span className="bg-muted px-2 py-1 rounded text-primary">
+                                    IN: {stay.check_in}
+                                  </span>
+                                )}
+                                {stay.check_out && (
+                                  <span className="bg-muted px-2 py-1 rounded text-primary">
+                                    OUT: {stay.check_out}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Room sharing options */}
+                            {stay.room_types && stay.room_types.length > 0 && (
+                              <div className="space-y-1">
+                                <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold">Sharing configurations</span>
+                                <div className="flex flex-wrap gap-1">
+                                  {stay.room_types.map((type: string, idx: number) => (
+                                    <span key={idx} className="bg-indigo-50 text-indigo-700 text-[9px] font-semibold px-2 py-0.5 rounded-full border border-indigo-100">
+                                      {type}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Amenities */}
+                            {stay.amenities && stay.amenities.length > 0 && (
+                              <div className="space-y-1">
+                                <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold">Amenities Included</span>
+                                <div className="flex flex-wrap gap-1">
+                                  {stay.amenities.map((amenity: string, idx: number) => (
+                                    <span key={idx} className="bg-emerald-50 text-emerald-700 text-[9px] font-semibold px-2 py-0.5 rounded-md border border-emerald-100">
+                                      ✓ {amenity}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Gallery grid (up to 4 thumbnails) */}
+                            {stay.gallery && stay.gallery.length > 0 && (
+                              <div className="space-y-1 pt-1 border-t">
+                                <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold">Property & Room Gallery</span>
+                                <div className="grid grid-cols-4 gap-1">
+                                  {stay.gallery.slice(0, 4).map((url: string, idx: number) => (
+                                    <div key={idx} className="aspect-square rounded-md overflow-hidden border bg-muted">
+                                      <img src={url} alt="" className="w-full h-full object-cover" />
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()
+                ) : (
+                  <div className="grid grid-cols-2 gap-3 text-[11px]">
+                    <div className="p-2 border rounded-xl bg-muted/20">
+                      <span className="text-[9px] text-muted-foreground block uppercase font-bold">Transport</span>
                       <span className="font-semibold flex items-center gap-1 mt-0.5 text-foreground">
-                        <MapPin className="w-3.5 h-3.5 text-accent shrink-0" />
-                        {journey.pickupPoint}
+                        <Clock className="w-3.5 h-3.5 text-accent shrink-0" />
+                        {journey.transport || "AC Vehicle"}
                       </span>
                     </div>
-                  )}
-                </div>
+                    <div className="p-2 border rounded-xl bg-muted/20">
+                      <span className="text-[9px] text-muted-foreground block uppercase font-bold">Stay / Hotel</span>
+                      <span className="font-semibold flex items-center gap-1 mt-0.5 text-foreground">
+                        <Building className="w-3.5 h-3.5 text-accent shrink-0" />
+                        {journey.stayInfo ? journey.stayInfo.split(" ").slice(0, 3).join(" ") : "Boutique Stays"}
+                      </span>
+                    </div>
+                    {journey.pickupPoint && (
+                      <div className="p-2 border rounded-xl bg-muted/20 col-span-2">
+                        <span className="text-[9px] text-muted-foreground block uppercase font-bold">Pickup point</span>
+                        <span className="font-semibold flex items-center gap-1 mt-0.5 text-foreground">
+                          <MapPin className="w-3.5 h-3.5 text-accent shrink-0" />
+                          {journey.pickupPoint}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <div className="p-3 border rounded-xl bg-amber-50/50 border-amber-100 flex gap-2 items-start text-[10px] text-muted-foreground">
                   <HelpCircle className="w-4 h-4 text-accent shrink-0 mt-0.5" />
