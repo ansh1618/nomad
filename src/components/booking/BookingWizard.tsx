@@ -182,12 +182,12 @@ export function BookingWizard({
 
         {/* Current Step Component */}
         <div className="bg-white rounded-2xl border border-border p-3 sm:p-4 min-h-[300px]">
-          {currentStep === 0 && <TravellerDetailsStep data={bookingData} updateData={setBookingData} onNext={nextStep} />}
-          {currentStep === 1 && <AccommodationSelectionStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} />}
-          {currentStep === 2 && <AddonsAndCouponsStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} />}
-          {currentStep === 3 && <ReviewSummaryStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} />}
-          {currentStep === 4 && <PaymentStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} />}
-          {currentStep === 5 && <SuccessConfirmationStep data={bookingData} journey={journey} />}
+          {currentStep === 0 && <TravellerDetailsStep data={bookingData} updateData={setBookingData} onNext={nextStep} isSidebar={isSidebar} />}
+          {currentStep === 1 && <AccommodationSelectionStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} isSidebar={isSidebar} />}
+          {currentStep === 2 && <AddonsAndCouponsStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} isSidebar={isSidebar} />}
+          {currentStep === 3 && <ReviewSummaryStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} isSidebar={isSidebar} />}
+          {currentStep === 4 && <PaymentStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} isSidebar={isSidebar} />}
+          {currentStep === 5 && <SuccessConfirmationStep data={bookingData} journey={journey} isSidebar={isSidebar} />}
         </div>
 
         {/* Sidebar Mini Summary Accordion (only visible before completion) */}
@@ -305,12 +305,12 @@ export function BookingWizard({
 
         {/* Form Container */}
         <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-border min-h-[400px]">
-          {currentStep === 0 && <TravellerDetailsStep data={bookingData} updateData={setBookingData} onNext={nextStep} />}
-          {currentStep === 1 && <AccommodationSelectionStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} />}
-          {currentStep === 2 && <AddonsAndCouponsStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} />}
-          {currentStep === 3 && <ReviewSummaryStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} />}
-          {currentStep === 4 && <PaymentStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} />}
-          {currentStep === 5 && <SuccessConfirmationStep data={bookingData} journey={journey} />}
+          {currentStep === 0 && <TravellerDetailsStep data={bookingData} updateData={setBookingData} onNext={nextStep} isSidebar={isSidebar} />}
+          {currentStep === 1 && <AccommodationSelectionStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} isSidebar={isSidebar} />}
+          {currentStep === 2 && <AddonsAndCouponsStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} isSidebar={isSidebar} />}
+          {currentStep === 3 && <ReviewSummaryStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} isSidebar={isSidebar} />}
+          {currentStep === 4 && <PaymentStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} isSidebar={isSidebar} />}
+          {currentStep === 5 && <SuccessConfirmationStep data={bookingData} journey={journey} isSidebar={isSidebar} />}
         </div>
       </div>
 

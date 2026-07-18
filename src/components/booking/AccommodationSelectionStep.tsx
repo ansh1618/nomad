@@ -4,7 +4,7 @@ import { Hotel, Users, CheckCircle2, BedDouble, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 
-export function AccommodationSelectionStep({ data, updateData, onNext, onPrev, journey }: any) {
+export function AccommodationSelectionStep({ data, updateData, onNext, onPrev, journey, isSidebar = false }: any) {
   const [rooms, setRooms] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -151,12 +151,12 @@ export function AccommodationSelectionStep({ data, updateData, onNext, onPrev, j
         </div>
       )}
 
-      <div className="flex justify-between pt-4">
-        <Button variant="outline" onClick={onPrev}>Back to Traveller Details</Button>
+      <div className={cn("flex justify-between pt-4 gap-3", isSidebar && "flex-col-reverse w-full")}>
+        <Button variant="outline" onClick={onPrev} className={cn(isSidebar && "w-full h-10")}>Back to Traveller Details</Button>
         <Button 
           onClick={onNext} 
           disabled={rooms.length > 0 && data.selectedRooms.length === 0}
-          className="bg-primary hover:bg-primary/90"
+          className={cn("bg-primary hover:bg-primary/90", isSidebar && "w-full h-10")}
         >
           Continue to Add-ons
         </Button>

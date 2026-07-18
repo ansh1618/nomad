@@ -1,8 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "@tanstack/react-router";
 import { CheckCircle2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-export function SuccessConfirmationStep({ data, journey }: any) {
+export function SuccessConfirmationStep({ data, journey, isSidebar = false }: any) {
   return (
     <div className="space-y-6 animate-fade-in flex flex-col items-center text-center py-10">
       <CheckCircle2 className="h-20 w-20 text-secondary mb-4" />
@@ -16,10 +17,10 @@ export function SuccessConfirmationStep({ data, journey }: any) {
         <p className="text-2xl font-mono font-bold">NOM-202607-0001</p>
       </div>
 
-      <div className="flex gap-4 pt-8">
-        <Button variant="outline">Download Invoice</Button>
-        <Link to="/account">
-          <Button className="bg-primary hover:bg-primary/90">View My Bookings</Button>
+      <div className={cn("flex gap-4 pt-8", isSidebar && "flex-col w-full")}>
+        <Button variant="outline" className={cn(isSidebar && "w-full h-10")}>Download Invoice</Button>
+        <Link to="/account" className={cn(isSidebar && "w-full")}>
+          <Button className={cn("bg-primary hover:bg-primary/90", isSidebar && "w-full h-10")}>View My Bookings</Button>
         </Link>
       </div>
     </div>

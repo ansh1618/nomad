@@ -5,7 +5,7 @@ import { createBookingFn, createRazorpayOrderFn, verifyRazorpayPaymentFn } from 
 import { supabase } from "@/lib/supabase";
 
 
-export function PaymentStep({ data, updateData, onNext, onPrev, journey }: any) {
+export function PaymentStep({ data, updateData, onNext, onPrev, journey, isSidebar = false }: any) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState("");
 

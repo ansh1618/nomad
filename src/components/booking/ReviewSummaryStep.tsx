@@ -1,7 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, User, Info } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-export function ReviewSummaryStep({ data, updateData, onNext, onPrev, journey }: any) {
+export function ReviewSummaryStep({ data, updateData, onNext, onPrev, journey, isSidebar = false }: any) {
   
   // Calculate final amounts with GST
   const baseAmount = data.baseAmount * data.travellers.length;
@@ -119,9 +120,9 @@ export function ReviewSummaryStep({ data, updateData, onNext, onPrev, journey }:
 
       </div>
 
-      <div className="flex justify-between pt-4 mt-8">
-        <Button variant="outline" onClick={onPrev}>Back to Add-ons</Button>
-        <Button onClick={handleNext} className="bg-primary hover:bg-primary/90 px-8">Proceed to Payment</Button>
+      <div className={cn("flex justify-between pt-4 mt-8 gap-3", isSidebar && "flex-col-reverse w-full")}>
+        <Button variant="outline" onClick={onPrev} className={cn(isSidebar && "w-full h-10")}>Back to Add-ons</Button>
+        <Button onClick={handleNext} className={cn("bg-primary hover:bg-primary/90 px-8", isSidebar && "w-full h-10")}>Proceed to Payment</Button>
       </div>
     </div>
   );

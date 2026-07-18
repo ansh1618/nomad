@@ -5,7 +5,7 @@ import { Tag, Plus, Check, TicketPercent } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 
-export function AddonsAndCouponsStep({ data, updateData, onNext, onPrev }: any) {
+export function AddonsAndCouponsStep({ data, updateData, onNext, onPrev, isSidebar = false }: any) {
   const [addonsList] = useState([
     { id: 'a1', name: 'River Rafting', price: 1500, desc: 'Thrilling white water rafting experience.' },
     { id: 'a2', name: 'Paragliding', price: 3000, desc: 'Soar above the valleys.' },
@@ -180,9 +180,9 @@ export function AddonsAndCouponsStep({ data, updateData, onNext, onPrev }: any) 
 
       </div>
 
-      <div className="flex justify-between pt-4 border-t border-border mt-8">
-        <Button variant="outline" onClick={onPrev}>Back to Accommodation</Button>
-        <Button onClick={onNext} className="bg-primary hover:bg-primary/90">Continue to Review</Button>
+      <div className={cn("flex justify-between pt-4 border-t border-border mt-8 gap-3", isSidebar && "flex-col-reverse w-full")}>
+        <Button variant="outline" onClick={onPrev} className={cn(isSidebar && "w-full h-10")}>Back to Accommodation</Button>
+        <Button onClick={onNext} className={cn("bg-primary hover:bg-primary/90", isSidebar && "w-full h-10")}>Continue to Review</Button>
       </div>
     </div>
   );
