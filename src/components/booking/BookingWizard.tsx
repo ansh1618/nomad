@@ -12,14 +12,14 @@ import {
   Users,
   ChevronDown,
   Building,
-  HelpCircle,
+  CircleHelp,
   FileText,
   Star,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 import { TravellerDetailsStep } from "./TravellerDetailsStep";
-import { TransportSelectionStep } from "./TransportSelectionStep";
+
 import { AccommodationSelectionStep } from "./AccommodationSelectionStep";
 import { AddonsAndCouponsStep } from "./AddonsAndCouponsStep";
 import { ReviewSummaryStep } from "./ReviewSummaryStep";
@@ -622,7 +622,7 @@ export function BookingWizard({
                 )}
 
                 <div className="p-3 border rounded-xl bg-amber-50/50 border-amber-100 flex gap-2 items-start text-[10px] text-muted-foreground">
-                  <HelpCircle className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+                  <CircleHelp className="w-4 h-4 text-accent shrink-0 mt-0.5" />
                   <div>
                     <p className="font-bold text-primary">Need immediate booking help?</p>
                     <p className="mt-0.5">Please WhatsApp support at <strong>+91 9999999999</strong> for fast confirmations.</p>

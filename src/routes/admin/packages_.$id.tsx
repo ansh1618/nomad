@@ -13,7 +13,8 @@ import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { ImageField } from '@/components/admin/MediaPicker'
+import { ImageField, MediaPicker, type MediaAsset } from '@/components/admin/MediaPicker'
+import { supabase } from '@/lib/supabase'
 import { ItineraryEditor } from '@/components/admin/ItineraryEditor'
 import type { ItineraryDayForm } from '@/components/admin/ItineraryEditor'
 import { toast } from 'sonner'
@@ -45,7 +46,14 @@ import {
   Image as ImageIcon,
   Heart,
   TrendingUp,
-  Globe
+  Globe,
+  Star,
+  Check,
+  AlertCircle,
+  CircleHelp,
+  Search,
+  ChevronUp,
+  ChevronDown,
 } from 'lucide-react'
 import {
   getPackageDocumentsFn,
@@ -1184,7 +1192,7 @@ function PackageFormPage() {
           <Card className="rounded-2xl border-border shadow-sm font-poppins">
             <CardHeader className="pb-3 border-b">
               <CardTitle className="text-base font-bold flex items-center gap-2">
-                <HelpCircle className="h-5 w-5 text-indigo-500 shrink-0" />
+                <CircleHelp className="h-5 w-5 text-indigo-500 shrink-0" />
                 Transport Vehicle Configuration
               </CardTitle>
               <p className="text-xs text-muted-foreground mt-0.5">Configure transport specifications, timings, features, and galleries.</p>
@@ -1843,7 +1851,7 @@ function PackageFormPage() {
               <Card className="rounded-2xl border-border shadow-sm">
                 <CardHeader className="pb-3 border-b border-border/60">
                   <CardTitle className="text-base font-bold flex items-center gap-2">
-                    <HelpCircle className="h-5 w-5 text-indigo-500 shrink-0" />
+                    <CircleHelp className="h-5 w-5 text-indigo-500 shrink-0" />
                     Select from FAQ Library
                   </CardTitle>
                   <p className="text-xs text-muted-foreground mt-0.5">Choose common presets to map them to this package.</p>

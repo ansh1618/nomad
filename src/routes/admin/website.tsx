@@ -6,7 +6,7 @@ import {
   LayoutTemplate,
   Sliders,
   BarChart,
-  HelpCircle,
+  CircleHelp,
   Menu as MenuIcon,
   Compass,
   Megaphone,
@@ -69,7 +69,7 @@ const CMS_MODULES = [
   {
     title: 'Frequently Asked Questions',
     description: 'Manage Q&A lists across pages & destinations.',
-    icon: HelpCircle,
+    icon: CircleHelp,
     href: '/admin/website/faqs',
     color: 'text-violet-600 bg-violet-50',
   },

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "@tanstack/react-router";
-import { Menu, X, User, Calendar, Settings, HelpCircle, LogOut, Shield } from "lucide-react";
+import { Menu, X, User, Calendar, Settings, CircleHelp, LogOut, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { triggerNomadikAuth } from "./AuthModal";
 import { useAuth } from "./AuthContext";

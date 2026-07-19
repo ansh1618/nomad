@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/lib/supabase";
-import { Mountain, Loader2, AlertCircle, Lock, Mail, HelpCircle, CheckCircle2 } from "lucide-react";
+import { Mountain, Loader2, AlertCircle, Lock, Mail, CircleHelp, CheckCircle2 } from "lucide-react";
 
 export const Route = createFileRoute("/admin/login")({
   component: AdminLoginPage,
@@ -154,7 +154,7 @@ function AdminLoginPage() {
                   {forgotPasswordLoading ? (
                     <Loader2 className="h-3 w-3 animate-spin" />
                   ) : (
-                    <HelpCircle className="h-3 w-3" />
+                    <CircleHelp className="h-3 w-3" />
                   )}
                   Forgot Password?
                 </button>

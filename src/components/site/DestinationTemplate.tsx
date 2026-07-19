@@ -142,10 +142,15 @@ export function DestinationTemplate({ slug }: DestinationTemplateProps) {
                   <Link to="/journeys/$journeyId" params={{ journeyId: j.slug }} className="block cursor-pointer">
                     <div className="relative aspect-[16/10] overflow-hidden">
                       <img
-                        src={j.image}
+                        src={j.image || 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80'}
                         alt={j.name}
                         loading="lazy"
                         className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        onError={(e) => {
+                          const target = e.currentTarget;
+                          target.onerror = null;
+                          target.src = 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80';
+                        }}
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                       

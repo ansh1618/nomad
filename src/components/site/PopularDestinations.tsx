@@ -69,10 +69,15 @@ export function PopularDestinations() {
               <article className="hover-lift overflow-hidden rounded-3xl bg-card border border-border shadow-soft flex flex-col h-full">
                 <div className="relative aspect-[4/3] overflow-hidden">
                   <img
-                    src={d.image}
+                    src={d.image || 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80'}
                     alt={`${d.name} road trip destination`}
                     loading="lazy"
                     className="h-full w-full object-cover transition-transform duration-750 group-hover:scale-105"
+                    onError={(e) => {
+                      const target = e.currentTarget;
+                      target.onerror = null;
+                      target.src = 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80';
+                    }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                   <span className="glass absolute left-4 top-4 rounded-full px-3.5 py-1.5 text-[10px] font-poppins font-bold text-primary tracking-wide uppercase">

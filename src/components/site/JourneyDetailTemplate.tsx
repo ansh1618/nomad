@@ -29,7 +29,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Search,
-  HelpCircle,
+  CircleHelp,
   Bus,
   Map,
 } from 'lucide-react'
@@ -1130,7 +1130,7 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
                         onClick={() => setActiveFaqKey(isOpen ? null : key)}
                       >
                         <span className="font-semibold text-xs text-primary font-poppins flex items-center gap-1.5">
-                          <HelpCircle className="h-3.5 w-3.5 text-accent/80 shrink-0" />
+                          <CircleHelp className="h-3.5 w-3.5 text-accent/80 shrink-0" />
                           {faq.question}
                         </span>
                         {isOpen ? <ChevronUp className="h-4 w-4 text-accent shrink-0" /> : <ChevronDown className="h-4 w-4 text-accent shrink-0" />}

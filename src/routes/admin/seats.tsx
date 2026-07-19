@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2, Armchair, HelpCircle } from "lucide-react";
+import { Loader2, Armchair, CircleHelp } from "lucide-react";
 
 export const Route = createFileRoute("/admin/seats")({
   component: AdminLiveSeats,

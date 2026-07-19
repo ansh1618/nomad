@@ -16,7 +16,7 @@ import { getFaqLibrary, createLibraryFaq, updateLibraryFaq, deleteLibraryFaq } f
 import type { FaqLibraryItem } from '@/types/supabase'
 import { toast } from 'sonner'
 import {
-  HelpCircle, Plus, Pencil, Trash2, Star, CheckCircle, XCircle, Search, Filter, Loader2, Download
+  CircleHelp, Plus, Pencil, Trash2, Star, CheckCircle, XCircle, Search, Filter, Loader2, Download
 } from 'lucide-react'
 
 export const Route = createFileRoute('/admin/faqs')({
@@ -219,7 +219,7 @@ function FaqLibraryPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
-            <HelpCircle className="h-6 w-6 text-primary" />
+            <CircleHelp className="h-6 w-6 text-primary" />
             FAQ Library (Master)
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">Manage reusable, category-wise package FAQs globally for Nomadik's platforms.</p>

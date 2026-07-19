@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { ImageField } from '@/components/admin/MediaPicker'
+import { ImageField, MediaPicker } from '@/components/admin/MediaPicker'
 import { toast } from 'sonner'
 import {
   ArrowLeft,
@@ -27,6 +27,8 @@ import {
   Clock,
   MapPin,
   Eye,
+  GripVertical,
+  Images,
 } from 'lucide-react'
 import {
   getDestinationById,
@@ -85,6 +87,8 @@ function DestinationFormPage() {
 
   const [things, setThings] = useState<ThingToDo[]>([])
   const [faqs, setFaqs] = useState<FaqItem[]>([])
+  const [gallery, setGallery] = useState<{ url: string; caption: string }[]>([])
+  const [galleryPickerOpen, setGalleryPickerOpen] = useState(false)
 
   const { data: destination, isLoading: loadingData } = useQuery({
     queryKey: ['destination', id],
@@ -130,6 +134,10 @@ function DestinationFormPage() {
       })
       setThings((destination.things_to_do as ThingToDo[]) ?? [])
       setFaqs((destination.faqs as FaqItem[]) ?? [])
+      const rawGallery = (destination as any).gallery ?? []
+      setGallery(rawGallery.map((item: any) =>
+        typeof item === 'string' ? { url: item, caption: '' } : { url: item.url || '', caption: item.caption || '' }
+      ))
     }
   }, [destination, reset])
 
@@ -160,6 +168,7 @@ function DestinationFormPage() {
         status: statusUpper,
         things_to_do: things,
         faqs,
+        gallery: gallery.filter(g => g.url),
         seo: seo_title || seo_description ? { title: seo_title, description: seo_description } : null,
         created_by: admin?.id ?? null,
         updated_by: admin?.id ?? null,
@@ -449,9 +458,14 @@ function DestinationFormPage() {
           {/* ==================== MEDIA ==================== */}
           <TabsContent value="media" className="space-y-4">
             <Card>
-              <CardContent className="pt-6 space-y-6">
+              <CardHeader>
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <Images className="h-4 w-4" /> Hero Image
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
                 <ImageField
-                  label="Hero Image"
+                  label="Hero Image (shown as the main background on destination page)"
                   value={watch('hero_image') ?? ''}
                   onChange={(url) => setValue('hero_image', url, { shouldDirty: true })}
                   folder="/destinations"
@@ -465,6 +479,83 @@ function DestinationFormPage() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Gallery */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm font-semibold flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <Images className="h-4 w-4" /> Photo Gallery
+                  </span>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setGalleryPickerOpen(true)}
+                  >
+                    <Plus className="h-3.5 w-3.5 mr-1" /> Add Photo
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {gallery.length === 0 ? (
+                  <div
+                    className="border-2 border-dashed rounded-xl p-10 flex flex-col items-center justify-center cursor-pointer hover:border-primary/40 transition-colors bg-muted/20"
+                    onClick={() => setGalleryPickerOpen(true)}
+                  >
+                    <Images className="h-8 w-8 text-muted-foreground mb-3" />
+                    <p className="text-sm font-medium text-foreground">No photos yet</p>
+                    <p className="text-xs text-muted-foreground mt-1">Click to upload or select from media library</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                    {gallery.map((img, i) => (
+                      <div key={i} className="group relative rounded-lg overflow-hidden border bg-muted aspect-video">
+                        <img src={img.url} alt="" className="h-full w-full object-cover" />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors" />
+                        <button
+                          type="button"
+                          className="absolute top-1.5 right-1.5 p-1 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => setGallery(gallery.filter((_, j) => j !== i))}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                        <div className="absolute bottom-0 left-0 right-0 p-1.5 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <input
+                            type="text"
+                            value={img.caption}
+                            onChange={(e) => setGallery(gallery.map((g, j) => j === i ? { ...g, caption: e.target.value } : g))}
+                            placeholder="Caption..."
+                            className="w-full text-[10px] bg-transparent text-white placeholder-white/60 border-none outline-none"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                    <div
+                      className="border-2 border-dashed rounded-lg flex items-center justify-center cursor-pointer hover:border-primary/40 transition-colors bg-muted/20 aspect-video"
+                      onClick={() => setGalleryPickerOpen(true)}
+                    >
+                      <Plus className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground mt-3">
+                  {gallery.length} photo{gallery.length !== 1 ? 's' : ''} · First photo is used as fallback if no hero image is set
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Gallery MediaPicker */}
+            <MediaPicker
+              open={galleryPickerOpen}
+              onClose={() => setGalleryPickerOpen(false)}
+              onSelect={(asset) => {
+                setGallery([...gallery, { url: asset.url, caption: '' }])
+                setGalleryPickerOpen(false)
+              }}
+              accept="image"
+              folder="/destinations"
+            />
           </TabsContent>
 
           {/* ==================== SEO & SETTINGS ==================== */}

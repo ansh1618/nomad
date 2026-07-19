@@ -60,10 +60,15 @@ export function FeaturedPackages() {
                 {/* Image */}
                 <div className="relative aspect-[16/10] overflow-hidden">
                   <img
-                    src={j.image}
+                    src={j.image || 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&q=80'}
                     alt={j.name}
                     loading="lazy"
                     className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    onError={(e) => {
+                      const target = e.currentTarget;
+                      target.onerror = null;
+                      target.src = 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&q=80';
+                    }}
                   />
                   <span className="absolute left-4 top-4 flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 text-[10px] font-poppins font-bold text-[#E53E3E] shadow animate-pulse">
                     <span className="h-1.5 w-1.5 rounded-full bg-[#E53E3E]" />

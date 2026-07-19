@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { 
   User, Calendar, MapPin, Phone, Heart, Users, ShieldAlert, LogOut, Lock, 
-  ChevronRight, Compass, MessageCircle, HelpCircle, FileText, CheckCircle2, Settings,
+  ChevronRight, Compass, MessageCircle, CircleHelp, FileText, CheckCircle2, Settings,
   Eye, Loader2
 } from "lucide-react";
 import { getJourneys } from "@/lib/queries-client";
@@ -301,7 +301,7 @@ function AccountDashboard() {
                 { id: "profile", label: "Profile Information", icon: User },
                 { id: "wishlist", label: "Wishlist", icon: Heart },
                 { id: "travelers", label: "Saved Travelers", icon: Users },
-                { id: "support", label: "Support & Help", icon: HelpCircle },
+                { id: "support", label: "Support & Help", icon: CircleHelp },
                 { id: "settings", label: "Settings", icon: Lock }
               ].map((tab) => {
                 const Icon = tab.icon;

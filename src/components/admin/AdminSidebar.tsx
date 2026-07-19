@@ -46,7 +46,7 @@ import {
   Globe,
   Megaphone,
   BookOpen,
-  HelpCircle,
+  CircleHelp,
 } from "lucide-react";
 
 const NAV_SECTIONS = [
@@ -64,7 +64,7 @@ const NAV_SECTIONS = [
       { title: "Destinations", href: "/admin/destinations", icon: MapPin },
       { title: "Packages", href: "/admin/packages", icon: Package },
       { title: "Premium Itineraries", href: "/admin/itinerary-pdfs", icon: FileText },
-      { title: "FAQ Library", href: "/admin/faqs", icon: HelpCircle },
+      { title: "FAQ Library", href: "/admin/faqs", icon: CircleHelp },
       { title: "Departures", href: "/admin/departures", icon: CalendarDays },
     ],
   },

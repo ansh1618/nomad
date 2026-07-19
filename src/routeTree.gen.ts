@@ -31,7 +31,6 @@ import { Route as StoriesSlugRouteImport } from './routes/stories_.$slug'
 import { Route as JourneysJourneyIdRouteImport } from './routes/journeys/$journeyId'
 import { Route as DestinationsSlugRouteImport } from './routes/destinations_.$slug'
 import { Route as BookingSuccessRouteImport } from './routes/booking.success'
-import { Route as BookJourneySlugRouteImport } from './routes/book.$journeySlug'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
 import { Route as AdminWebsiteRouteImport } from './routes/admin/website'
 import { Route as AdminTripCalendarRouteImport } from './routes/admin/trip-calendar'
@@ -184,11 +183,6 @@ const DestinationsSlugRoute = DestinationsSlugRouteImport.update({
 const BookingSuccessRoute = BookingSuccessRouteImport.update({
   id: '/booking/success',
   path: '/booking/success',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BookJourneySlugRoute = BookJourneySlugRouteImport.update({
-  id: '/book/$journeySlug',
-  path: '/book/$journeySlug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
@@ -458,7 +452,6 @@ export interface FileRoutesByFullPath {
   '/admin/trip-calendar': typeof AdminTripCalendarRoute
   '/admin/website': typeof AdminWebsiteRoute
   '/auth/callback': typeof AuthCallbackRoute
-  '/book/$journeySlug': typeof BookJourneySlugRoute
   '/booking/success': typeof BookingSuccessRoute
   '/destinations/$slug': typeof DestinationsSlugRoute
   '/journeys/$journeyId': typeof JourneysJourneyIdRoute
@@ -525,7 +518,6 @@ export interface FileRoutesByTo {
   '/admin/trip-calendar': typeof AdminTripCalendarRoute
   '/admin/website': typeof AdminWebsiteRoute
   '/auth/callback': typeof AuthCallbackRoute
-  '/book/$journeySlug': typeof BookJourneySlugRoute
   '/booking/success': typeof BookingSuccessRoute
   '/destinations/$slug': typeof DestinationsSlugRoute
   '/journeys/$journeyId': typeof JourneysJourneyIdRoute
@@ -594,7 +586,6 @@ export interface FileRoutesById {
   '/admin/trip-calendar': typeof AdminTripCalendarRoute
   '/admin/website': typeof AdminWebsiteRoute
   '/auth/callback': typeof AuthCallbackRoute
-  '/book/$journeySlug': typeof BookJourneySlugRoute
   '/booking/success': typeof BookingSuccessRoute
   '/destinations_/$slug': typeof DestinationsSlugRoute
   '/journeys/$journeyId': typeof JourneysJourneyIdRoute
@@ -664,7 +655,6 @@ export interface FileRouteTypes {
     | '/admin/trip-calendar'
     | '/admin/website'
     | '/auth/callback'
-    | '/book/$journeySlug'
     | '/booking/success'
     | '/destinations/$slug'
     | '/journeys/$journeyId'
@@ -731,7 +721,6 @@ export interface FileRouteTypes {
     | '/admin/trip-calendar'
     | '/admin/website'
     | '/auth/callback'
-    | '/book/$journeySlug'
     | '/booking/success'
     | '/destinations/$slug'
     | '/journeys/$journeyId'
@@ -799,7 +788,6 @@ export interface FileRouteTypes {
     | '/admin/trip-calendar'
     | '/admin/website'
     | '/auth/callback'
-    | '/book/$journeySlug'
     | '/booking/success'
     | '/destinations_/$slug'
     | '/journeys/$journeyId'
@@ -836,7 +824,6 @@ export interface RootRouteChildren {
   StoriesRoute: typeof StoriesRoute
   TermsRoute: typeof TermsRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
-  BookJourneySlugRoute: typeof BookJourneySlugRoute
   BookingSuccessRoute: typeof BookingSuccessRoute
   DestinationsSlugRoute: typeof DestinationsSlugRoute
   JourneysJourneyIdRoute: typeof JourneysJourneyIdRoute
@@ -998,13 +985,6 @@ declare module '@tanstack/react-router' {
       path: '/booking/success'
       fullPath: '/booking/success'
       preLoaderRoute: typeof BookingSuccessRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/book/$journeySlug': {
-      id: '/book/$journeySlug'
-      path: '/book/$journeySlug'
-      fullPath: '/book/$journeySlug'
-      preLoaderRoute: typeof BookJourneySlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/callback': {
@@ -1422,7 +1402,6 @@ const rootRouteChildren: RootRouteChildren = {
   StoriesRoute: StoriesRoute,
   TermsRoute: TermsRoute,
   AuthCallbackRoute: AuthCallbackRoute,
-  BookJourneySlugRoute: BookJourneySlugRoute,
   BookingSuccessRoute: BookingSuccessRoute,
   DestinationsSlugRoute: DestinationsSlugRoute,
   JourneysJourneyIdRoute: JourneysJourneyIdRoute,
