@@ -17,6 +17,7 @@ import { ImageField, MediaPicker, type MediaAsset } from '@/components/admin/Med
 import { supabase } from '@/lib/supabase'
 import { ItineraryEditor } from '@/components/admin/ItineraryEditor'
 import type { ItineraryDayForm } from '@/components/admin/ItineraryEditor'
+import { DynamicListEditor } from '@/components/admin/DynamicListEditor'
 import { toast } from 'sonner'
 import {
   ArrowLeft,
@@ -343,6 +344,40 @@ function PackageFormPage() {
   const [exclusions, setExclusions] = useState<string[]>([])
   const [packingList, setPackingList] = useState<string[]>([])
   const [gallery, setGallery] = useState<any[]>([])
+  const [isSavedRecently, setIsSavedRecently] = useState(false)
+
+  useEffect(() => {
+    const hasUnsavedChanges = 
+      isDirty || 
+      JSON.stringify(inclusions) !== JSON.stringify(pkg?.inclusions ?? []) ||
+      JSON.stringify(exclusions) !== JSON.stringify(pkg?.exclusions ?? [])
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault()
+        e.returnValue = 'You have unsaved changes. Are you sure you want to leave?'
+        return e.returnValue
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [isDirty, inclusions, exclusions, pkg])
+
+  const hasUnsavedChanges = 
+    isDirty || 
+    JSON.stringify(inclusions) !== JSON.stringify(pkg?.inclusions ?? []) ||
+    JSON.stringify(exclusions) !== JSON.stringify(pkg?.exclusions ?? [])
+
+  const handleBackClick = () => {
+    if (hasUnsavedChanges) {
+      if (confirm('You have unsaved changes. Discard them and leave?')) {
+        navigate({ to: '/admin/packages' })
+      }
+    } else {
+      navigate({ to: '/admin/packages' })
+    }
+  }
   const [videos, setVideos] = useState<any[]>([])
   const [reels, setReels] = useState<any[]>([])
   const [memories, setMemories] = useState<any[]>([])
@@ -556,8 +591,8 @@ function PackageFormPage() {
         maximum_price: maxPrice,
         trip_captain_id: rest.trip_captain_id || null,
         highlights,
-        inclusions,
-        exclusions,
+        inclusions: inclusions.map(item => item.trim()).filter(Boolean).filter((val, i, self) => self.indexOf(val) === i),
+        exclusions: exclusions.map(item => item.trim()).filter(Boolean).filter((val, i, self) => self.indexOf(val) === i),
         packing_list: packingList,
         policies,
         faqs,
@@ -715,6 +750,8 @@ function PackageFormPage() {
       }
 
       toast.success(isNew ? 'Package created!' : 'Package updated!')
+      setIsSavedRecently(true)
+      setTimeout(() => setIsSavedRecently(false), 2000)
       if (isNew) navigate({ to: '/admin/packages/$id', params: { id: savedPkg.id } })
     },
     onError: (err: Error) => toast.error(err.message),
@@ -813,7 +850,7 @@ function PackageFormPage() {
         animate={{ opacity: 1, y: 0 }}
         className="flex items-center gap-4"
       >
-        <Button variant="ghost" size="icon" onClick={() => navigate({ to: '/admin/packages' })}>
+        <Button variant="ghost" size="icon" onClick={handleBackClick}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div className="flex items-center gap-2 flex-shrink-0">
@@ -829,7 +866,7 @@ function PackageFormPage() {
         <div className="flex items-center gap-2">
           {!isNew && (
             <a href={`/packages/${slugValue}`} target="_blank" rel="noreferrer">
-              <Button variant="outline" size="sm" className="gap-1.5">
+              <Button variant="outline" size="sm" className="gap-1.5 font-poppins">
                 <Eye className="h-4 w-4" /> Preview
               </Button>
             </a>
@@ -837,10 +874,24 @@ function PackageFormPage() {
           <Button
             onClick={handleSubmit((v) => saveMutation.mutate(v as any), onInvalid)}
             disabled={saveMutation.isPending}
-            className="gap-1.5"
+            className="gap-1.5 font-poppins"
           >
-            {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            {isNew ? 'Create Package' : 'Save Changes'}
+            {saveMutation.isPending ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : isSavedRecently ? (
+              <>
+                <Check className="h-4 w-4 text-emerald-500" />
+                Saved
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4" />
+                {isNew ? 'Create Package' : 'Save Changes'}
+              </>
+            )}
           </Button>
         </div>
       </motion.div>
@@ -1123,13 +1174,37 @@ function PackageFormPage() {
 
         {/* ==================== INCLUSIONS ==================== */}
         <TabsContent value="inclusions" className="space-y-4">
-          <Card>
-            <CardContent className="pt-6 space-y-6">
-              <StringListEditor label="Inclusions" list={inclusions} setList={setInclusions} itemKey="inclusions" placeholder="e.g., Accommodation on twin-sharing basis" />
-              <StringListEditor label="Exclusions" list={exclusions} setList={setExclusions} itemKey="exclusions" placeholder="e.g., Airfare to/from destination" />
-              <StringListEditor label="Packing List" list={packingList} setList={setPackingList} itemKey="packing" placeholder="e.g., Warm jacket, sunscreen" />
-            </CardContent>
-          </Card>
+          <div className="space-y-6">
+            <DynamicListEditor
+              title="What's Included"
+              list={inclusions}
+              originalList={pkg?.inclusions ?? []}
+              onChange={setInclusions}
+              iconType="check"
+              placeholder="e.g., Comfortable AC Tempo Traveller transportation from Delhi"
+            />
+
+            <DynamicListEditor
+              title="Not Included"
+              list={exclusions}
+              originalList={pkg?.exclusions ?? []}
+              onChange={setExclusions}
+              iconType="x"
+              placeholder="e.g., Lunches during the trip"
+            />
+
+            <Card>
+              <CardContent className="pt-6">
+                <StringListEditor
+                  label="Packing List"
+                  list={packingList}
+                  setList={setPackingList}
+                  itemKey="packing"
+                  placeholder="e.g., Warm jacket, sunscreen"
+                />
+              </CardContent>
+            </Card>
+          </div>
 
           {/* Policies */}
           <Card>
