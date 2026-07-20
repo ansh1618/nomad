@@ -18,6 +18,7 @@ import { supabase } from '@/lib/supabase'
 import { ItineraryEditor } from '@/components/admin/ItineraryEditor'
 import type { ItineraryDayForm } from '@/components/admin/ItineraryEditor'
 import { DynamicListEditor } from '@/components/admin/DynamicListEditor'
+import { StringListEditor } from '@/components/admin/StringListEditor'
 import { toast } from 'sonner'
 import {
   ArrowLeft,
@@ -346,38 +347,7 @@ function PackageFormPage() {
   const [gallery, setGallery] = useState<any[]>([])
   const [isSavedRecently, setIsSavedRecently] = useState(false)
 
-  useEffect(() => {
-    const hasUnsavedChanges = 
-      isDirty || 
-      JSON.stringify(inclusions) !== JSON.stringify(pkg?.inclusions ?? []) ||
-      JSON.stringify(exclusions) !== JSON.stringify(pkg?.exclusions ?? [])
 
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasUnsavedChanges) {
-        e.preventDefault()
-        e.returnValue = 'You have unsaved changes. Are you sure you want to leave?'
-        return e.returnValue
-      }
-    }
-
-    window.addEventListener('beforeunload', handleBeforeUnload)
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
-  }, [isDirty, inclusions, exclusions, pkg])
-
-  const hasUnsavedChanges = 
-    isDirty || 
-    JSON.stringify(inclusions) !== JSON.stringify(pkg?.inclusions ?? []) ||
-    JSON.stringify(exclusions) !== JSON.stringify(pkg?.exclusions ?? [])
-
-  const handleBackClick = () => {
-    if (hasUnsavedChanges) {
-      if (confirm('You have unsaved changes. Discard them and leave?')) {
-        navigate({ to: '/admin/packages' })
-      }
-    } else {
-      navigate({ to: '/admin/packages' })
-    }
-  }
   const [videos, setVideos] = useState<any[]>([])
   const [reels, setReels] = useState<any[]>([])
   const [memories, setMemories] = useState<any[]>([])
@@ -425,7 +395,6 @@ function PackageFormPage() {
     check_in: '12:00 PM',
     check_out: '11:00 AM'
   })
-  const [newItem, setNewItem] = useState<Record<string, string>>({})
 
   const { data: pkg, isLoading: loadingPkg } = useQuery({
     queryKey: ['package', id],
@@ -458,7 +427,7 @@ function PackageFormPage() {
     handleSubmit,
     setValue,
     watch,
-    formState: { errors },
+    formState: { errors, isDirty },
     reset,
   } = useForm<PackageFormValues>({
     resolver: zodResolver(packageSchema) as any,
@@ -473,6 +442,39 @@ function PackageFormPage() {
         hotel_id: '',
       },
     })
+
+  useEffect(() => {
+    const hasUnsavedChanges = 
+      isDirty || 
+      JSON.stringify(inclusions) !== JSON.stringify(pkg?.inclusions ?? []) ||
+      JSON.stringify(exclusions) !== JSON.stringify(pkg?.exclusions ?? [])
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault()
+        e.returnValue = 'You have unsaved changes. Are you sure you want to leave?'
+        return e.returnValue
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [isDirty, inclusions, exclusions, pkg])
+
+  const hasUnsavedChanges = 
+    isDirty || 
+    JSON.stringify(inclusions) !== JSON.stringify(pkg?.inclusions ?? []) ||
+    JSON.stringify(exclusions) !== JSON.stringify(pkg?.exclusions ?? [])
+
+  const handleBackClick = () => {
+    if (hasUnsavedChanges) {
+      if (confirm('You have unsaved changes. Discard them and leave?')) {
+        navigate({ to: '/admin/packages' })
+      }
+    } else {
+      navigate({ to: '/admin/packages' })
+    }
+  }
 
   // Populate on edit
   useEffect(() => {
@@ -769,17 +771,6 @@ function PackageFormPage() {
     }
   }
 
-  const addListItem = (list: string[], setList: (v: string[]) => void, key: string) => {
-    const val = newItem[key]?.trim()
-    if (!val) return
-    setList([...list, val])
-    setNewItem((prev) => ({ ...prev, [key]: '' }))
-  }
-
-  const removeListItem = (list: string[], setList: (v: string[]) => void, index: number) => {
-    setList(list.filter((_, i) => i !== index))
-  }
-
   if (!isNew && loadingPkg) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -789,58 +780,6 @@ function PackageFormPage() {
   }
 
   const slugValue = watch('slug')
-
-  function StringListEditor({
-    label,
-    list,
-    setList,
-    itemKey,
-    placeholder,
-  }: {
-    label: string
-    list: string[]
-    setList: (v: string[]) => void
-    itemKey: string
-    placeholder?: string
-  }) {
-    return (
-      <div className="space-y-3">
-        <Label>{label}</Label>
-        <div className="space-y-2">
-          {list.map((item, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <span className="flex-1 text-sm p-2 bg-muted/30 rounded-md border">{item}</span>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-destructive hover:text-destructive"
-                onClick={() => removeListItem(list, setList, i)}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          ))}
-        </div>
-        <div className="flex items-center gap-2">
-          <Input
-            value={newItem[itemKey] ?? ''}
-            onChange={(e) => setNewItem((prev) => ({ ...prev, [itemKey]: e.target.value }))}
-            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addListItem(list, setList, itemKey) } }}
-            placeholder={placeholder ?? `Add ${label.toLowerCase()}...`}
-          />
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => addListItem(list, setList, itemKey)}
-          >
-            <Plus className="h-3.5 w-3.5" />
-          </Button>
-        </div>
-      </div>
-    )
-  }
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -1116,7 +1055,6 @@ function PackageFormPage() {
                 label="Highlights"
                 list={highlights}
                 setList={setHighlights}
-                itemKey="highlights"
                 placeholder="Add a highlight point..."
               />
             </CardContent>
@@ -1199,7 +1137,6 @@ function PackageFormPage() {
                   label="Packing List"
                   list={packingList}
                   setList={setPackingList}
-                  itemKey="packing"
                   placeholder="e.g., Warm jacket, sunscreen"
                 />
               </CardContent>
@@ -1424,21 +1361,18 @@ function PackageFormPage() {
                   label="Vehicle Features"
                   list={transport.features || []}
                   setList={(items) => setTransport({ ...transport, features: items })}
-                  itemKey="t_features"
                   placeholder="e.g., Pushback Seats"
                 />
                 <StringListEditor
                   label="Pickup Points"
                   list={transport.pickup_points || []}
                   setList={(items) => setTransport({ ...transport, pickup_points: items })}
-                  itemKey="t_pickups"
                   placeholder="e.g., Delhi Kashmere Gate ISBT"
                 />
                 <StringListEditor
                   label="Drop Points"
                   list={transport.drop_points || []}
                   setList={(items) => setTransport({ ...transport, drop_points: items })}
-                  itemKey="t_drops"
                   placeholder="e.g., Gurgaon IFFCO Chowk Metro"
                 />
               </div>

@@ -392,83 +392,108 @@ export async function getPackageById(id: string): Promise<Journey | null> {
 // ==========================================
 // CREATE
 // ==========================================
-export async function createPackage(payload: JourneyInsert): Promise<Journey> {
-  try {
-    const { data, error } = await supabase
-      .from('journeys')
-      .insert(payload)
-      .select('*')
-      .single()
-
-    if (!error) return data as Journey
-  } catch (e) {
-    console.warn('Modern createPackage failed, falling back:', e)
-  }
-
-  // Legacy fallback payload construction
-  const legacyPayload = {
+export async function createPackage(payload: any): Promise<Journey> {
+  const cleanPayload = {
     destination_id: payload.destination_id,
     slug: payload.slug,
     name: payload.name,
-    price: payload.starting_price ?? 0,
     duration: payload.duration,
     transport: payload.transport,
-    difficulty: payload.difficulty || 'Easy',
+    difficulty: payload.difficulty,
     pickup_point: payload.pickup_point,
     drop_point: payload.drop_point,
-    gallery: payload.hero_banner ? [payload.hero_banner] : [],
+    starting_price: payload.starting_price,
+    price: payload.starting_price ?? payload.price ?? 0,
+    category: payload.category,
+    highlights: payload.highlights,
+    inclusions: payload.inclusions,
+    exclusions: payload.exclusions,
+    policies: payload.policies,
+    faqs: payload.faqs,
+    videos: payload.videos,
+    status: payload.status,
+    hero_banner: payload.hero_banner,
+    created_by: payload.created_by,
+    updated_by: payload.updated_by,
+    hotel_id: payload.hotel_id,
+    gallery: payload.gallery,
+    is_published: payload.status === 'PUBLISHED',
   }
 
-  const { data: legacyData, error: legacyError } = await supabase
+  // Remove undefined fields
+  Object.keys(cleanPayload).forEach(key => {
+    if ((cleanPayload as any)[key] === undefined) {
+      delete (cleanPayload as any)[key];
+    }
+  });
+
+  const { data, error } = await supabase
     .from('journeys')
-    .insert(legacyPayload)
+    .insert(cleanPayload)
     .select('*')
     .single()
 
-  if (legacyError) throw new Error(legacyError.message)
-  return legacyData as Journey
+  if (error) {
+    console.error('createPackage failed. Error:', error)
+    throw new Error(error.message)
+  }
+  
+  return data as Journey
 }
 
 // ==========================================
 // UPDATE
 // ==========================================
-export async function updatePackage(id: string, payload: JourneyUpdate): Promise<Journey> {
-  try {
-    const { data, error } = await supabase
-      .from('journeys')
-      .update({ ...payload, updated_at: new Date().toISOString() })
-      .eq('id', id)
-      .select('*')
-      .single()
-
-    if (!error) return data as Journey
-  } catch (e) {
-    console.warn('Modern updatePackage failed, falling back:', e)
-  }
-
-  // Legacy fallback payload construction
-  const legacyPayload = {
+export async function updatePackage(id: string, payload: any): Promise<Journey> {
+  // Strip out fields that do not exist in the 'journeys' table to prevent schema errors.
+  const cleanPayload = {
     destination_id: payload.destination_id,
     slug: payload.slug,
     name: payload.name,
-    price: payload.starting_price ?? 0,
     duration: payload.duration,
     transport: payload.transport,
-    difficulty: payload.difficulty || 'Easy',
+    difficulty: payload.difficulty,
     pickup_point: payload.pickup_point,
     drop_point: payload.drop_point,
-    gallery: payload.hero_banner ? [payload.hero_banner] : [],
+    starting_price: payload.starting_price,
+    price: payload.starting_price ?? payload.price ?? 0,
+    category: payload.category,
+    highlights: payload.highlights,
+    inclusions: payload.inclusions,
+    exclusions: payload.exclusions,
+    policies: payload.policies,
+    faqs: payload.faqs,
+    videos: payload.videos,
+    status: payload.status,
+    hero_banner: payload.hero_banner,
+    created_by: payload.created_by,
+    updated_by: payload.updated_by,
+    hotel_id: payload.hotel_id,
+    gallery: payload.gallery,
+    is_published: payload.status === 'PUBLISHED',
+    updated_at: new Date().toISOString()
   }
 
-  const { data: legacyData, error: legacyError } = await supabase
+  // Remove undefined fields
+  Object.keys(cleanPayload).forEach(key => {
+    if ((cleanPayload as any)[key] === undefined) {
+      delete (cleanPayload as any)[key];
+    }
+  });
+
+  const { data, error } = await supabase
     .from('journeys')
-    .update(legacyPayload)
+    .update(cleanPayload)
     .eq('id', id)
     .select('*')
     .single()
 
-  if (legacyError) throw new Error(legacyError.message)
-  return legacyData as Journey
+  if (error) {
+    console.error('updatePackage failed. Error:', error)
+    throw new Error(error.message)
+  }
+  
+  return data as Journey
 }
 
 // ==========================================
