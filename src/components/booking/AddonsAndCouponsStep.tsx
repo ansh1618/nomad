@@ -5,7 +5,7 @@ import { Tag, Plus, Check, TicketPercent } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 
-export function AddonsAndCouponsStep({ data, updateData, onNext, onPrev, isSidebar = false }: any) {
+export function AddonsAndCouponsStep({ data, updateData, onNext, onPrev, isSidebar = false, pricing }: any) {
   const [addonsList] = useState([
     { id: 'a1', name: 'River Rafting', price: 1500, desc: 'Thrilling white water rafting experience.' },
     { id: 'a2', name: 'Paragliding', price: 3000, desc: 'Soar above the valleys.' },
@@ -19,17 +19,14 @@ export function AddonsAndCouponsStep({ data, updateData, onNext, onPrev, isSideb
     updateData((prev: any) => {
       const isSelected = prev.addons.some((a: any) => a.id === addon.id);
       let newAddons: any[] = [];
-      let newTotal = prev.totalAmount;
 
       if (isSelected) {
         newAddons = prev.addons.filter((a: any) => a.id !== addon.id);
-        newTotal -= addon.price;
       } else {
         newAddons = [...prev.addons, addon];
-        newTotal += addon.price;
       }
 
-      return { ...prev, addons: newAddons, totalAmount: newTotal };
+      return { ...prev, addons: newAddons };
     });
   };
 
@@ -61,27 +58,16 @@ export function AddonsAndCouponsStep({ data, updateData, onNext, onPrev, isSideb
         return;
       }
 
-      if (data.baseAmount < coupon.min_order_amount) {
+      if (pricing.subtotal < coupon.min_order_amount) {
         setCouponError(`Minimum order amount for this coupon is ₹${coupon.min_order_amount}`);
         return;
       }
 
       // Apply
       updateData((prev: any) => {
-        let discount = 0;
-        if (coupon.discount_type === "PERCENTAGE") {
-          discount = (prev.baseAmount * coupon.discount_value) / 100;
-          if (coupon.max_discount_amount && discount > coupon.max_discount_amount) {
-            discount = coupon.max_discount_amount;
-          }
-        } else if (coupon.discount_type === "FIXED") {
-          discount = coupon.discount_value;
-        }
-
         return {
           ...prev,
-          coupon: { code: coupon.code, discount, id: coupon.id },
-          totalAmount: prev.baseAmount + prev.addons.reduce((sum: number, a: any) => sum + a.price, 0) - discount
+          coupon: coupon
         };
       });
     } catch (err) {
@@ -94,8 +80,7 @@ export function AddonsAndCouponsStep({ data, updateData, onNext, onPrev, isSideb
       if (!prev.coupon) return prev;
       return {
         ...prev,
-        coupon: null,
-        totalAmount: prev.baseAmount + prev.addons.reduce((sum: number, a: any) => sum + a.price, 0)
+        coupon: null
       };
     });
     setCouponInput("");
@@ -115,7 +100,7 @@ export function AddonsAndCouponsStep({ data, updateData, onNext, onPrev, isSideb
           <h3 className="font-poppins font-bold text-secondary flex items-center gap-2">
             <Plus className="h-5 w-5" /> Optional Experiences
           </h3>
-          <div className="space-y-3">
+          <div className={cn("grid gap-3", isSidebar ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3")}>
             {addonsList.map((addon) => {
               const isSelected = data.addons.some((a: any) => a.id === addon.id);
               return (
@@ -123,17 +108,17 @@ export function AddonsAndCouponsStep({ data, updateData, onNext, onPrev, isSideb
                   key={addon.id} 
                   onClick={() => toggleAddon(addon)}
                   className={cn(
-                    "p-4 border-2 rounded-xl flex items-center justify-between cursor-pointer transition",
+                    "p-4 border-2 rounded-xl flex items-center justify-between cursor-pointer transition h-auto min-h-[5rem] overflow-hidden break-words",
                     isSelected ? "border-accent bg-accent/5" : "border-border hover:border-accent/50 bg-white"
                   )}
                 >
-                  <div>
+                  <div className="flex-1 pr-3">
                     <h4 className="font-bold text-sm text-primary">{addon.name}</h4>
                     <p className="text-xs text-muted-foreground">{addon.desc}</p>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="font-semibold text-sm">+ ₹{addon.price}</span>
-                    <div className={cn("w-6 h-6 rounded-full flex items-center justify-center border", isSelected ? "bg-accent border-accent text-white" : "border-muted-foreground text-transparent")}>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className="font-semibold text-sm whitespace-nowrap">+ ₹{addon.price}</span>
+                    <div className={cn("w-6 h-6 rounded-full flex items-center justify-center border shrink-0", isSelected ? "bg-accent border-accent text-white" : "border-muted-foreground text-transparent")}>
                       <Check className="h-4 w-4" />
                     </div>
                   </div>
@@ -162,14 +147,14 @@ export function AddonsAndCouponsStep({ data, updateData, onNext, onPrev, isSideb
               </div>
             ) : (
               <div className="space-y-2">
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <Input 
                     placeholder="Enter Coupon Code" 
                     value={couponInput}
                     onChange={(e) => setCouponInput(e.target.value)}
-                    className="uppercase"
+                    className="uppercase w-full"
                   />
-                  <Button onClick={applyCoupon} variant="secondary">Apply</Button>
+                  <Button onClick={applyCoupon} variant="secondary" className="w-full sm:w-auto shrink-0">Apply</Button>
                 </div>
                 {couponError && <p className="text-xs text-red-500">{couponError}</p>}
                 <p className="text-xs text-muted-foreground italic">Try code: NOMADIK10</p>

@@ -85,10 +85,11 @@ export function AccommodationSelectionStep({ data, updateData, onNext, onPrev, j
   }, [data.departureId, journey]);
 
   const selectRoom = (roomId: string, priceModifier: number) => {
+    const selectedObj = rooms.find(r => r.id === roomId);
     updateData((prev: any) => ({
       ...prev,
       selectedRooms: [roomId],
-      totalAmount: prev.baseAmount + (priceModifier * prev.travellers.length)
+      selectedRoomObj: selectedObj
     }));
   };
 

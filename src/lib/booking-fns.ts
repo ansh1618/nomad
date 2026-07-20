@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { supabase } from "./supabase";
 import { supabaseAdmin } from "./supabase-admin";
 import { z } from "zod";
+import { resolveBookingPricing } from "./pricing-fns";
 
 // ==========================================
 // SEAT & INVENTORY LOCKING
@@ -14,9 +15,7 @@ const lockInventorySchema = z.object({
 });
 
 export const lockInventoryFn = createServerFn({ method: "POST" })
-  .validator((data: z.infer<typeof lockInventorySchema>) =>
-    lockInventorySchema.parse(data)
-  )
+  .validator((data: z.infer<typeof lockInventorySchema>) => lockInventorySchema.parse(data))
   .handler(async ({ data }) => {
     try {
       const { departureId, inventoryIds, userId } = data;
@@ -60,8 +59,9 @@ export const lockInventoryFn = createServerFn({ method: "POST" })
       }
 
       return { success: true as const, message: "Inventory locked for 15 minutes." };
-    } catch (e: any) {
-      return { success: false as const, error: e.message || "An unknown error occurred" };
+    } catch (e: unknown) {
+      const errMsg = e instanceof Error ? e.message : "An unknown error occurred";
+      return { success: false as const, error: errMsg };
     }
   });
 
@@ -83,24 +83,74 @@ const createBookingSchema = z.object({
 });
 
 export const createBookingFn = createServerFn({ method: "POST" })
-  .validator((data: z.infer<typeof createBookingSchema>) =>
-    createBookingSchema.parse(data)
-  )
+  .validator((data: z.infer<typeof createBookingSchema>) => createBookingSchema.parse(data))
   .handler(async ({ data }) => {
     try {
-      const { data: booking, error: bookingError } = await supabase
+      // ── Server-side: re-fetch departure to recompute price (never trust client) ──
+      const { data: dep } = await supabaseAdmin
+        .from("departures")
+        .select("id, base_price, dynamic_price, journey_id, packages(starting_price)")
+        .eq("id", data.departureId)
+        .single();
+
+      // Validate departure belongs to some journey (basic sanity check)
+      if (!dep) {
+        throw new Error(`Departure ${data.departureId} not found. Cannot create booking.`);
+      }
+
+      // Recompute pricing server-side
+      const serverPricing = resolveBookingPricing({
+        journey: (dep as any).packages || {},
+        departure: dep,
+        room: null, // room modifier handled separately
+        travellers: data.travellers,
+        addons: [], // addons recalculated from addonAmount
+        coupon: null, // coupon recalculated from couponId
+      });
+
+      // Re-validate coupon if provided
+      let serverDiscount = 0;
+      if (data.couponId) {
+        const { data: coupon } = await supabaseAdmin
+          .from("coupons")
+          .select("discount_type, discount_value, max_discount_amount, valid_until, is_active, max_redemptions, current_redemptions")
+          .eq("id", data.couponId)
+          .single();
+        if (coupon && coupon.is_active) {
+          const notExpired = !coupon.valid_until || new Date(coupon.valid_until) >= new Date();
+          const notExhausted = coupon.max_redemptions === null || coupon.current_redemptions < coupon.max_redemptions;
+          if (notExpired && notExhausted) {
+            if (coupon.discount_type === "PERCENTAGE" || coupon.discount_type === "PERCENT") {
+              serverDiscount = Math.round((serverPricing.subtotal * coupon.discount_value) / 100);
+            } else {
+              serverDiscount = coupon.discount_value;
+            }
+            if (coupon.max_discount_amount) serverDiscount = Math.min(serverDiscount, coupon.max_discount_amount);
+          }
+        }
+      }
+
+      // Add any addons passed from client (trusted since they're read-only selects)
+      const addonAmount = Number(data.addonAmount) || 0;
+      const taxableAmount = Math.max(0, serverPricing.subtotal + addonAmount - serverDiscount);
+      const gstAmount = Math.round(taxableAmount * 0.05);
+      const totalAmount = taxableAmount + gstAmount;
+
+      console.log(`[createBookingFn] Pricing — base: ${serverPricing.effectiveBasePrice}, addons: ${addonAmount}, discount: ${serverDiscount}, gst: ${gstAmount}, total: ${totalAmount}`);
+
+      const { data: booking, error: bookingError } = await supabaseAdmin
         .from("bookings")
         .insert({
           user_id: data.userId || null,
           departure_id: data.departureId,
           status: "PAYMENT_PENDING",
           traveller_count: data.travellers.length,
-          base_amount: data.baseAmount,
-          addon_amount: data.addonAmount,
-          gst_amount: data.gstAmount,
+          base_amount: serverPricing.effectiveBasePrice * serverPricing.travellersCount,
+          addon_amount: addonAmount,
+          gst_amount: gstAmount,
           coupon_id: data.couponId,
-          discount_amount: data.discountAmount,
-          total_amount: data.totalAmount,
+          discount_amount: serverDiscount,
+          total_amount: totalAmount,
           assigned_hotel_id: data.hotelId || null,
         })
         .select("id, booking_id")
@@ -123,15 +173,15 @@ export const createBookingFn = createServerFn({ method: "POST" })
         return age;
       };
 
-      const travellersToInsert = data.travellers.map((t: any) => ({
+      const travellersToInsert = data.travellers.map((t: Record<string, unknown>) => ({
         booking_id: booking.id,
         is_primary: t.isPrimary || false,
         full_name: t.fullName,
         phone: t.phone || null,
         email: t.email || null,
         gender: t.gender || null,
-        age: t.dob ? calculateAge(t.dob) : (t.age ? parseInt(t.age) : null),
-        id_proof_type: 'Aadhaar',
+        age: t.dob ? calculateAge(t.dob as string) : t.age ? parseInt(t.age as string) : null,
+        id_proof_type: "Aadhaar",
         id_proof_number: t.aadhaarNumber || null,
         assigned_seat_id: t.seatId || null,
         assigned_room_id: t.roomId || null,
@@ -150,129 +200,53 @@ export const createBookingFn = createServerFn({ method: "POST" })
       return {
         success: true as const,
         bookingId: booking.id,
-        displayId: (booking as any).booking_id,
+        displayId: (booking as { booking_id: string }).booking_id,
       };
-    } catch (e: any) {
-      return { success: false as const, error: e.message || "An unknown error occurred" };
+    } catch (e: unknown) {
+      const errMsg = e instanceof Error ? e.message : "An unknown error occurred";
+      return { success: false as const, error: errMsg };
     }
   });
 
 // ==========================================
-// RAZORPAY INTEGRATION
+// RAZORPAY INTEGRATION — Server Functions
 // ==========================================
 
-const createOrderSchema = z.object({
-  bookingId: z.string(),
-  amount: z.number(),
-});
+/**
+ * Helper: Call Razorpay REST API with Basic Auth.
+ * Returns the raw JSON order object on success.
+ */
+async function createRazorpayOrder(params: {
+  amount: number; // in paise (INR × 100)
+  currency: string;
+  receipt: string;
+  notes?: Record<string, string>;
+}): Promise<{ id: string; amount: number; currency: string; receipt: string }> {
+  const keyId = process.env.RAZORPAY_KEY_ID ?? "";
+  const keySecret = process.env.RAZORPAY_KEY_SECRET ?? "";
+  const credentials = Buffer.from(`${keyId}:${keySecret}`).toString("base64");
 
-export const createRazorpayOrderFn = createServerFn({ method: "POST" })
-  .validator((data: z.infer<typeof createOrderSchema>) =>
-    createOrderSchema.parse(data)
-  )
-  .handler(async ({ data }) => {
-    try {
-      const { bookingId, amount } = data;
-
-      // Production: uncomment and configure Razorpay SDK
-      // const razorpay = new Razorpay({ key_id: process.env.RAZORPAY_KEY_ID, key_secret: process.env.RAZORPAY_SECRET });
-      // const order = await razorpay.orders.create({ amount: amount * 100, currency: "INR", receipt: bookingId });
-
-      const { data: payment, error } = await supabase
-        .from("payments")
-        .insert({
-          booking_id: bookingId,
-          amount,
-          currency: "INR",
-          status: "PENDING",
-          gateway: "razorpay",
-        })
-        .select("id")
-        .single();
-
-      if (error || !payment) {
-        throw new Error("Failed to create payment record.");
-      }
-
-      const orderId = `order_${payment.id.replace(/-/g, "").slice(0, 16)}`;
-
-      await supabase
-        .from("bookings")
-        .update({ razorpay_order_id: orderId })
-        .eq("id", bookingId);
-
-      return { success: true as const, orderId, paymentRecordId: payment.id };
-    } catch (e: any) {
-      return { success: false as const, error: e.message || "An unknown error occurred" };
-    }
+  const response = await fetch("https://api.razorpay.com/v1/orders", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Basic ${credentials}`,
+    },
+    body: JSON.stringify(params),
   });
 
-const verifyPaymentSchema = z.object({
-  bookingId: z.string(),
-  paymentId: z.string(),
-  orderId: z.string(),
-  signature: z.string(),
-  userId: z.string().uuid().nullable().optional(),
-});
-
-export const verifyRazorpayPaymentFn = createServerFn({ method: "POST" })
-  .validator((data: z.infer<typeof verifyPaymentSchema>) =>
-    verifyPaymentSchema.parse(data)
-  )
-  .handler(async ({ data }) => {
-    try {
-      const { bookingId, paymentId, signature } = data;
-
-      // Production signature verification — uncomment once Razorpay keys are set:
-      // const crypto = await import("crypto");
-      // const expectedSig = crypto.createHmac("sha256", process.env.RAZORPAY_SECRET!)
-      //   .update(data.orderId + "|" + paymentId).digest("hex");
-      // if (expectedSig !== signature) throw new Error("Invalid payment signature");
-
-      const { error: bookingErr } = await supabase
-        .from("bookings")
-        .update({
-          status: "CONFIRMED",
-          razorpay_payment_id: paymentId,
-          razorpay_signature: signature,
-        })
-        .eq("id", bookingId);
-
-      if (bookingErr) throw new Error("Failed to confirm booking.");
-
-      // Update assigned inventory directly by matching traveler assignments
-      const { data: travellers } = await supabase
-        .from("booking_travellers")
-        .select("assigned_seat_id, assigned_room_id")
-        .eq("booking_id", bookingId);
-
-      const inventoryIds = (travellers ?? [])
-        .map((t: any) => t.assigned_seat_id || t.assigned_room_id)
-        .filter(Boolean);
-
-      if (inventoryIds.length > 0) {
-        await supabase
-          .from("departure_inventory")
-          .update({ status: "BOOKED", booking_id: bookingId })
-          .in("id", inventoryIds);
-      }
-
-      await supabase
-        .from("payments")
-        .update({ status: "SUCCESS", gateway_payment_id: paymentId })
-        .eq("booking_id", bookingId);
-
-      return { success: true as const, message: "Payment verified and booking confirmed." };
-    } catch (e: any) {
-      return { success: false as const, error: e.message || "An unknown error occurred" };
-    }
-  });
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Razorpay order creation failed (${response.status}): ${errText}`);
+  }
+  return response.json();
+}
 
 // ==========================================
 // SECURE GUEST BOOKING CREATION
 // ==========================================
 
-function logFailure(table: string, operation: string, payload: any, error: any) {
+function logFailure(table: string, operation: string, payload: unknown, error: unknown) {
   console.error(`[DB FAILURE] Table: ${table} | Operation: ${operation}`);
   console.error("Payload:", JSON.stringify(payload, null, 2));
   console.error("Error Details:", error);
@@ -282,7 +256,7 @@ function logFailure(table: string, operation: string, payload: any, error: any) 
 
 const createGuestBookingSchema = z.object({
   fullName: z.string().min(2),
-  email: z.string().email().optional().or(z.literal('')),
+  email: z.string().email().optional().or(z.literal("")),
   phone: z.string().min(8),
   isWhatsapp: z.boolean().default(true),
   address: z.string().optional(),
@@ -294,6 +268,7 @@ const createGuestBookingSchema = z.object({
   referredBy: z.string().optional(),
   howHeard: z.string().optional(),
   sharingType: z.string(),
+  transportType: z.string().optional().default("standard"),
   seatPreference: z.string(),
   paymentSchedule: z.string(),
   couponId: z.string().uuid().nullable().optional(),
@@ -305,29 +280,29 @@ const createGuestBookingSchema = z.object({
 });
 
 export const createGuestBookingFn = createServerFn({ method: "POST" })
-  .validator((data: any) => data) // Accept anything so validator never throws natively
+  .validator((data: unknown) => data) // Accept anything so validator never throws natively
   .handler(async ({ data: rawData }) => {
     try {
       console.log(`\n[DEBUG] === START createGuestBookingFn ===`);
       console.log(`[DEBUG] Incoming raw payload:`, JSON.stringify(rawData, null, 2));
-      
+
       // 0. Zod Validation (inside try-catch so errors return as JSON)
       const data = createGuestBookingSchema.parse(rawData);
       console.log(`[DEBUG] Zod validation passed. Parsed data:`, JSON.stringify(data, null, 2));
 
       // 1. Check if customer already exists by phone or email
       console.log(`[DEBUG] Step 1: Customer lookup`);
-      let existingCustomer: any = null;
-      
+      let existingCustomer: { id: string } | null = null;
+
       console.log(`[DEBUG] Searching customer by phone: ${data.phone}`);
       const { data: customerByPhone, error: phoneSearchError } = await supabaseAdmin
-        .from('customers')
-        .select('*')
-        .eq('phone', data.phone)
+        .from("customers")
+        .select("*")
+        .eq("phone", data.phone)
         .maybeSingle();
 
       if (phoneSearchError) {
-        logFailure('customers', 'SELECT_BY_PHONE', { phone: data.phone }, phoneSearchError);
+        logFailure("customers", "SELECT_BY_PHONE", { phone: data.phone }, phoneSearchError);
       }
 
       if (customerByPhone) {
@@ -336,13 +311,13 @@ export const createGuestBookingFn = createServerFn({ method: "POST" })
       } else if (data.email) {
         console.log(`[DEBUG] Searching customer by email: ${data.email}`);
         const { data: customerByEmail, error: emailSearchError } = await supabaseAdmin
-          .from('customers')
-          .select('*')
-          .eq('email', data.email)
+          .from("customers")
+          .select("*")
+          .eq("email", data.email)
           .maybeSingle();
 
         if (emailSearchError) {
-          logFailure('customers', 'SELECT_BY_EMAIL', { email: data.email }, emailSearchError);
+          logFailure("customers", "SELECT_BY_EMAIL", { email: data.email }, emailSearchError);
         }
         if (customerByEmail) {
           console.log(`[DEBUG] Found customer by email: ${customerByEmail.id}`);
@@ -355,7 +330,7 @@ export const createGuestBookingFn = createServerFn({ method: "POST" })
       if (!customerId) {
         console.log(`[DEBUG] Step 2: Creating new customer`);
         const { data: newCustomer, error: createCustomerError } = await supabaseAdmin
-          .from('customers')
+          .from("customers")
           .insert({
             name: data.fullName,
             email: data.email || null,
@@ -365,12 +340,12 @@ export const createGuestBookingFn = createServerFn({ method: "POST" })
             address: data.address || null,
             referral_source: data.howHeard || null,
           })
-          .select('id')
+          .select("id")
           .single();
 
         if (createCustomerError || !newCustomer) {
           console.error(`[DEBUG] Failed to create customer:`, createCustomerError);
-          logFailure('customers', 'INSERT', { phone: data.phone }, createCustomerError);
+          logFailure("customers", "INSERT", { phone: data.phone }, createCustomerError);
           throw new Error(`Failed to create customer: ${createCustomerError?.message}`);
         }
         customerId = newCustomer.id;
@@ -388,23 +363,25 @@ export const createGuestBookingFn = createServerFn({ method: "POST" })
       const gstAmount = Math.round(taxableAmount * (gstRate / 100));
       const totalAmount = taxableAmount + gstAmount;
 
-      const depositAmount = data.paymentSchedule === 'book_slot' ? 2000 : totalAmount;
+      const depositAmount = data.paymentSchedule === "book_slot" ? 2000 : totalAmount;
       const balanceDue = Math.max(0, totalAmount - depositAmount);
 
-      console.log(`[DEBUG] Amounts: Base=${baseAmount}, Discount=${discount}, Taxable=${taxableAmount}, GST=${gstAmount}, Total=${totalAmount}, Deposit=${depositAmount}, Balance=${balanceDue}`);
+      console.log(
+        `[DEBUG] Amounts: Base=${baseAmount}, Discount=${discount}, Taxable=${taxableAmount}, GST=${gstAmount}, Total=${totalAmount}, Deposit=${depositAmount}, Balance=${balanceDue}`,
+      );
 
       // 4. Create PENDING booking
       console.log(`[DEBUG] Step 4: Creating pending booking`);
       const { data: booking, error: bookingError } = await supabaseAdmin
-        .from('bookings')
+        .from("bookings")
         .insert({
           customer_id: customerId,
           departure_id: data.departureId || null,
           journey_id: data.journeyId || null,
           coupon_id: data.couponId || null,
-          status: 'CREATED',
-          booking_status: 'PENDING',
-          payment_status: 'PENDING',
+          status: "CREATED",
+          booking_status: "PENDING",
+          payment_status: "PENDING",
           traveller_count: 1,
           base_amount: baseAmount,
           gst_rate: gstRate,
@@ -420,190 +397,196 @@ export const createGuestBookingFn = createServerFn({ method: "POST" })
           seat_preference: data.seatPreference || null,
           special_requests: data.specialRequests || null,
         })
-        .select('id, booking_id')
+        .select("id, booking_id")
         .single();
 
       if (bookingError || !booking) {
         console.error(`[DEBUG] Failed to create booking record:`, bookingError);
-        logFailure('bookings', 'INSERT', { customerId }, bookingError);
+        logFailure("bookings", "INSERT", { customerId }, bookingError);
         throw new Error(`Failed to create pending booking: ${bookingError?.message}`);
       }
 
       const bookingDbId = booking.id;
-      const bookingRef = (booking as any).booking_id;
+      const bookingRef = (booking as { booking_id: string }).booking_id;
       console.log(`[DEBUG] Created booking: ID=${bookingDbId}, Ref=${bookingRef}`);
 
       // 4b. Create primary traveller
       console.log(`[DEBUG] Step 4b: Creating primary traveller`);
-      const { error: travellerError } = await supabaseAdmin
-        .from('booking_travellers')
-        .insert({
-          booking_id: bookingDbId,
-          is_primary: true,
-          full_name: data.fullName,
-          phone: data.phone,
-          email: data.email || null,
-          gender: data.gender || null,
-          age: data.age ? parseInt(data.age) : null,
-          address: data.address || null,
-          guardian_number: data.guardianNumber || null,
-          seat_preference: data.seatPreference || null,
-          room_sharing: data.sharingType || null,
-          heard_from: data.howHeard || null,
-          referred_by: data.referredBy || null,
-          aadhaar_doc_url: data.aadharUrl || null,
-          photo_url: data.profileUrl || null,
-        });
+      const { error: travellerError } = await supabaseAdmin.from("booking_travellers").insert({
+        booking_id: bookingDbId,
+        is_primary: true,
+        full_name: data.fullName,
+        phone: data.phone,
+        email: data.email || null,
+        gender: data.gender || null,
+        age: data.age ? parseInt(data.age) : null,
+        address: data.address || null,
+        guardian_number: data.guardianNumber || null,
+        seat_preference: data.seatPreference || null,
+        room_sharing: data.sharingType || null,
+        heard_from: data.howHeard || null,
+        referred_by: data.referredBy || null,
+        aadhaar_doc_url: data.aadharUrl || null,
+        photo_url: data.profileUrl || null,
+      });
 
       if (travellerError) {
         console.error(`[DEBUG] Failed to create primary traveller:`, travellerError);
-        logFailure('booking_travellers', 'INSERT', { booking_id: bookingDbId }, travellerError);
+        logFailure("booking_travellers", "INSERT", { booking_id: bookingDbId }, travellerError);
         throw new Error(`Failed to create primary traveller: ${travellerError.message}`);
       }
       console.log(`[DEBUG] Primary traveller created successfully`);
 
       // 5. Create PENDING payment record
       console.log(`[DEBUG] Step 5: Creating pending payment record`);
-      const { error: paymentError } = await supabaseAdmin
-        .from('payments')
-        .insert({
-          booking_id: bookingDbId,
-          amount: depositAmount,
-          currency: 'INR',
-          status: 'PENDING',
-          // `gateway` column added by migration v16; `payment_gateway` is the old column name
-          gateway: 'cashfree',
-          payment_gateway: 'cashfree',
-        });
+      const { error: paymentError } = await supabaseAdmin.from("payments").insert({
+        booking_id: bookingDbId,
+        amount: depositAmount,
+        currency: "INR",
+        status: "PENDING",
+        // `gateway` column added by migration v16; `payment_gateway` is the old column name
+        gateway: "razorpay",
+        payment_gateway: "razorpay",
+      });
 
       if (paymentError) {
         console.error(`[DEBUG] Failed to create pending payment:`, paymentError);
-        logFailure('payments', 'INSERT', { booking_id: bookingDbId }, paymentError);
+        logFailure("payments", "INSERT", { booking_id: bookingDbId }, paymentError);
         throw new Error(`Failed to create pending payment record: ${paymentError.message}`);
       }
       console.log(`[DEBUG] Pending payment created successfully`);
 
       // 6. Create booking timeline event
       console.log(`[DEBUG] Step 6: Creating booking timeline event`);
-      const { error: timelineError } = await supabaseAdmin
-        .from('booking_timeline')
-        .insert({
-          booking_id: bookingDbId,
-          event: 'BOOKING_CREATED',
-          description: 'Customer completed booking form securely on server',
-          actor: 'SYSTEM',
-        });
+      const { error: timelineError } = await supabaseAdmin.from("booking_timeline").insert({
+        booking_id: bookingDbId,
+        event: "BOOKING_CREATED",
+        description: "Customer completed booking form securely on server",
+        actor: "SYSTEM",
+      });
 
       if (timelineError) {
         console.error(`[DEBUG] Failed to create timeline event:`, timelineError);
-        logFailure('booking_timeline', 'INSERT', { booking_id: bookingDbId }, timelineError);
+        logFailure("booking_timeline", "INSERT", { booking_id: bookingDbId }, timelineError);
       }
       console.log(`[DEBUG] Timeline event created successfully`);
 
-      // 7. Create Cashfree order
-      console.log(`[DEBUG] Step 7: Creating Cashfree order`);
-      const CASHFREE_ENV = process.env.CASHFREE_ENVIRONMENT ?? "SANDBOX";
-      const CASHFREE_API_BASE =
-        CASHFREE_ENV === "PRODUCTION"
-          ? "https://api.cashfree.com/pg"
-          : "https://sandbox.cashfree.com/pg";
+      // ─── Step 7: Server-side price validation ───────────────────────────────
+      // SECURITY: Re-calculate the amount on the server using departure base_price.
+      // This prevents any client-side amount tampering.
+      console.log(`[DEBUG] Step 7: Server-side price validation`);
+      let serverBasePrice = data.priceBeforeDiscount; // fallback to client value
 
-      const CASHFREE_HEADERS = {
-        "x-api-version": "2023-08-01",
-        "x-client-id": process.env.CASHFREE_APP_ID ?? "",
-        "x-client-secret": process.env.CASHFREE_SECRET_KEY ?? "",
-        "Content-Type": "application/json",
-      };
+      if (data.departureId) {
+        const { data: dep } = await supabaseAdmin
+          .from("departures")
+          .select("base_price")
+          .eq("id", data.departureId)
+          .single();
+        if (dep?.base_price) {
+          serverBasePrice = dep.base_price;
+          // Apply sharing modifier
+          if (data.sharingType === "double") serverBasePrice += 800;
+          else if (data.sharingType === "triple") serverBasePrice += 500;
+          // Apply transport modifier
+          if (data.transportType === "sleeper") serverBasePrice += 1000;
+          console.log(`[DEBUG] Server-calculated base price: ${serverBasePrice}`);
+        }
+      }
 
-      const orderId = `NM_${bookingRef}_${Date.now()}`;
-      const endpoint = `${CASHFREE_API_BASE}/orders`;
-      const requestBody = {
-        order_id: orderId,
-        order_amount: depositAmount,
-        order_currency: "INR",
-        customer_details: {
-          customer_id: bookingDbId,
+      // Re-validate coupon server-side if provided
+      let serverDiscount = 0;
+      if (data.couponId) {
+        const { data: coupon } = await supabaseAdmin
+          .from("coupons")
+          .select(
+            "discount_type, discount_value, max_discount_amount, valid_until, is_active, max_redemptions, current_redemptions",
+          )
+          .eq("id", data.couponId)
+          .single();
+        if (coupon && coupon.is_active) {
+          const notExpired = !coupon.valid_until || new Date(coupon.valid_until) >= new Date();
+          const notExhausted =
+            coupon.max_redemptions === null || coupon.current_redemptions < coupon.max_redemptions;
+          if (notExpired && notExhausted) {
+            if (coupon.discount_type === "PERCENTAGE" || coupon.discount_type === "PERCENT") {
+              serverDiscount = Math.round((serverBasePrice * coupon.discount_value) / 100);
+            } else {
+              serverDiscount = coupon.discount_value;
+            }
+            if (coupon.max_discount_amount)
+              serverDiscount = Math.min(serverDiscount, coupon.max_discount_amount);
+            serverDiscount = Math.min(serverDiscount, serverBasePrice);
+          }
+        }
+      }
+
+      const serverTaxable = Math.max(0, serverBasePrice - serverDiscount);
+      const serverGst = Math.round(serverTaxable * 0.05);
+      const serverTotal = serverTaxable + serverGst;
+      const serverDeposit = data.paymentSchedule === "book_slot" ? 2000 : serverTotal;
+
+      console.log(
+        `[DEBUG] Server amounts — base: ${serverBasePrice}, discount: ${serverDiscount}, taxable: ${serverTaxable}, gst: ${serverGst}, total: ${serverTotal}, deposit: ${serverDeposit}`,
+      );
+
+      // ─── Step 8: Create Razorpay order ──────────────────────────────────────
+      console.log(`[DEBUG] Step 8: Creating Razorpay order via API`);
+      const razorpayOrder = await createRazorpayOrder({
+        amount: serverDeposit * 100, // Razorpay expects paise
+        currency: "INR",
+        receipt: bookingRef,
+        notes: {
+          booking_id: bookingDbId,
           customer_name: data.fullName,
-          customer_email: data.email || 'noreply@nomadiktravels.com',
-          customer_phone: data.phone,
         },
-        order_meta: {
-          return_url: `${process.env.VITE_APP_URL ?? "http://localhost:3000"}/booking/success?booking_id=${bookingDbId}&order_id={order_id}`,
-          notify_url: `${process.env.VITE_APP_URL ?? "http://localhost:3000"}/api/cashfree/webhook`,
-        },
-        order_note: `Nomadik Booking ${bookingRef}`,
-      };
-
-      console.log(`[DEBUG] Cashfree API Request:`, JSON.stringify(requestBody, null, 2));
-
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: CASHFREE_HEADERS,
-        body: JSON.stringify(requestBody),
       });
 
-      const contentType = response.headers.get("content-type") || "";
-      const isHtml = contentType.includes("text/html");
+      const razorpayOrderId = razorpayOrder.id;
+      console.log(`[DEBUG] Razorpay order created: ${razorpayOrderId}`);
 
-      if (!response.ok) {
-        const responseBodyStr = await response.text();
-        console.error(`\n=== API ERROR LOG ===\nEndpoint: ${endpoint}\nStatus: ${response.status}\nRequest: ${JSON.stringify(requestBody)}\nResponse: ${responseBodyStr}\n=====================\n`);
-        
-        if (isHtml) {
-          throw new Error(`Cashfree API returned an HTML error page (Status ${response.status}). Gateway may be down.`);
-        }
-        
-        let errJson = {};
-        try { errJson = JSON.parse(responseBodyStr); } catch(e) {}
-        logFailure('cashfree_orders', 'CREATE_ORDER', { orderId }, errJson);
-        throw new Error(`Cashfree order creation failed: ${responseBodyStr}`);
-      }
-
-      if (isHtml) {
-        const htmlBody = await response.text();
-        console.error(`[DEBUG] Cashfree returned HTML on a 200 response:`, htmlBody.slice(0, 500));
-        throw new Error(`Cashfree returned HTML on a successful status. Body: ${htmlBody.slice(0, 100)}...`);
-      }
-
-      const orderData = await response.json();
-      console.log(`[DEBUG] Cashfree response:`, JSON.stringify(orderData, null, 2));
-      const paymentSessionId: string = orderData.payment_session_id;
-
-      // 8. Update cashfree_order_id inside booking table
-      console.log(`[DEBUG] Step 8: Updating cashfree order ID in DB`);
+      // ─── Step 9: Update razorpay_order_id in booking ────────────────────────
+      console.log(`[DEBUG] Step 9: Saving razorpay_order_id to booking`);
       const { error: updateOrderError } = await supabaseAdmin
-        .from('bookings')
-        .update({ cashfree_order_id: orderId })
-        .eq('id', bookingDbId);
+        .from("bookings")
+        .update({ razorpay_order_id: razorpayOrderId })
+        .eq("id", bookingDbId);
 
       if (updateOrderError) {
-        console.error(`[DEBUG] Failed to update cashfree_order_id:`, updateOrderError);
-        logFailure('bookings', 'UPDATE_CASHFREE_ORDER', { id: bookingDbId, cashfree_order_id: orderId }, updateOrderError);
+        console.error(`[DEBUG] Failed to update razorpay_order_id:`, updateOrderError);
+        logFailure(
+          "bookings",
+          "UPDATE_RAZORPAY_ORDER",
+          { id: bookingDbId, razorpay_order_id: razorpayOrderId },
+          updateOrderError,
+        );
       }
-      
-      console.log(`[DEBUG] === SUCCESS === Returning payment session`);
+
+      console.log(`[DEBUG] === SUCCESS === Returning Razorpay order`);
       return {
         success: true as const,
         bookingId: bookingDbId,
         bookingRef,
-        paymentSessionId,
+        razorpayOrderId,
+        depositAmount: serverDeposit,
       };
-
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : "An unknown error occurred";
+      const errStack = error instanceof Error ? error.stack : undefined;
       console.error("\n=== FATAL ERROR in createGuestBookingFn ===");
       console.error("File: src/lib/booking-fns.ts");
       console.error("Function: createGuestBookingFn");
       console.error("Payload:", JSON.stringify(rawData, null, 2));
-      console.error("Error Message:", error.message);
-      console.error("Stack Trace:", error.stack);
+      console.error("Error Message:", errMsg);
+      console.error("Stack Trace:", errStack);
       console.error("===========================================\n");
-      
+
       // Ensure we NEVER throw natively here! Return JSON.
-      return { 
-        success: false as const, 
-        step: 'createGuestBookingFn', 
-        error: error.message || "An unknown error occurred",
-        details: error.stack
+      return {
+        success: false as const,
+        step: "createGuestBookingFn",
+        error: errMsg,
+        details: errStack,
       };
     }
   });

@@ -25,6 +25,7 @@ import { AddonsAndCouponsStep } from "./AddonsAndCouponsStep";
 import { ReviewSummaryStep } from "./ReviewSummaryStep";
 import { PaymentStep } from "./PaymentStep";
 import { SuccessConfirmationStep } from "./SuccessConfirmationStep";
+import { resolveBookingPricing } from "@/lib/pricing-fns";
 
 // Context or simple state for the wizard
 export type BookingState = {
@@ -32,10 +33,9 @@ export type BookingState = {
   travellers: any[];
   selectedSeats: string[];
   selectedRooms: string[];
-  addons: string[];
+  selectedRoomObj: any | null;
+  addons: any[];
   coupon: any | null;
-  baseAmount: number;
-  totalAmount: number;
 };
 
 const STEPS = [
@@ -73,10 +73,9 @@ export function BookingWizard({
     travellers: [],
     selectedSeats: [],
     selectedRooms: [],
+    selectedRoomObj: null,
     addons: [],
     coupon: null,
-    baseAmount: departures[0]?.basePrice || 0,
-    totalAmount: departures[0]?.basePrice || 0,
   });
 
   const nextStep = () => {
@@ -101,9 +100,18 @@ export function BookingWizard({
 
   const selectedDeparture = departures.find(d => d.id === bookingData.departureId);
 
+  const pricing = resolveBookingPricing({
+    journey,
+    departure: selectedDeparture,
+    room: bookingData.selectedRoomObj,
+    travellers: bookingData.travellers,
+    addons: bookingData.addons,
+    coupon: bookingData.coupon,
+  });
+
   if (isSidebar) {
     return (
-      <div id="booking-sidebar-card" className="space-y-4 font-sans text-xs">
+      <div id="booking-sidebar-card" className="space-y-4 font-sans text-xs pb-24 sm:pb-10">
         {/* Header */}
         <div className="flex items-center justify-between border-b pb-3">
           <div className="flex items-center gap-2">
@@ -149,8 +157,6 @@ export function BookingWizard({
                     setBookingData(prev => ({
                       ...prev,
                       departureId: depId || null,
-                      baseAmount: dep ? dep.basePrice : 0,
-                      totalAmount: dep ? dep.basePrice * Math.max(prev.travellers.length, 1) : 0
                     }));
                   }}
                   className="w-full h-9 px-3 pr-8 border border-border rounded-xl bg-white text-[11px] font-semibold font-poppins text-foreground focus:outline-none appearance-none cursor-pointer"
@@ -182,12 +188,12 @@ export function BookingWizard({
 
         {/* Current Step Component */}
         <div className="bg-white rounded-2xl border border-border p-3 sm:p-4 min-h-[300px]">
-          {currentStep === 0 && <TravellerDetailsStep data={bookingData} updateData={setBookingData} onNext={nextStep} isSidebar={isSidebar} />}
-          {currentStep === 1 && <AccommodationSelectionStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} isSidebar={isSidebar} />}
-          {currentStep === 2 && <AddonsAndCouponsStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} isSidebar={isSidebar} />}
-          {currentStep === 3 && <ReviewSummaryStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} isSidebar={isSidebar} />}
-          {currentStep === 4 && <PaymentStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} isSidebar={isSidebar} />}
-          {currentStep === 5 && <SuccessConfirmationStep data={bookingData} journey={journey} isSidebar={isSidebar} />}
+          {currentStep === 0 && <TravellerDetailsStep data={bookingData} updateData={setBookingData} onNext={nextStep} isSidebar={isSidebar} pricing={pricing} departures={departures} />}
+          {currentStep === 1 && <AccommodationSelectionStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} isSidebar={isSidebar} pricing={pricing} />}
+          {currentStep === 2 && <AddonsAndCouponsStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} isSidebar={isSidebar} pricing={pricing} />}
+          {currentStep === 3 && <ReviewSummaryStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} isSidebar={isSidebar} pricing={pricing} />}
+          {currentStep === 4 && <PaymentStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} isSidebar={isSidebar} pricing={pricing} />}
+          {currentStep === 5 && <SuccessConfirmationStep data={bookingData} journey={journey} isSidebar={isSidebar} pricing={pricing} />}
         </div>
 
         {/* Sidebar Mini Summary Accordion (only visible before completion) */}
@@ -195,12 +201,12 @@ export function BookingWizard({
           <div className="bg-muted/10 border border-border rounded-2xl p-3 space-y-2 font-sans">
             <div className="flex justify-between items-center text-xs font-bold text-primary">
               <span>Total Billable</span>
-              <span className="text-sm text-accent">₹{bookingData.totalAmount.toLocaleString('en-IN')}</span>
+              <span className="text-sm text-accent">₹{pricing.total.toLocaleString('en-IN')}</span>
             </div>
             {bookingData.travellers.length > 0 && (
               <div className="text-[10px] text-muted-foreground flex justify-between font-medium">
-                <span>{bookingData.travellers.length} Explorer{bookingData.travellers.length > 1 ? 's' : ''} x ₹{bookingData.baseAmount.toLocaleString('en-IN')}</span>
-                {bookingData.selectedRooms.length > 0 && <span>+ Room Extra</span>}
+                <span>{bookingData.travellers.length} Explorer{bookingData.travellers.length > 1 ? 's' : ''} x ₹{pricing.effectiveBasePrice.toLocaleString('en-IN')}</span>
+                {pricing.roomModifier > 0 && <span>+ Room Extra</span>}
               </div>
             )}
           </div>
@@ -210,7 +216,7 @@ export function BookingWizard({
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-5 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8 font-sans">
+    <div className="max-w-7xl mx-auto px-5 pt-8 pb-32 sm:pb-16 grid grid-cols-1 lg:grid-cols-12 gap-8 font-sans">
       
       {/* LEFT CONTENT: Stepper & Form */}
       <div className="lg:col-span-8 space-y-6">
@@ -248,12 +254,9 @@ export function BookingWizard({
                 value={bookingData.departureId || ""}
                 onChange={(e) => {
                   const depId = e.target.value;
-                  const dep = departures.find(d => d.id === depId);
                   setBookingData(prev => ({
                     ...prev,
                     departureId: depId || null,
-                    baseAmount: dep ? dep.basePrice : 0,
-                    totalAmount: dep ? dep.basePrice * Math.max(prev.travellers.length, 1) : 0
                   }));
                 }}
                 className="w-full h-11 px-4 pr-10 border border-border rounded-xl bg-white text-xs font-semibold font-poppins text-foreground focus:outline-none appearance-none cursor-pointer"
@@ -305,12 +308,12 @@ export function BookingWizard({
 
         {/* Form Container */}
         <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-border min-h-[400px]">
-          {currentStep === 0 && <TravellerDetailsStep data={bookingData} updateData={setBookingData} onNext={nextStep} isSidebar={isSidebar} />}
-          {currentStep === 1 && <AccommodationSelectionStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} isSidebar={isSidebar} />}
-          {currentStep === 2 && <AddonsAndCouponsStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} isSidebar={isSidebar} />}
-          {currentStep === 3 && <ReviewSummaryStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} isSidebar={isSidebar} />}
-          {currentStep === 4 && <PaymentStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} isSidebar={isSidebar} />}
-          {currentStep === 5 && <SuccessConfirmationStep data={bookingData} journey={journey} isSidebar={isSidebar} />}
+          {currentStep === 0 && <TravellerDetailsStep data={bookingData} updateData={setBookingData} onNext={nextStep} isSidebar={isSidebar} pricing={pricing} departures={departures} />}
+          {currentStep === 1 && <AccommodationSelectionStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} isSidebar={isSidebar} pricing={pricing} />}
+          {currentStep === 2 && <AddonsAndCouponsStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} isSidebar={isSidebar} pricing={pricing} />}
+          {currentStep === 3 && <ReviewSummaryStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} isSidebar={isSidebar} pricing={pricing} />}
+          {currentStep === 4 && <PaymentStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} isSidebar={isSidebar} pricing={pricing} />}
+          {currentStep === 5 && <SuccessConfirmationStep data={bookingData} journey={journey} isSidebar={isSidebar} pricing={pricing} />}
         </div>
       </div>
 
@@ -379,7 +382,7 @@ export function BookingWizard({
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground font-medium">Base Price per Explorer</span>
-                    <span className="font-semibold text-foreground">₹{bookingData.baseAmount.toLocaleString('en-IN')}</span>
+                    <span className="font-semibold text-foreground">₹{pricing.effectiveBasePrice.toLocaleString('en-IN')}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground font-medium">No. of Travellers</span>
@@ -399,7 +402,7 @@ export function BookingWizard({
                   <div className="flex justify-between items-end">
                     <span className="text-xs text-muted-foreground font-semibold">Total Amount Due</span>
                     <span className="text-2xl font-display font-bold text-primary">
-                      ₹{bookingData.totalAmount.toLocaleString('en-IN')}
+                      ₹{pricing.total.toLocaleString('en-IN')}
                     </span>
                   </div>
                   <span className="text-[9px] text-muted-foreground block text-right mt-1 font-poppins">Includes all taxes and fees</span>
