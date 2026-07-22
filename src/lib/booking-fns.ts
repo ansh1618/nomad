@@ -87,20 +87,20 @@ export const createBookingFn = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     try {
       // ── Server-side: re-fetch departure to recompute price (never trust client) ──
-      const { data: dep } = await supabaseAdmin
+      const { data: dep, error: depError } = await supabaseAdmin
         .from("departures")
-        .select("id, base_price, dynamic_price, journey_id, packages(starting_price)")
+        .select("id, base_price, dynamic_price, journey_id, journeys(starting_price, price)")
         .eq("id", data.departureId)
         .single();
 
       // Validate departure belongs to some journey (basic sanity check)
-      if (!dep) {
+      if (depError || !dep) {
         throw new Error(`Departure ${data.departureId} not found. Cannot create booking.`);
       }
 
       // Recompute pricing server-side
       const serverPricing = resolveBookingPricing({
-        journey: (dep as any).packages || {},
+        journey: (dep as any).journeys || {},
         departure: dep,
         room: null, // room modifier handled separately
         travellers: data.travellers,
@@ -157,7 +157,7 @@ export const createBookingFn = createServerFn({ method: "POST" })
         .single();
 
       if (bookingError || !booking) {
-        throw new Error("Failed to create booking record.");
+        throw new Error(`Failed to create booking record: ${bookingError?.message || "unknown error"}`);
       }
 
       const calculateAge = (dobString: string) => {
@@ -189,12 +189,13 @@ export const createBookingFn = createServerFn({ method: "POST" })
         guardian_number: t.emergencyContactPhone || null,
       }));
 
-      const { error: travellersError } = await supabase
+      // CRITICAL: use supabaseAdmin to bypass RLS on booking_travellers
+      const { error: travellersError } = await supabaseAdmin
         .from("booking_travellers")
         .insert(travellersToInsert);
 
       if (travellersError) {
-        throw new Error("Failed to save traveller details.");
+        throw new Error(`Failed to save traveller details: ${travellersError.message}`);
       }
 
       return {
@@ -204,9 +205,11 @@ export const createBookingFn = createServerFn({ method: "POST" })
       };
     } catch (e: unknown) {
       const errMsg = e instanceof Error ? e.message : "An unknown error occurred";
+      console.error("[createBookingFn] Error:", errMsg);
       return { success: false as const, error: errMsg };
     }
   });
+
 
 // ==========================================
 // RAZORPAY INTEGRATION — Server Functions

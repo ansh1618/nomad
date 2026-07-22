@@ -91,8 +91,13 @@ export function PaymentStep({
 
       const booking = await createBookingFn({ data: bookingPayload });
 
-      if (!booking || !booking.success || !booking.bookingId) {
-        throw new Error("Unable to initialize booking. Please check details and try again.");
+      if (!booking || !booking.success) {
+        const serverError = (booking as any)?.error || "Unable to initialize booking. Please check details and try again.";
+        throw new Error(serverError);
+      }
+
+      if (!booking.bookingId) {
+        throw new Error("Booking was created but ID is missing. Please contact support.");
       }
 
       const bookingId = booking.bookingId;
