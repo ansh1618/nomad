@@ -200,8 +200,10 @@ export function BookingWizard({
         {currentStep < 5 && (
           <div className="bg-muted/10 border border-border rounded-2xl p-3 space-y-2 font-sans">
             <div className="flex justify-between items-center text-xs font-bold text-primary">
-              <span>Total Billable</span>
-              <span className="text-sm text-accent">₹{pricing.total.toLocaleString('en-IN')}</span>
+              <span>{currentStep < 3 ? "Total (Excl. GST)" : "Total Billable"}</span>
+              <span className="text-sm text-accent">
+                ₹{(currentStep < 3 ? pricing.subtotal : pricing.total).toLocaleString('en-IN')}
+              </span>
             </div>
             {bookingData.travellers.length > 0 && (
               <div className="text-[10px] text-muted-foreground flex justify-between font-medium">
@@ -400,12 +402,16 @@ export function BookingWizard({
 
                 <div className="pt-4 border-t border-border">
                   <div className="flex justify-between items-end">
-                    <span className="text-xs text-muted-foreground font-semibold">Total Amount Due</span>
+                    <span className="text-xs text-muted-foreground font-semibold">
+                      {currentStep < 3 ? "Subtotal (Excl. GST)" : "Total Amount Due"}
+                    </span>
                     <span className="text-2xl font-display font-bold text-primary">
-                      ₹{pricing.total.toLocaleString('en-IN')}
+                      ₹{(currentStep < 3 ? pricing.subtotal : pricing.total).toLocaleString('en-IN')}
                     </span>
                   </div>
-                  <span className="text-[9px] text-muted-foreground block text-right mt-1 font-poppins">Includes all taxes and fees</span>
+                  <span className="text-[9px] text-muted-foreground block text-right mt-1 font-poppins">
+                    {currentStep < 3 ? "+ 5% GST added at review step" : "Includes all taxes and fees"}
+                  </span>
                 </div>
 
                 <div className="flex items-center gap-2 text-[10px] text-muted-foreground bg-emerald-50 border border-emerald-100 p-3 rounded-xl">

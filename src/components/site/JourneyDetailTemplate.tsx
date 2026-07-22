@@ -335,7 +335,7 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
     coupon: { discount: discountAmount }
   });
 
-  const finalPrice = pricing.total;
+  const finalPrice = pricing.subtotal;
 
   // Payment schedule dynamic amounts
   const payableNow = paymentSchedule === "full" ? finalPrice : pricing.deposit;
