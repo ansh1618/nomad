@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, User, Info } from "lucide-react";
+import { CheckCircle2, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function ReviewSummaryStep({ data, updateData, onNext, onPrev, journey, isSidebar = false, pricing }: any) {
@@ -94,17 +94,15 @@ export function ReviewSummaryStep({ data, updateData, onNext, onPrev, journey, i
               <span className="text-muted-foreground font-semibold flex-1">Subtotal</span>
               <span className="font-semibold text-right whitespace-nowrap">₹{pricing.subtotal.toLocaleString('en-IN')}</span>
             </div>
-            
-            <div className="flex justify-between items-center gap-4">
-              <span className="text-muted-foreground flex items-center gap-1 flex-1">GST (5%) <Info className="h-3 w-3" /></span>
-              <span className="font-semibold text-right whitespace-nowrap">₹{pricing.gst.toLocaleString('en-IN')}</span>
+            <div className="text-[11px] text-muted-foreground font-poppins mt-1">
+              Taxes will be calculated securely during Razorpay checkout.
             </div>
           </div>
 
           <div className="bg-muted/30 -mx-6 -mb-6 mt-6 p-6 rounded-b-2xl border-t border-border">
             <div className="flex justify-between items-end">
               <span className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Total Payable</span>
-              <span className="text-3xl font-display font-bold text-primary">₹{pricing.total.toLocaleString('en-IN')}</span>
+              <span className="text-3xl font-display font-bold text-primary">₹{(pricing.payableBeforeGst ?? pricing.subtotal).toLocaleString('en-IN')}</span>
             </div>
           </div>
         </div>

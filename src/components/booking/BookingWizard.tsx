@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   ArrowLeft,
@@ -19,7 +19,6 @@ import {
 import { Button } from "@/components/ui/button";
 
 import { TravellerDetailsStep } from "./TravellerDetailsStep";
-
 import { AccommodationSelectionStep } from "./AccommodationSelectionStep";
 import { AddonsAndCouponsStep } from "./AddonsAndCouponsStep";
 import { ReviewSummaryStep } from "./ReviewSummaryStep";
@@ -30,6 +29,9 @@ import { resolveBookingPricing } from "@/lib/pricing-fns";
 // Context or simple state for the wizard
 export type BookingState = {
   departureId: string | null;
+  selectedDeparture: any | null;
+  departureDate: string | null;
+  basePrice: number;
   travellers: any[];
   selectedSeats: string[];
   selectedRooms: string[];
@@ -62,14 +64,19 @@ export function BookingWizard({
     id: d.id,
     date: d.date ?? d.departure_date,
     returnDate: d.returnDate ?? d.return_date ?? d.departure_date,
-    basePrice: Number(d.basePrice ?? d.dynamic_price ?? d.base_price ?? 0),
+    basePrice: Number(d.basePrice ?? d.dynamic_price ?? d.base_price ?? journey?.starting_price ?? 6499),
     availableSeats: d.availableSeats ?? d.available_seats ?? 20
   }));
+
+  const initialDeparture = departures[0] || null;
 
   const [currentStep, setCurrentStep] = useState(0);
   const [activeSummaryTab, setActiveSummaryTab] = useState<"billing" | "itinerary" | "inclusions" | "info">("billing");
   const [bookingData, setBookingData] = useState<BookingState>({
-    departureId: departures[0]?.id || null,
+    departureId: initialDeparture?.id || null,
+    selectedDeparture: initialDeparture,
+    departureDate: initialDeparture?.date || null,
+    basePrice: initialDeparture?.basePrice || journey?.starting_price || 6499,
     travellers: [],
     selectedSeats: [],
     selectedRooms: [],
@@ -77,6 +84,41 @@ export function BookingWizard({
     addons: [],
     coupon: null,
   });
+
+  // Auto-select first departure and keep departure state synchronized
+  useEffect(() => {
+    if (departures.length > 0) {
+      const currentDep = departures.find((d) => d.id === bookingData.departureId);
+      if (!bookingData.departureId || !currentDep) {
+        const firstDep = departures[0];
+        setBookingData((prev) => ({
+          ...prev,
+          departureId: firstDep.id,
+          selectedDeparture: firstDep,
+          departureDate: firstDep.date,
+          basePrice: firstDep.basePrice,
+        }));
+      } else if (!bookingData.selectedDeparture || !bookingData.departureDate) {
+        setBookingData((prev) => ({
+          ...prev,
+          selectedDeparture: currentDep,
+          departureDate: currentDep.date,
+          basePrice: currentDep.basePrice,
+        }));
+      }
+    }
+  }, [departures, bookingData.departureId, bookingData.selectedDeparture, bookingData.departureDate]);
+
+  const handleDepartureChange = (depId: string) => {
+    const dep = departures.find((d) => d.id === depId);
+    setBookingData((prev) => ({
+      ...prev,
+      departureId: depId || null,
+      selectedDeparture: dep || null,
+      departureDate: dep?.date || null,
+      basePrice: dep?.basePrice || journey?.starting_price || 6499,
+    }));
+  };
 
   const nextStep = () => {
     setCurrentStep((prev) => Math.min(prev + 1, STEPS.length - 1));
@@ -98,7 +140,7 @@ export function BookingWizard({
     }
   };
 
-  const selectedDeparture = departures.find(d => d.id === bookingData.departureId);
+  const selectedDeparture = departures.find(d => d.id === bookingData.departureId) || bookingData.selectedDeparture;
 
   const pricing = resolveBookingPricing({
     journey,
@@ -151,14 +193,7 @@ export function BookingWizard({
               <div className="relative">
                 <select
                   value={bookingData.departureId || ""}
-                  onChange={(e) => {
-                    const depId = e.target.value;
-                    const dep = departures.find(d => d.id === depId);
-                    setBookingData(prev => ({
-                      ...prev,
-                      departureId: depId || null,
-                    }));
-                  }}
+                  onChange={(e) => handleDepartureChange(e.target.value)}
                   className="w-full h-9 px-3 pr-8 border border-border rounded-xl bg-white text-[11px] font-semibold font-poppins text-foreground focus:outline-none appearance-none cursor-pointer"
                 >
                   {departures.length === 0 ? (
@@ -200,9 +235,9 @@ export function BookingWizard({
         {currentStep < 5 && (
           <div className="bg-muted/10 border border-border rounded-2xl p-3 space-y-2 font-sans">
             <div className="flex justify-between items-center text-xs font-bold text-primary">
-              <span>{currentStep < 3 ? "Total (Excl. GST)" : "Total Billable"}</span>
+              <span>Total (Excl. GST)</span>
               <span className="text-sm text-accent">
-                ₹{(currentStep < 3 ? pricing.subtotal : pricing.total).toLocaleString('en-IN')}
+                ₹{(pricing.payableBeforeGst ?? pricing.subtotal).toLocaleString('en-IN')}
               </span>
             </div>
             {bookingData.travellers.length > 0 && (
@@ -254,13 +289,7 @@ export function BookingWizard({
             <div className="relative flex-1 w-full">
               <select
                 value={bookingData.departureId || ""}
-                onChange={(e) => {
-                  const depId = e.target.value;
-                  setBookingData(prev => ({
-                    ...prev,
-                    departureId: depId || null,
-                  }));
-                }}
+                onChange={(e) => handleDepartureChange(e.target.value)}
                 className="w-full h-11 px-4 pr-10 border border-border rounded-xl bg-white text-xs font-semibold font-poppins text-foreground focus:outline-none appearance-none cursor-pointer"
               >
                 {departures.length === 0 ? (

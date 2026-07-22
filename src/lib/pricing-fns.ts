@@ -90,9 +90,10 @@ export function resolveBookingPricing({
     roomModifier,
     addonsTotal,
     couponDiscount,
-    subtotal,
+    subtotal,        // pre-coupon, pre-GST
+    payableBeforeGst: taxableAmount, // post-coupon, pre-GST — this is what the user pays (before GST)
     gst,
-    total,
+    total,           // post-coupon, post-GST — this is what Razorpay charges
     deposit,
     remaining
   };
