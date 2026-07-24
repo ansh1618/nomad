@@ -211,9 +211,15 @@ export const createBookingFn = createServerFn({ method: "POST" })
       const customerPhone = primaryTraveller.phone || "";
       const customerEmail = primaryTraveller.email || "";
 
+      const isValidUuid = (val: any) => typeof val === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+
+      const cleanUserId = isValidUuid(data.userId) ? data.userId : null;
+      const cleanCouponId = isValidUuid(data.couponId) ? data.couponId : null;
+      const cleanHotelId = isValidUuid(data.hotelId) ? data.hotelId : null;
+
       // 3. TRY PL/pgSQL Atomic Transaction first
       const { data: txResult, error: txError } = await supabaseAdmin.rpc("create_complete_booking_tx", {
-        p_user_id: data.userId || null,
+        p_user_id: cleanUserId,
         p_customer_name: customerName,
         p_customer_phone: customerPhone,
         p_customer_email: customerEmail,
@@ -222,7 +228,7 @@ export const createBookingFn = createServerFn({ method: "POST" })
         p_destination_code: destCode,
         p_travellers: data.travellers,
         p_addons: data.addons || [],
-        p_coupon_id: data.couponId || null,
+        p_coupon_id: cleanCouponId,
         p_base_amount: serverPricing.effectiveBasePrice * serverPricing.travellersCount,
         p_addon_amount: addonAmount,
         p_discount_amount: serverDiscount,
@@ -254,11 +260,14 @@ export const createBookingFn = createServerFn({ method: "POST" })
       // 4. FALLBACK: Atomic multi-step save via JS
       const bookingRef = `NMK-${destCode}-${new Date().toISOString().slice(2, 4)}${new Date().toISOString().slice(5, 7)}${Math.floor(10 + Math.random() * 90)}`;
 
-      const { data: booking, error: bookingErr } = await supabaseAdmin
+      let booking: any = null;
+      let bookingErr: any = null;
+
+      const primaryInsertRes = await supabaseAdmin
         .from("bookings")
         .insert({
           booking_id: bookingRef,
-          user_id: data.userId || null,
+          user_id: cleanUserId,
           departure_id: data.departureId,
           journey_id: journey.id || null,
           status: "PAYMENT_PENDING",
@@ -268,21 +277,52 @@ export const createBookingFn = createServerFn({ method: "POST" })
           base_amount: serverPricing.effectiveBasePrice * serverPricing.travellersCount,
           addon_amount: addonAmount,
           gst_amount: gstAmount,
-          coupon_id: data.couponId || null,
+          coupon_id: cleanCouponId,
           discount_amount: serverDiscount,
           total_amount: totalAmount,
           amount_paid: 0,
           balance_due: totalAmount,
           room_sharing: data.roomSharing || null,
           pickup_point: data.pickupPoint || null,
-          assigned_hotel_id: data.hotelId || null,
+          assigned_hotel_id: cleanHotelId,
           booking_source: "Website",
         })
         .select("id, booking_id")
         .single();
 
+      booking = primaryInsertRes.data;
+      bookingErr = primaryInsertRes.error;
+
+      // Retry fallback with core fields if optional columns fail
+      if (bookingErr && (bookingErr.message?.includes("column") || bookingErr.message?.includes("schema cache"))) {
+        console.warn("[createBookingFn] Stripping optional columns and retrying insert...", bookingErr.message);
+        const retryRes = await supabaseAdmin
+          .from("bookings")
+          .insert({
+            booking_id: bookingRef,
+            user_id: cleanUserId,
+            departure_id: data.departureId,
+            journey_id: journey.id || null,
+            status: "PAYMENT_PENDING",
+            booking_status: "Pending",
+            payment_status: "Pending",
+            traveller_count: data.travellers.length,
+            base_amount: serverPricing.effectiveBasePrice * serverPricing.travellersCount,
+            total_amount: totalAmount,
+            discount_amount: serverDiscount,
+            room_sharing: data.roomSharing || null,
+            pickup_point: data.pickupPoint || null,
+          })
+          .select("id, booking_id")
+          .single();
+
+        booking = retryRes.data;
+        bookingErr = retryRes.error;
+      }
+
       if (bookingErr || !booking) {
-        throw new Error("Unable to save booking record. Please verify details.");
+        console.error("[createBookingFn] Booking insert failed:", bookingErr);
+        throw new Error(bookingErr?.message || "Unable to save booking record. Please verify details.");
       }
 
       const bookingDbId = booking.id;
