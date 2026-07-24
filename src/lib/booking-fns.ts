@@ -271,7 +271,7 @@ export const createBookingFn = createServerFn({ method: "POST" })
         }
       };
 
-      // Tier 1: Full payload
+      // Tier 1: Full ERP payload
       let res = await safeBookingInsert({
         booking_id: bookingRef,
         user_id: cleanUserId,
@@ -300,9 +300,9 @@ export const createBookingFn = createServerFn({ method: "POST" })
         booking_source: "Website",
       });
 
-      // Tier 2: Clean core payload
+      // Tier 2: Standard payload (no extra amounts or hotel assignment)
       if (res.error) {
-        console.warn("[createBookingFn] Tier 1 insert failed, trying Tier 2 clean payload:", res.error.message || res.error);
+        console.warn("[createBookingFn] Tier 1 insert failed, trying Tier 2 standard payload:", res.error.message || res.error);
         res = await safeBookingInsert({
           booking_id: bookingRef,
           user_id: cleanUserId,
@@ -314,31 +314,36 @@ export const createBookingFn = createServerFn({ method: "POST" })
           status: "PAYMENT_PENDING",
           booking_status: "Pending",
           payment_status: "Pending",
-          traveller_count: data.travellers.length,
           travellers_count: data.travellers.length,
           total_amount: totalAmount,
-          final_amount: totalAmount,
           room_sharing: data.roomSharing || null,
           pickup_point: data.pickupPoint || null,
         });
       }
 
-      // Tier 3: Bare minimum core payload
+      // Tier 3: Core minimal payload (strip count variations)
       if (res.error) {
-        console.warn("[createBookingFn] Tier 2 insert failed, trying Tier 3 bare minimum payload:", res.error.message || res.error);
+        console.warn("[createBookingFn] Tier 2 insert failed, trying Tier 3 core payload:", res.error.message || res.error);
         res = await safeBookingInsert({
+          booking_id: bookingRef,
           user_id: cleanUserId,
           customer_name: customerName,
           phone: customerPhone,
           email: customerEmail,
           departure_id: data.departureId,
+          journey_id: journey.id || null,
           status: "PAYMENT_PENDING",
-          booking_status: "Pending",
-          payment_status: "Pending",
-          traveller_count: data.travellers.length,
-          travellers_count: data.travellers.length,
           total_amount: totalAmount,
-          final_amount: totalAmount,
+        });
+      }
+
+      // Tier 4: Absolute bare minimum payload
+      if (res.error) {
+        console.warn("[createBookingFn] Tier 3 insert failed, trying Tier 4 bare minimum payload:", res.error.message || res.error);
+        res = await safeBookingInsert({
+          departure_id: data.departureId,
+          status: "PAYMENT_PENDING",
+          total_amount: totalAmount,
         });
       }
 
