@@ -126,14 +126,43 @@ export const createBookingFn = createServerFn({ method: "POST" })
     try {
       console.log(`[createBookingFn] Processing booking for departure: ${data.departureId}`);
 
-      // 1. Fetch Departure & Journey
-      const { data: dep, error: depError } = await supabaseAdmin
-        .from("departures")
-        .select("id, base_price, dynamic_price, journey_id, journeys(id, starting_price, price, name, slug, destination)")
-        .eq("id", data.departureId)
-        .single();
+      // 1. Fetch Departure & Journey safely with clean column selection
+      let dep: any = null;
+      let depError: any = null;
 
-      if (depError || !dep) {
+      const { data: joinedDep, error: joinedErr } = await supabaseAdmin
+        .from("departures")
+        .select("id, base_price, journey_id, journeys(id, starting_price, name, slug)")
+        .eq("id", data.departureId)
+        .maybeSingle();
+
+      if (joinedDep) {
+        dep = joinedDep;
+      } else {
+        console.warn("[createBookingFn] Joined departure fetch failed, trying direct select:", joinedErr?.message);
+        const { data: directDep, error: directErr } = await supabaseAdmin
+          .from("departures")
+          .select("id, base_price, journey_id")
+          .eq("id", data.departureId)
+          .maybeSingle();
+
+        if (directDep) {
+          dep = directDep;
+          if (dep.journey_id) {
+            const { data: jData } = await supabaseAdmin
+              .from("journeys")
+              .select("id, starting_price, name, slug")
+              .eq("id", dep.journey_id)
+              .maybeSingle();
+            if (jData) dep.journeys = jData;
+          }
+        } else {
+          depError = directErr || joinedErr;
+        }
+      }
+
+      if (!dep) {
+        console.error(`[createBookingFn] Departure lookup failed for ID: ${data.departureId}`, depError);
         throw new Error("Selected departure batch could not be found.");
       }
 
