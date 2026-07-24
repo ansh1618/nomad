@@ -257,74 +257,78 @@ export const createBookingFn = createServerFn({ method: "POST" })
 
       console.warn("[createBookingFn] PL/pgSQL RPC fallback activated:", txError?.message);
 
-      // 4. FALLBACK: Atomic multi-step save via JS
+      // 4. FALLBACK: Exception-safe multi-step save via JS
       const bookingRef = `NMK-${destCode}-${new Date().toISOString().slice(2, 4)}${new Date().toISOString().slice(5, 7)}${Math.floor(10 + Math.random() * 90)}`;
 
-      let booking: any = null;
-      let bookingErr: any = null;
+      const safeBookingInsert = async (payload: Record<string, any>) => {
+        try {
+          const res = await supabaseAdmin.from("bookings").insert(payload).select("id, booking_id");
+          if (res.error) return { data: null, error: res.error };
+          if (res.data && res.data.length > 0) return { data: res.data[0], error: null };
+          return { data: null, error: new Error("No rows returned from booking insert") };
+        } catch (err: any) {
+          return { data: null, error: err };
+        }
+      };
 
-      const primaryInsertRes = await supabaseAdmin
-        .from("bookings")
-        .insert({
+      // Tier 1: Full payload
+      let res = await safeBookingInsert({
+        booking_id: bookingRef,
+        user_id: cleanUserId,
+        departure_id: data.departureId,
+        journey_id: journey.id || null,
+        status: "PAYMENT_PENDING",
+        booking_status: "Pending",
+        payment_status: "Pending",
+        traveller_count: data.travellers.length,
+        base_amount: serverPricing.effectiveBasePrice * serverPricing.travellersCount,
+        addon_amount: addonAmount,
+        gst_amount: gstAmount,
+        coupon_id: cleanCouponId,
+        discount_amount: serverDiscount,
+        total_amount: totalAmount,
+        amount_paid: 0,
+        balance_due: totalAmount,
+        room_sharing: data.roomSharing || null,
+        pickup_point: data.pickupPoint || null,
+        assigned_hotel_id: cleanHotelId,
+        booking_source: "Website",
+      });
+
+      // Tier 2: Clean core payload (without base_amount, addon_amount, gst_amount)
+      if (res.error) {
+        console.warn("[createBookingFn] Tier 1 insert failed, trying Tier 2 clean payload:", res.error.message || res.error);
+        res = await safeBookingInsert({
           booking_id: bookingRef,
           user_id: cleanUserId,
           departure_id: data.departureId,
           journey_id: journey.id || null,
           status: "PAYMENT_PENDING",
-          booking_status: "Pending",
-          payment_status: "Pending",
           traveller_count: data.travellers.length,
-          base_amount: serverPricing.effectiveBasePrice * serverPricing.travellersCount,
-          addon_amount: addonAmount,
-          gst_amount: gstAmount,
-          coupon_id: cleanCouponId,
-          discount_amount: serverDiscount,
           total_amount: totalAmount,
-          amount_paid: 0,
-          balance_due: totalAmount,
           room_sharing: data.roomSharing || null,
           pickup_point: data.pickupPoint || null,
-          assigned_hotel_id: cleanHotelId,
-          booking_source: "Website",
-        })
-        .select("id, booking_id")
-        .single();
-
-      booking = primaryInsertRes.data;
-      bookingErr = primaryInsertRes.error;
-
-      // Retry fallback with core fields if optional columns fail
-      if (bookingErr && (bookingErr.message?.includes("column") || bookingErr.message?.includes("schema cache"))) {
-        console.warn("[createBookingFn] Stripping optional columns and retrying insert...", bookingErr.message);
-        const retryRes = await supabaseAdmin
-          .from("bookings")
-          .insert({
-            booking_id: bookingRef,
-            user_id: cleanUserId,
-            departure_id: data.departureId,
-            journey_id: journey.id || null,
-            status: "PAYMENT_PENDING",
-            booking_status: "Pending",
-            payment_status: "Pending",
-            traveller_count: data.travellers.length,
-            base_amount: serverPricing.effectiveBasePrice * serverPricing.travellersCount,
-            total_amount: totalAmount,
-            discount_amount: serverDiscount,
-            room_sharing: data.roomSharing || null,
-            pickup_point: data.pickupPoint || null,
-          })
-          .select("id, booking_id")
-          .single();
-
-        booking = retryRes.data;
-        bookingErr = retryRes.error;
+        });
       }
 
-      if (bookingErr || !booking) {
-        console.error("[createBookingFn] Booking insert failed:", bookingErr);
-        throw new Error(bookingErr?.message || "Unable to save booking record. Please verify details.");
+      // Tier 3: Bare minimum core payload
+      if (res.error) {
+        console.warn("[createBookingFn] Tier 2 insert failed, trying Tier 3 bare minimum payload:", res.error.message || res.error);
+        res = await safeBookingInsert({
+          user_id: cleanUserId,
+          departure_id: data.departureId,
+          status: "PAYMENT_PENDING",
+          total_amount: totalAmount,
+        });
       }
 
+      if (res.error || !res.data) {
+        const errDetail = res.error?.message || "Database insert rejected";
+        console.error("[createBookingFn] All booking insert attempts failed:", errDetail);
+        throw new Error(errDetail);
+      }
+
+      const booking = res.data;
       const bookingDbId = booking.id;
 
       // Insert travellers
