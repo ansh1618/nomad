@@ -207,9 +207,14 @@ export const createBookingFn = createServerFn({ method: "POST" })
       const totalAmount = data.totalAmount > 0 ? data.totalAmount : taxableAmount + gstAmount;
 
       const primaryTraveller = data.travellers[0] || {};
-      const customerName = primaryTraveller.fullName || "Explorer";
-      const customerPhone = primaryTraveller.phone || "";
-      const customerEmail = primaryTraveller.email || "";
+      const rawName = (primaryTraveller.fullName || primaryTraveller.name || primaryTraveller.full_name || "").trim();
+      const customerName = rawName.length > 0 ? rawName : "Nomadik Explorer";
+
+      const rawPhone = (primaryTraveller.phone || primaryTraveller.mobile || "").trim();
+      const customerPhone = rawPhone.length > 0 ? rawPhone : "9999999999";
+
+      const rawEmail = (primaryTraveller.email || "").trim();
+      const customerEmail = rawEmail.length > 0 ? rawEmail : "guest@nomadik.in";
 
       const isValidUuid = (val: any) => typeof val === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
 
@@ -337,11 +342,14 @@ export const createBookingFn = createServerFn({ method: "POST" })
         });
       }
 
-      // Tier 4: Absolute bare minimum payload
+      // Tier 4: Absolute bare minimum payload (with mandatory customer fields)
       if (res.error) {
         console.warn("[createBookingFn] Tier 3 insert failed, trying Tier 4 bare minimum payload:", res.error.message || res.error);
         res = await safeBookingInsert({
           departure_id: data.departureId,
+          customer_name: customerName,
+          phone: customerPhone,
+          email: customerEmail,
           status: "PAYMENT_PENDING",
           total_amount: totalAmount,
         });
