@@ -275,6 +275,9 @@ export const createBookingFn = createServerFn({ method: "POST" })
       let res = await safeBookingInsert({
         booking_id: bookingRef,
         user_id: cleanUserId,
+        customer_name: customerName,
+        phone: customerPhone,
+        email: customerEmail,
         departure_id: data.departureId,
         journey_id: journey.id || null,
         status: "PAYMENT_PENDING",
@@ -295,12 +298,15 @@ export const createBookingFn = createServerFn({ method: "POST" })
         booking_source: "Website",
       });
 
-      // Tier 2: Clean core payload (without base_amount, addon_amount, gst_amount)
+      // Tier 2: Clean core payload
       if (res.error) {
         console.warn("[createBookingFn] Tier 1 insert failed, trying Tier 2 clean payload:", res.error.message || res.error);
         res = await safeBookingInsert({
           booking_id: bookingRef,
           user_id: cleanUserId,
+          customer_name: customerName,
+          phone: customerPhone,
+          email: customerEmail,
           departure_id: data.departureId,
           journey_id: journey.id || null,
           status: "PAYMENT_PENDING",
@@ -316,6 +322,9 @@ export const createBookingFn = createServerFn({ method: "POST" })
         console.warn("[createBookingFn] Tier 2 insert failed, trying Tier 3 bare minimum payload:", res.error.message || res.error);
         res = await safeBookingInsert({
           user_id: cleanUserId,
+          customer_name: customerName,
+          phone: customerPhone,
+          email: customerEmail,
           departure_id: data.departureId,
           status: "PAYMENT_PENDING",
           total_amount: totalAmount,
