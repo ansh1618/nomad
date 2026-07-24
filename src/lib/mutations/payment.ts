@@ -1,6 +1,8 @@
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
+import { confirmBookingAfterPayment } from '@/lib/booking-api'
 
 // ==========================================
 // CREATE RAZORPAY ORDER
@@ -24,56 +26,39 @@ export const createRazorpayOrderFn = createServerFn({ method: 'POST' })
       throw new Error('Razorpay credentials not configured. Please add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to environment variables.')
     }
 
-    // Create Razorpay order via REST API
-    const credentials = Buffer.from(`${keyId}:${keySecret}`).toString('base64')
+    const amountInPaise = Math.round(amount * 100)
+
     const response = await fetch('https://api.razorpay.com/v1/orders', {
       method: 'POST',
       headers: {
-        'Authorization': `Basic ${credentials}`,
         'Content-Type': 'application/json',
+        Authorization: `Basic ${Buffer.from(`${keyId}:${keySecret}`).toString('base64')}`,
       },
       body: JSON.stringify({
-        amount: Math.round(amount * 100), // Razorpay uses paise
+        amount: amountInPaise,
         currency,
-        receipt: bookingId,
-        notes: {
-          booking_id: bookingId,
-          payment_type: paymentType,
-        },
+        receipt: `rcpt_${bookingId.slice(0, 8)}_${Date.now()}`,
+        notes: { booking_id: bookingId, payment_type: paymentType },
       }),
     })
 
     if (!response.ok) {
-      const errBody = await response.json().catch(() => ({}))
-      throw new Error(`Razorpay order creation failed: ${JSON.stringify(errBody)}`)
+      const err = await response.json()
+      throw new Error(err.error?.description || 'Failed to create Razorpay order')
     }
 
-    const order = await response.json() as {
-      id: string
-      amount: number
-      currency: string
-      receipt: string
-    }
+    const order = await response.json()
 
-    // Create payment record in DB
-    const { error: paymentError } = await supabase.from('payments').insert({
+    await supabaseAdmin.from('payments').insert({
       booking_id: bookingId,
       amount,
       currency,
-      status: 'PENDING',
+      status: 'Pending',
       payment_type: paymentType,
+      gateway: 'razorpay',
       payment_gateway: 'RAZORPAY',
       gateway_order_id: order.id,
     })
-
-    if (paymentError) {
-      throw new Error(`Failed to create payment record: ${paymentError.message}`)
-    }
-
-    // Update booking with order ID
-    await supabase.from('bookings')
-      .update({ razorpay_order_id: order.id, updated_at: new Date().toISOString() })
-      .eq('id', bookingId)
 
     return {
       orderId: order.id,
@@ -113,73 +98,29 @@ export const verifyRazorpayPaymentFn = createServerFn({ method: 'POST' })
       throw new Error('Payment signature verification failed. Potential fraud detected.')
     }
 
-    // Update payment record
-    await supabase.from('payments')
-      .update({
-        status: 'SUCCESS',
-        gateway_payment_id: paymentId,
-        gateway_signature: signature,
-        gateway_order_id: orderId,
-        processed_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('gateway_order_id', orderId)
-
-    // Confirm the booking
-    const { data: booking, error: bookingError } = await supabase
-      .from('bookings')
-      .update({
-        status: 'CONFIRMED',
-        razorpay_payment_id: paymentId,
-        razorpay_signature: signature,
-        amount_paid: amountPaid,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', bookingId)
-      .select('id, booking_id, user_id, total_amount, departure_id')
-      .single()
-
-    if (bookingError) throw new Error(bookingError.message)
+    // Atomically confirm booking, update statuses, decrements seats, and notifies admin
+    await confirmBookingAfterPayment(
+      {
+        bookingId,
+        orderId,
+        paymentId,
+        signature,
+        amountPaid,
+        gateway: 'razorpay',
+      },
+      supabaseAdmin
+    )
 
     // Confirm seat/room inventory
-    await supabase
+    await supabaseAdmin
       .from('departure_inventory')
       .update({ status: 'BOOKED', booking_id: bookingId })
       .eq('booking_id', bookingId)
       .eq('status', 'LOCKED')
 
-    // Update departure seats count
-    const { data: dep } = await supabase
-      .from('departures')
-      .select('available_seats, booked_seats')
-      .eq('id', booking.departure_id)
-      .single()
-
-    if (dep) {
-      const travellerCount = await supabase
-        .from('booking_travellers')
-        .select('id', { count: 'exact' })
-        .eq('booking_id', bookingId)
-
-      const count = travellerCount.count ?? 1
-      await supabase.from('departures')
-        .update({
-          available_seats: Math.max(0, dep.available_seats - count),
-          booked_seats: (dep.booked_seats ?? 0) + count,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', booking.departure_id)
-    }
-
-    // Increment booking count on journey
-    try {
-      await supabase.rpc('increment', { table_name: 'journeys', field_name: 'booking_count', row_id: booking.departure_id })
-    } catch {}
-
     return {
       success: true,
-      bookingId: booking.id,
-      displayId: booking.booking_id,
+      message: 'Payment verified and booking confirmed successfully.',
     }
   })
 
