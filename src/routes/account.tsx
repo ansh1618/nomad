@@ -168,8 +168,28 @@ function AccountDashboard() {
 
   const loadBookings = async () => {
     if (!user) return;
-    const { data } = await supabase.from("bookings").select("*").eq("user_id", user.id);
-    if (data) setBookings(data);
+    const { data, error } = await supabase
+      .from("bookings")
+      .select(`
+        *,
+        departures (
+          id,
+          departure_date,
+          journeys (id, name, slug, hero_banner)
+        ),
+        booking_travellers (*),
+        booking_timeline (*),
+        payments (*)
+      `)
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+
+    if (!error && data) {
+      setBookings(data);
+    } else {
+      const { data: fallbackData } = await supabase.from("bookings").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
+      if (fallbackData) setBookings(fallbackData);
+    }
   };
 
   const loadWishlist = async () => {
@@ -356,24 +376,73 @@ function AccountDashboard() {
                   ) : (
                     <div className="grid grid-cols-1 gap-4">
                       {upcomingBookings.map((b) => {
-                        const journey = allJourneys.find(j => j.id === b.journey_id);
+                        const journeyName = b.departures?.journeys?.name || allJourneys.find(j => j.id === b.journey_id)?.name || "Nomadik Road Journey";
+                        const travelDate = b.departures?.departure_date ? new Date(b.departures.departure_date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : b.travel_date || "Upcoming";
+                        const travellersCount = b.traveller_count || b.travellers_count || 1;
+                        const isPaid = b.payment_status === "SUCCESS" || b.status === "CONFIRMED" || b.booking_status === "CONFIRMED";
+
                         return (
                           <div key={b.id} className="border border-border rounded-2xl p-5 space-y-4 shadow-sm hover:shadow-soft transition-all bg-card">
                             <div className="flex justify-between items-start flex-wrap gap-2">
                               <div>
-                                <span className="text-[10px] bg-secondary/10 text-secondary font-bold font-poppins px-2 py-0.5 rounded">
-                                  ID: {b.booking_id || "NOM-Pending"}
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[10px] bg-secondary/15 text-secondary font-bold font-poppins px-2 py-0.5 rounded">
+                                    ID: {b.booking_id || b.id?.slice(0, 8).toUpperCase() || "NOM-Pending"}
+                                  </span>
+                                  {b.room_sharing && (
+                                    <span className="text-[10px] bg-blue-50 text-blue-700 font-semibold px-2 py-0.5 rounded">
+                                      Stay: {b.room_sharing}
+                                    </span>
+                                  )}
+                                </div>
+                                <h4 className="font-display font-bold text-lg text-primary mt-1.5">{journeyName}</h4>
+                                <span className="text-xs text-muted-foreground block mt-0.5">
+                                  Departure: {travelDate} · {travellersCount} Explorer(s) {b.pickup_point ? `· Pickup: ${b.pickup_point}` : ''}
                                 </span>
-                                <h4 className="font-display font-bold text-lg text-primary mt-1.5">{journey?.name || "Premium Journey"}</h4>
-                                <span className="text-xs text-muted-foreground block mt-0.5">Travel Date: {b.travel_date || "To be decided"} · {b.travellers_count} Explorers</span>
                               </div>
+
                               <div className="flex flex-col items-end gap-1.5">
                                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded font-poppins ${
-                                  b.payment_status === "SUCCESS" ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"
+                                  isPaid ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"
                                 }`}>
-                                  Payment: {b.payment_status}
+                                  Payment: {isPaid ? "CONFIRMED" : b.payment_status || "PENDING"}
                                 </span>
-                                <span className="text-xs font-bold text-primary">₹{Number(b.final_amount).toLocaleString()}</span>
+                                <span className="text-sm font-bold text-primary">₹{Number(b.total_amount || b.final_amount || 0).toLocaleString("en-IN")}</span>
+                                {b.balance_due > 0 && (
+                                  <span className="text-[10px] text-amber-700 font-semibold">₹{Number(b.balance_due).toLocaleString("en-IN")} due</span>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Booking Status Timeline */}
+                            <div className="pt-3 border-t border-border space-y-2">
+                              <p className="text-[10px] font-poppins font-bold uppercase tracking-wider text-muted-foreground">
+                                Booking Timeline & Allocation
+                              </p>
+                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-[10px] font-poppins">
+                                <div className="p-2 rounded-xl border bg-emerald-50 border-emerald-200 text-emerald-800">
+                                  <FileText className="h-3.5 w-3.5 mx-auto mb-1 text-emerald-600" />
+                                  <span className="font-bold block">1. Initialized</span>
+                                  <span className="text-[9px] opacity-80">Booking Saved</span>
+                                </div>
+
+                                <div className={`p-2 rounded-xl border ${isPaid ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
+                                  <CreditCard className="h-3.5 w-3.5 mx-auto mb-1 text-amber-600" />
+                                  <span className="font-bold block">2. Payment</span>
+                                  <span className="text-[9px] opacity-80">{isPaid ? 'Confirmed' : 'Pending'}</span>
+                                </div>
+
+                                <div className={`p-2 rounded-xl border ${b.assigned_bus_id || b.assigned_hotel_id ? 'bg-blue-50 border-blue-200 text-blue-800' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+                                  <Compass className="h-3.5 w-3.5 mx-auto mb-1 text-blue-600" />
+                                  <span className="font-bold block">3. Convoy Stays</span>
+                                  <span className="text-[9px] opacity-80">{b.assigned_bus_id || b.assigned_hotel_id ? 'Assigned' : 'In Progress'}</span>
+                                </div>
+
+                                <div className={`p-2 rounded-xl border ${b.booking_status === 'COMPLETED' ? 'bg-purple-50 border-purple-200 text-purple-800' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+                                  <CheckCircle2 className="h-3.5 w-3.5 mx-auto mb-1 text-purple-600" />
+                                  <span className="font-bold block">4. Journey</span>
+                                  <span className="text-[9px] opacity-80">{b.booking_status === 'COMPLETED' ? 'Completed' : 'Upcoming'}</span>
+                                </div>
                               </div>
                             </div>
                             
@@ -389,7 +458,7 @@ function AccountDashboard() {
                                 </Button>
                               </div>
                               <span className="text-[10px] text-muted-foreground italic flex items-center gap-1">
-                                <CheckCircle2 className="h-3.5 w-3.5 text-secondary" /> Status: {b.booking_status}
+                                <CheckCircle2 className="h-3.5 w-3.5 text-secondary" /> Status: {b.booking_status || b.status || "PENDING"}
                               </span>
                             </div>
                           </div>
