@@ -34,33 +34,63 @@ export async function getPackageDocuments(packageId: string) {
   return data || [];
 }
 
-// 2. Get a single active document by package slug and type
-export async function getPackageDocumentBySlug(slug: string, documentType: DocumentType) {
-  // First, find the package ID by slug
-  const { data: pkg, error: pkgError } = await supabaseAdmin
-    .from("journeys")
-    .select("id")
-    .eq("slug", slug)
-    .single();
+// 2. Get a single active document by package slug, destination slug, or type
+export async function getPackageDocumentBySlug(slug: string, documentType: DocumentType = 'ITINERARY') {
+  let packageId: string | null = null;
+  let pkgData: any = null;
 
-  if (pkgError || !pkg) {
-    console.error("Package not found by slug:", slug);
+  // 1. Try finding journey by exact slug
+  const { data: pkg } = await supabaseAdmin
+    .from("journeys")
+    .select("id, name, slug, destination_slug, image_url, destination")
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (pkg?.id) {
+    packageId = pkg.id;
+    pkgData = pkg;
+  } else {
+    // 2. Try finding journey by destination_slug matching slug
+    const { data: destPkg } = await supabaseAdmin
+      .from("journeys")
+      .select("id, name, slug, destination_slug, image_url, destination")
+      .or(`destination_slug.eq.${slug},destination.ilike.%${slug}%`)
+      .limit(1)
+      .maybeSingle();
+
+    if (destPkg?.id) {
+      packageId = destPkg.id;
+      pkgData = destPkg;
+    }
+  }
+
+  if (!packageId) {
+    console.log("[getPackageDocumentBySlug] No matching package found for slug:", slug);
     return null;
   }
 
   const { data, error } = await supabaseAdmin
     .from("package_documents")
-    .select("*")
-    .eq("package_id", pkg.id)
+    .select("*, journeys(id, name, slug, destination_slug, image_url)")
+    .eq("package_id", packageId)
     .eq("document_type", documentType)
     .eq("is_active", true)
     .maybeSingle();
 
   if (error) {
     console.error("Error fetching package document by slug:", error.message);
-    throw new Error(error.message);
+    return null;
   }
-  return data;
+
+  if (data) {
+    return {
+      ...data,
+      journey_name: pkgData?.name || data.journeys?.name,
+      cover_image: pkgData?.image_url || data.journeys?.image_url,
+    };
+  }
+
+  return null;
 }
 
 // 3. Get all documents (active or archived) for admin list
@@ -195,24 +225,35 @@ export async function restoreDocument(id: string) {
   return data;
 }
 
-// 7. Get 10-minute Signed URL for PDF files
+// 7. Get 60-second Signed URL for PDF files
 export async function getItineraryPdfSignedUrl(fileUrl: string) {
-  // Extract storage path from the file public URL
-  // Example public url: https://sgeffapbsrppzrgqfpec.supabase.co/storage/v1/object/public/itineraries/udaipur/ITINERARY/v1.pdf
-  const urlParts = fileUrl.split("/storage/v1/object/public/itineraries/");
-  if (urlParts.length <= 1) {
-    throw new Error("Invalid document storage URL");
+  if (!fileUrl) {
+    throw new Error("Document URL is required");
   }
 
-  const storagePath = decodeURIComponent(urlParts[1]);
+  let storagePath = fileUrl;
+  if (fileUrl.includes("/storage/v1/object/public/itineraries/")) {
+    const urlParts = fileUrl.split("/storage/v1/object/public/itineraries/");
+    storagePath = decodeURIComponent(urlParts[1]);
+  } else if (fileUrl.includes("/storage/v1/object/sign/itineraries/")) {
+    const urlParts = fileUrl.split("/storage/v1/object/sign/itineraries/");
+    storagePath = decodeURIComponent(urlParts[1].split("?")[0]);
+  } else if (fileUrl.startsWith("http")) {
+    // Attempt extracting path after /itineraries/
+    const match = fileUrl.match(/\/itineraries\/(.+)$/);
+    if (match) storagePath = decodeURIComponent(match[1]);
+  }
 
-  // Create signed URL for 10 minutes (600 seconds)
+  storagePath = storagePath.replace(/^itineraries\//, "");
+
+  // Create signed URL valid for 60 seconds
   const { data, error } = await supabaseAdmin.storage
     .from("itineraries")
-    .createSignedUrl(storagePath, 600);
+    .createSignedUrl(storagePath, 60);
 
   if (error) {
-    console.error("Error creating signed URL:", error.message);
+    console.warn("Signed URL creation fallback:", error.message);
+    if (fileUrl.startsWith("http")) return fileUrl;
     throw new Error(error.message);
   }
 

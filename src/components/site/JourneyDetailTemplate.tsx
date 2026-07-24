@@ -142,7 +142,9 @@ const getFallbackTransport = (slug: string) => {
 
 // Centralized database-driven stay retrieval used on details templates.
 
-import { ItineraryUnlockModal } from "./ItineraryUnlockModal";
+import { ItineraryPreviewCard } from "./ItineraryPreviewCard";
+import { ItineraryLoginModal } from "./ItineraryLoginModal";
+import { ItineraryPdfViewerModal } from "./ItineraryPdfViewerModal";
 
 interface JourneyDetailTemplateProps {
   slug: string;
@@ -262,22 +264,21 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
     enabled: !!journey?.id,
   });
 
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [unlockModalOpen, setUnlockModalOpen] = useState(false);
+  const [viewerOpen, setViewerOpen] = useState(false);
 
   const { data: premiumDoc } = useQuery({
-    queryKey: ["package_premium_doc", journey?.id],
+    queryKey: ["package_premium_doc", journey?.id, slug],
     queryFn: () => getPackageDocumentBySlugFn({ data: { slug, type: "ITINERARY" } }),
-    enabled: !!journey?.id,
+    enabled: !!slug,
   });
 
   const handleViewPdf = () => {
-    const targetUrl = `/account/itinerary/${slug}?type=ITINERARY`;
-    if (!user) {
-      sessionStorage.setItem("auth_redirect_target", targetUrl);
-      setUnlockModalOpen(true);
+    if (isAuthenticated) {
+      setViewerOpen(true);
     } else {
-      window.open(targetUrl, "_blank");
+      setUnlockModalOpen(true);
     }
   };
 
@@ -1238,68 +1239,33 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
                   )}
 
                   {/* Premium Itinerary PDF Card */}
-                  {premiumDoc && (
-                    <div className="mt-8 p-6 rounded-3xl bg-gradient-to-br from-[#0F172A] to-[#1E293B] text-white border border-[#334155] shadow-elegant relative overflow-hidden">
-                      <div className="absolute top-0 right-0 w-40 h-40 bg-[#F59E0B]/5 rounded-full blur-3xl pointer-events-none" />
+                  <ItineraryPreviewCard
+                    destinationName={journey?.name || "Journey"}
+                    slug={slug}
+                    document={premiumDoc}
+                    onViewItinerary={handleViewPdf}
+                    isAuthenticated={isAuthenticated}
+                  />
 
-                      <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                        <div className="space-y-3">
-                          <span className="text-[10px] uppercase font-poppins font-bold bg-[#F59E0B]/20 text-[#F59E0B] border border-[#F59E0B]/30 px-3 py-1 rounded-full">
-                            📄 Complete Travel Guide Available
-                          </span>
-                          <h4 className="font-display font-bold text-xl tracking-wide">
-                            {premiumDoc.title || "Premium Document"}
-                          </h4>
-                          <p className="text-xs text-white/70 max-w-lg leading-relaxed font-poppins">
-                            Want to unlock the complete day-by-day roadmap, pickup coordinates,
-                            packing guidelines, and vetted hotel stays? Access our official trip
-                            guide.
-                          </p>
-                          <div className="grid grid-cols-2 gap-x-4 gap-y-2 pt-2 text-[11px] text-white/90">
-                            <span className="flex items-center gap-1.5 font-poppins font-semibold">
-                              ✓ Complete Timeline
-                            </span>
-                            <span className="flex items-center gap-1.5 font-poppins font-semibold">
-                              ✓ Exact Pickup Locations
-                            </span>
-                            <span className="flex items-center gap-1.5 font-poppins font-semibold">
-                              ✓ Vetted Hotels Details
-                            </span>
-                            <span className="flex items-center gap-1.5 font-poppins font-semibold">
-                              ✓ Complete Gear Checklist
-                            </span>
-                            <span className="flex items-center gap-1.5 font-poppins font-semibold">
-                              ✓ Custom Navigation Maps
-                            </span>
-                            <span className="flex items-center gap-1.5 font-poppins font-semibold">
-                              ✓ Local Recommendations
-                            </span>
-                          </div>
-                        </div>
+                  {/* Unlock Login Modal */}
+                  <ItineraryLoginModal
+                    open={unlockModalOpen}
+                    onOpenChange={setUnlockModalOpen}
+                    title={`${journey?.name || "Journey"} Travel Guide`}
+                    onSuccess={() => {
+                      setViewerOpen(true);
+                    }}
+                  />
 
-                        <Button
-                          onClick={handleViewPdf}
-                          className="w-full md:w-auto h-12 px-8 bg-accent text-white font-poppins font-bold text-sm tracking-wider rounded-2xl shrink-0 flex items-center justify-center gap-2 hover:bg-[#D97706] shadow-lg shadow-accent/25 hover:shadow-xl transition-all"
-                        >
-                          View Full Itinerary PDF
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Unlock Modal Dialog */}
-                  {journey && (
-                    <ItineraryUnlockModal
-                      open={unlockModalOpen}
-                      onOpenChange={setUnlockModalOpen}
-                      packageId={journey.id}
-                      packageName={journey.name}
-                      onSuccess={() => {
-                        const targetUrl = `/account/itinerary/${slug}?type=ITINERARY`;
-                        window.open(targetUrl, "_blank");
-                      }}
-                    />
-                  )}
+                  {/* Embedded Fullscreen PDF Viewer Dialog */}
+                  <ItineraryPdfViewerModal
+                    open={viewerOpen}
+                    onOpenChange={setViewerOpen}
+                    destinationName={journey?.name || "Journey"}
+                    slug={slug}
+                    documentMeta={premiumDoc}
+                    onBookClick={() => setIsBooking(true)}
+                  />
                 </div>
               )}
 

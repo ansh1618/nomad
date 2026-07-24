@@ -6,13 +6,38 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Reveal } from "./Reveal";
 import { cn } from "@/lib/utils";
 import { useLoaderData } from "@tanstack/react-router";
+import { useAuth } from "./AuthContext";
+import { useQuery } from "@tanstack/react-query";
+import { getPackageDocumentBySlugFn } from "@/lib/itinerary-pdf-fns";
+import { ItineraryPreviewCard } from "./ItineraryPreviewCard";
+import { ItineraryLoginModal } from "./ItineraryLoginModal";
+import { ItineraryPdfViewerModal } from "./ItineraryPdfViewerModal";
 
 interface DestinationTemplateProps {
   slug: string;
 }
 
 export function DestinationTemplate({ slug }: DestinationTemplateProps) {
+  const { isAuthenticated } = useAuth();
   const { dest, journeys } = useLoaderData({ strict: false }) as any;
+
+  const [loginModalOpen, setLoginModalOpen] = useState(false);
+  const [viewerOpen, setViewerOpen] = useState(false);
+
+  // Fetch document metadata for this destination
+  const { data: documentMeta } = useQuery({
+    queryKey: ['package_document_destination', slug],
+    queryFn: () => getPackageDocumentBySlugFn({ data: { slug, type: 'ITINERARY' } }),
+    enabled: !!slug,
+  });
+
+  const handleViewItinerary = () => {
+    if (isAuthenticated) {
+      setViewerOpen(true);
+    } else {
+      setLoginModalOpen(true);
+    }
+  };
   if (!dest) {
     return (
       <div className="flex h-screen items-center justify-center bg-background p-5 text-center">
@@ -121,6 +146,36 @@ export function DestinationTemplate({ slug }: DestinationTemplateProps) {
           </Reveal>
         </div>
       </section>
+
+      {/* 2.5 Itinerary Travel Guide Card Section */}
+      <section className="max-w-7xl mx-auto px-5 py-6">
+        <ItineraryPreviewCard
+          destinationName={dest.name}
+          slug={slug}
+          document={documentMeta}
+          onViewItinerary={handleViewItinerary}
+          isAuthenticated={isAuthenticated}
+        />
+      </section>
+
+      {/* Auth Login Modal for Itinerary Unlock */}
+      <ItineraryLoginModal
+        open={loginModalOpen}
+        onOpenChange={setLoginModalOpen}
+        title={`${dest.name} Travel Guide`}
+        onSuccess={() => {
+          setViewerOpen(true);
+        }}
+      />
+
+      {/* Embedded Fullscreen PDF Viewer Dialog */}
+      <ItineraryPdfViewerModal
+        open={viewerOpen}
+        onOpenChange={setViewerOpen}
+        destinationName={dest.name}
+        slug={slug}
+        documentMeta={documentMeta}
+      />
 
       {/* 3. Upcoming Journeys Section */}
       <section id="journeys" className="bg-muted/30 py-20">
