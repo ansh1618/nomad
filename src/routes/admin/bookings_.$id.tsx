@@ -578,7 +578,74 @@ function BookingDetailPage() {
             Created {new Date(b.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const rows = (b.booking_travellers || []).map((t, idx) => ({
+                'S.No': idx + 1,
+                'Booking Ref': b.booking_id || b.id,
+                'Full Name': t.full_name,
+                'Gender': t.gender || '',
+                'Age': t.age || '',
+                'Phone': t.phone || b.customers?.phone || '',
+                'Email': t.email || b.customers?.email || '',
+                'Room Sharing': t.room_sharing || b.room_sharing || '',
+                'Seat No': t.seat_number || '',
+                'Pickup Point': t.pickup_point || b.pickup_point || '',
+                'Status': b.booking_status || b.status,
+              }))
+              import('@/components/admin/DataTable').then(m => m.exportToCSV(rows, `Passenger_Manifest_${b.booking_id || b.id.slice(0, 8)}`))
+              toast.success('Passenger manifest generated!')
+            }}
+            className="gap-1.5 h-9"
+          >
+            <Download className="h-4 w-4" /> Passenger List
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const rows = (b.booking_travellers || []).map((t, idx) => ({
+                'Seat No': t.seat_number || `S-${idx + 1}`,
+                'Passenger Name': t.full_name,
+                'Phone': t.phone || b.customers?.phone || '',
+                'Emergency Contact': t.guardian_number || b.customers?.phone || '',
+                'Boarding Point': t.pickup_point || b.pickup_point || 'Main Hub',
+                'Assigned Coach': b.departures?.buses?.name || 'Convoy Coach',
+              }))
+              import('@/components/admin/DataTable').then(m => m.exportToCSV(rows, `Bus_Manifest_${b.booking_id || b.id.slice(0, 8)}`))
+              toast.success('Bus manifest generated!')
+            }}
+            className="gap-1.5 h-9"
+          >
+            <Bus className="h-4 w-4" /> Bus Manifest
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const rows = (b.booking_travellers || []).map((t, idx) => ({
+                'Room Sharing': t.room_sharing || b.room_sharing || 'Triple',
+                'Guest Name': t.full_name,
+                'Gender': t.gender || '',
+                'Phone': t.phone || b.customers?.phone || '',
+                'ID Proof Type': t.id_proof_type || 'Aadhaar',
+                'ID Proof No': t.id_proof_number || '',
+                'Assigned Hotel': b.departures?.hotels?.name || b.assigned_hotel?.name || 'Nomadik Stay',
+                'Special Requests': b.special_requests || 'None',
+              }))
+              import('@/components/admin/DataTable').then(m => m.exportToCSV(rows, `Hotel_Checkin_Sheet_${b.booking_id || b.id.slice(0, 8)}`))
+              toast.success('Hotel check-in sheet generated!')
+            }}
+            className="gap-1.5 h-9"
+          >
+            <Bed className="h-4 w-4" /> Hotel Sheet
+          </Button>
+
           <Button
             variant="outline"
             size="sm"

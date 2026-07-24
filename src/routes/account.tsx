@@ -447,18 +447,25 @@ function AccountDashboard() {
                             </div>
                             
                             <div className="flex flex-wrap gap-2 pt-3 border-t border-border justify-between items-center">
-                              <div className="flex gap-2">
-                                <Button variant="outline" size="sm" asChild>
+                              <div className="flex gap-2 flex-wrap">
+                                {isPaid && (
+                                  <a href={`/account/itinerary/${b.departures?.journeys?.slug || 'manali-road-trip'}`} target="_blank" rel="noreferrer">
+                                    <Button variant="default" size="sm" className="h-8 text-xs font-bold gap-1 bg-emerald-600 hover:bg-emerald-700 text-white">
+                                      <FileText className="h-3.5 w-3.5" /> Unlock Itinerary PDF
+                                    </Button>
+                                  </a>
+                                )}
+                                <Button variant="outline" size="sm" asChild className="h-8 text-xs">
                                   <a href="https://wa.me/917857037041" target="_blank" rel="noreferrer" className="flex items-center gap-1">
                                     <MessageCircle className="h-3.5 w-3.5 text-[#25D366]" /> Join Convoy Group
                                   </a>
                                 </Button>
-                                <Button variant="outline" size="sm" onClick={() => toast.success("Invoice will be generated and emailed shortly.")}>
-                                  <FileText className="h-3.5 w-3.5" /> Download Invoice
+                                <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => toast.success(`Generating Invoice for ${b.booking_id || 'Booking'}...`)}>
+                                  <FileText className="h-3.5 w-3.5" /> Invoice PDF
                                 </Button>
                               </div>
                               <span className="text-[10px] text-muted-foreground italic flex items-center gap-1">
-                                <CheckCircle2 className="h-3.5 w-3.5 text-secondary" /> Status: {b.booking_status || b.status || "PENDING"}
+                                <CheckCircle2 className="h-3.5 w-3.5 text-secondary" /> Status: {b.booking_status || b.status || "Pending"}
                               </span>
                             </div>
                           </div>

@@ -253,8 +253,13 @@ export async function confirmBookingAfterPayment(
     return;
   }
 
-  // 2. Update booking to CONFIRMED — use gateway-specific columns
-  const gatewayBookingFields: Record<string, string> =
+  // 2. Update booking to Confirmed & Paid
+  const method = gatewayResponse?.method || "online";
+  const bank = gatewayResponse?.bank || null;
+  const upi = gatewayResponse?.vpa || gatewayResponse?.upi || null;
+  const wallet = gatewayResponse?.wallet || null;
+
+  const gatewayBookingFields: Record<string, any> =
     gateway === "razorpay"
       ? {
           razorpay_order_id: orderId,
@@ -272,38 +277,60 @@ export async function confirmBookingAfterPayment(
     .from("bookings")
     .update({
       status: "CONFIRMED",
-      booking_status: "CONFIRMED",
-      payment_status: "SUCCESS",
+      booking_status: "Confirmed",
+      payment_status: "Paid",
       amount_paid: amountPaid,
       balance_due: Math.max(0, (booking.total_amount ?? 0) - amountPaid),
+      payment_method: method,
+      payment_time: new Date().toISOString(),
+      gateway_response: gatewayResponse ?? null,
       updated_at: new Date().toISOString(),
       ...gatewayBookingFields,
     })
     .eq("id", bookingId);
 
-  // 3. Insert payment record using generic gateway columns
+  // 3. Insert detailed payment record
   await adminClient.from("payments").insert({
     booking_id: bookingId,
     amount: amountPaid,
     currency: "INR",
-    status: "SUCCESS",
+    status: "Paid",
     payment_type: "ONLINE",
-    payment_gateway: gateway,
+    payment_gateway: gateway.toUpperCase(),
+    gateway: gateway,
     gateway_order_id: orderId,
     gateway_payment_id: paymentId,
     gateway_signature: signature ?? null,
+    payment_method: method,
+    bank,
+    upi,
+    wallet,
+    gateway_response: gatewayResponse ?? null,
+    payment_time: new Date().toISOString(),
   });
 
-  // 4. Insert transaction record (raw gateway response)
-  await adminClient.from("transactions").insert({
+  // 4. Insert Timeline entries for progress tracking
+  await adminClient.from("booking_timeline").insert([
+    {
+      booking_id: bookingId,
+      event: "Payment Success",
+      description: `Payment of ₹${amountPaid.toLocaleString("en-IN")} received via ${method.toUpperCase()}`,
+      actor: "SYSTEM",
+    },
+    {
+      booking_id: bookingId,
+      event: "Booking Confirmed",
+      description: "Booking is now officially confirmed. Stays and convoy allocations in progress.",
+      actor: "SYSTEM",
+    },
+  ]);
+
+  // 5. Write audit log
+  await adminClient.from("booking_logs").insert({
     booking_id: bookingId,
-    gateway,
-    order_id: orderId,
-    gateway_payment_id: paymentId,
-    amount: amountPaid,
-    currency: "INR",
-    status: "SUCCESS",
-    gateway_response: gatewayResponse ?? null,
+    action: "PAYMENT_VERIFIED_CONFIRMED",
+    payload: { amountPaid, method, orderId, paymentId },
+    response: { status: "Confirmed" },
   });
 
   // 5. Decrement departure available_seats
