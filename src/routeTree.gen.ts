@@ -30,6 +30,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as StoriesSlugRouteImport } from './routes/stories_.$slug'
 import { Route as JourneysJourneyIdRouteImport } from './routes/journeys/$journeyId'
+import { Route as InvoiceIdRouteImport } from './routes/invoice.$id'
 import { Route as DestinationsSlugRouteImport } from './routes/destinations_.$slug'
 import { Route as BookingSuccessRouteImport } from './routes/booking.success'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
@@ -179,6 +180,11 @@ const StoriesSlugRoute = StoriesSlugRouteImport.update({
 const JourneysJourneyIdRoute = JourneysJourneyIdRouteImport.update({
   id: '/journeys/$journeyId',
   path: '/journeys/$journeyId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InvoiceIdRoute = InvoiceIdRouteImport.update({
+  id: '/invoice/$id',
+  path: '/invoice/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DestinationsSlugRoute = DestinationsSlugRouteImport.update({
@@ -461,6 +467,7 @@ export interface FileRoutesByFullPath {
   '/auth/callback': typeof AuthCallbackRoute
   '/booking/success': typeof BookingSuccessRoute
   '/destinations/$slug': typeof DestinationsSlugRoute
+  '/invoice/$id': typeof InvoiceIdRoute
   '/journeys/$journeyId': typeof JourneysJourneyIdRoute
   '/stories/$slug': typeof StoriesSlugRoute
   '/admin/': typeof AdminIndexRoute
@@ -528,6 +535,7 @@ export interface FileRoutesByTo {
   '/auth/callback': typeof AuthCallbackRoute
   '/booking/success': typeof BookingSuccessRoute
   '/destinations/$slug': typeof DestinationsSlugRoute
+  '/invoice/$id': typeof InvoiceIdRoute
   '/journeys/$journeyId': typeof JourneysJourneyIdRoute
   '/stories/$slug': typeof StoriesSlugRoute
   '/admin': typeof AdminIndexRoute
@@ -597,6 +605,7 @@ export interface FileRoutesById {
   '/auth/callback': typeof AuthCallbackRoute
   '/booking/success': typeof BookingSuccessRoute
   '/destinations_/$slug': typeof DestinationsSlugRoute
+  '/invoice/$id': typeof InvoiceIdRoute
   '/journeys/$journeyId': typeof JourneysJourneyIdRoute
   '/stories_/$slug': typeof StoriesSlugRoute
   '/admin/': typeof AdminIndexRoute
@@ -667,6 +676,7 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/booking/success'
     | '/destinations/$slug'
+    | '/invoice/$id'
     | '/journeys/$journeyId'
     | '/stories/$slug'
     | '/admin/'
@@ -734,6 +744,7 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/booking/success'
     | '/destinations/$slug'
+    | '/invoice/$id'
     | '/journeys/$journeyId'
     | '/stories/$slug'
     | '/admin'
@@ -802,6 +813,7 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/booking/success'
     | '/destinations_/$slug'
+    | '/invoice/$id'
     | '/journeys/$journeyId'
     | '/stories_/$slug'
     | '/admin/'
@@ -839,6 +851,7 @@ export interface RootRouteChildren {
   AuthCallbackRoute: typeof AuthCallbackRoute
   BookingSuccessRoute: typeof BookingSuccessRoute
   DestinationsSlugRoute: typeof DestinationsSlugRoute
+  InvoiceIdRoute: typeof InvoiceIdRoute
   JourneysJourneyIdRoute: typeof JourneysJourneyIdRoute
   StoriesSlugRoute: typeof StoriesSlugRoute
   AccountItinerarySlugRoute: typeof AccountItinerarySlugRoute
@@ -991,6 +1004,13 @@ declare module '@tanstack/react-router' {
       path: '/journeys/$journeyId'
       fullPath: '/journeys/$journeyId'
       preLoaderRoute: typeof JourneysJourneyIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/invoice/$id': {
+      id: '/invoice/$id'
+      path: '/invoice/$id'
+      fullPath: '/invoice/$id'
+      preLoaderRoute: typeof InvoiceIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/destinations_/$slug': {
@@ -1425,6 +1445,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthCallbackRoute: AuthCallbackRoute,
   BookingSuccessRoute: BookingSuccessRoute,
   DestinationsSlugRoute: DestinationsSlugRoute,
+  InvoiceIdRoute: InvoiceIdRoute,
   JourneysJourneyIdRoute: JourneysJourneyIdRoute,
   StoriesSlugRoute: StoriesSlugRoute,
   AccountItinerarySlugRoute: AccountItinerarySlugRoute,

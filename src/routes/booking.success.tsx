@@ -334,8 +334,7 @@ function BookingSuccessPage() {
                   className="flex-1 border-[#E4E2DA] font-poppins"
                   disabled={!isConfirmed}
                   onClick={() => {
-                    // TODO: Generate PDF invoice
-                    toast.info('Invoice download coming soon!')
+                    window.open(`/invoice/${booking?.booking_id || booking_id}`, '_blank')
                   }}
                 >
                   <Download className="h-4 w-4 mr-1.5" />

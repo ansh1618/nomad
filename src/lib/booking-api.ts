@@ -18,6 +18,8 @@
 import { supabase } from "./supabase";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Customer, BookingTimeline } from "@/types/supabase";
+import { sendBookingConfirmationEmail } from "@/lib/email";
+import { sendWhatsAppConfirmation } from "@/lib/whatsapp";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -239,7 +241,7 @@ export async function confirmBookingAfterPayment(
   // 1. Fetch booking
   const { data: booking, error: fetchErr } = await adminClient
     .from("bookings")
-    .select("id, customer_id, departure_id, total_amount, booking_status")
+    .select("id, booking_id, customer_id, departure_id, base_amount, gst_rate, gst_amount, discount_amount, coupon_discount, total_amount, booking_status, customer_name, phone, email")
     .eq("id", bookingId)
     .single();
 
@@ -308,6 +310,71 @@ export async function confirmBookingAfterPayment(
     gateway_response: gatewayResponse ?? null,
     payment_time: new Date().toISOString(),
   });
+
+  // Fetch departure and journey info
+  let tripName = "Nomadik Road Trip";
+  let departureDate = null;
+  let pickupPoint = "";
+  let departureTime = "";
+  let tripCaptainContact = "";
+
+  if (booking.departure_id) {
+    const { data: dep } = await adminClient
+      .from("departures")
+      .select(`
+        departure_date, 
+        pickup_location, 
+        pickup_time, 
+        trip_captain_id, 
+        journeys(name), 
+        trip_captains(full_name, phone)
+      ` as any)
+      .eq("id", booking.departure_id)
+      .single();
+
+    if (dep) {
+      departureDate = dep.departure_date;
+      tripName = (dep as any).journeys?.name || "Nomadik Road Trip";
+      pickupPoint = (dep as any).pickup_location || "";
+      departureTime = (dep as any).pickup_time || "";
+      if ((dep as any).trip_captains) {
+        tripCaptainContact = `${(dep as any).trip_captains.full_name} (${(dep as any).trip_captains.phone})`;
+      }
+    }
+  }
+
+  // Generate invoice record in the database
+  const invoicePayload = {
+    booking_id: bookingId,
+    customer_name: booking.customer_name || "Explorer",
+    customer_email: booking.email || null,
+    customer_phone: booking.phone || null,
+    customer_address: pickupPoint || null,
+    trip_name: tripName,
+    departure_date: departureDate,
+    base_amount: booking.base_amount || 0,
+    discount_amount: booking.discount_amount || booking.coupon_discount || 0,
+    gst_rate: booking.gst_rate || 5,
+    gst_amount: booking.gst_amount || 0,
+    total_amount: booking.total_amount || amountPaid,
+    amount_paid: amountPaid,
+    balance_due: Math.max(0, (booking.total_amount ?? 0) - amountPaid),
+    status: "PAID",
+    issued_at: new Date().toISOString(),
+    paid_at: new Date().toISOString(),
+  };
+
+  const { data: invData, error: invErr } = await adminClient
+    .from("invoices")
+    .insert(invoicePayload)
+    .select("invoice_number")
+    .maybeSingle();
+
+  if (invErr) {
+    console.error("[confirmBookingAfterPayment] Failed to create invoice:", invErr.message);
+  } else {
+    console.log("[confirmBookingAfterPayment] Created invoice:", invData?.invoice_number);
+  }
 
   // 4. Insert Timeline entries for progress tracking
   await adminClient.from("booking_timeline").insert([
@@ -397,4 +464,29 @@ export async function confirmBookingAfterPayment(
     type: "SUCCESS",
     related_booking_id: bookingId,
   });
+
+  // 9. Fire email confirmation (asynchronous)
+  const emailRecipient = booking.email;
+  if (emailRecipient) {
+    sendBookingConfirmationEmail({
+      customerName: booking.customer_name || "Explorer",
+      customerEmail: emailRecipient,
+      bookingId: booking.booking_id ?? booking.id,
+      amountPaid: amountPaid,
+      tripName,
+      departureDate: departureDate || undefined,
+    }).catch((err) => console.error("[confirmBookingAfterPayment] Email failed:", err));
+  }
+
+  // 10. Fire WhatsApp notification (asynchronous)
+  if (booking.phone) {
+    sendWhatsAppConfirmation({
+      phone: booking.phone,
+      customerName: booking.customer_name || "Explorer",
+      bookingId: booking.booking_id ?? booking.id,
+      tripName,
+      departureDate: departureDate || new Date().toISOString(),
+      pickupPoint: pickupPoint || undefined,
+    }).catch((err) => console.error("[confirmBookingAfterPayment] WhatsApp failed:", err));
+  }
 }

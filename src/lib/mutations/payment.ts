@@ -209,3 +209,146 @@ export const getMonthlyRevenueFn = createServerFn({ method: 'GET' })
     if (error) throw new Error(error.message)
     return data ?? []
   })
+
+// ==========================================
+// RELEASE BOOKING INVENTORY LOCKS (ON FAILURE)
+// ==========================================
+export const releaseBookingLocksFn = createServerFn({ method: 'POST' })
+  .validator((bookingId: string) => bookingId)
+  .handler(async ({ data: bookingId }) => {
+    const { error } = await supabaseAdmin
+      .from('departure_inventory')
+      .update({ status: 'AVAILABLE', booking_id: null, locked_by: null, locked_at: null, locked_until: null })
+      .eq('booking_id', bookingId)
+      .eq('status', 'LOCKED')
+
+    if (error) {
+      console.error(`[releaseBookingLocksFn] Error releasing locks for booking ${bookingId}:`, error)
+      throw new Error(error.message)
+    }
+    console.log(`[releaseBookingLocksFn] Reclaimed locks for booking ${bookingId}`)
+    return { success: true }
+  })
+
+// ==========================================
+// CUSTOMER SELF-CANCELLATION WITH REFUNDS
+// ==========================================
+const cancelBookingSchema = z.object({
+  bookingId: z.string(),
+  userId: z.string(),
+  reason: z.string().optional(),
+})
+
+export const cancelBookingCustomerFn = createServerFn({ method: 'POST' })
+  .validator((data: z.infer<typeof cancelBookingSchema>) => cancelBookingSchema.parse(data))
+  .handler(async ({ data }) => {
+    const { bookingId, userId, reason } = data
+
+    // 1. Fetch booking to check ownership & amounts
+    const { data: booking, error: fetchErr } = await supabaseAdmin
+      .from('bookings')
+      .select('id, user_id, status, departure_id, total_amount, amount_paid')
+      .eq('id', bookingId)
+      .single()
+
+    if (fetchErr || !booking) {
+      throw new Error('Booking not found on server.')
+    }
+
+    if (booking.user_id !== userId) {
+      throw new Error('Unauthorized. You do not own this booking.')
+    }
+
+    if (booking.status === 'CANCELLED' || booking.status === 'REFUNDED') {
+      throw new Error('Booking is already cancelled.')
+    }
+
+    // 2. Fetch departure date to calculate refund percentage
+    const { data: departure } = await supabaseAdmin
+      .from('departures')
+      .select('departure_date, available_seats')
+      .eq('id', booking.departure_id)
+      .single()
+
+    let refundAmount = 0;
+    let policyLabel = "No Refund";
+
+    if (departure && departure.departure_date) {
+      const departureDate = new Date(departure.departure_date)
+      const today = new Date()
+      const diffTime = departureDate.getTime() - today.getTime()
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+      const amountPaid = booking.amount_paid || 0
+
+      if (diffDays > 15) {
+        refundAmount = amountPaid; // 100% refund
+        policyLabel = "Full Refund (> 15 Days)";
+      } else if (diffDays >= 7) {
+        refundAmount = Math.round(amountPaid * 0.5); // 50% refund
+        policyLabel = "Partial Refund (7-15 Days)";
+      } else {
+        refundAmount = 0; // 0% refund
+        policyLabel = "No Refund (< 7 Days)";
+      }
+    }
+
+    // 3. Mark booking as cancelled
+    await supabaseAdmin
+      .from('bookings')
+      .update({
+        status: 'CANCELLED',
+        booking_status: 'Cancelled',
+        refund_status: refundAmount > 0 ? 'REQUESTED' : 'NONE',
+        refund_amount: refundAmount,
+        cancellation_reason: reason || 'Cancelled by Customer',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', bookingId)
+
+    // 4. Release departure inventory locks
+    await supabaseAdmin
+      .from('departure_inventory')
+      .update({ status: 'AVAILABLE', booking_id: null, locked_by: null, locked_at: null, locked_until: null })
+      .eq('booking_id', bookingId)
+
+    // 5. Reclaim available seats in departures
+    const { count: travellerCount } = await supabaseAdmin
+      .from('booking_travellers')
+      .select('id', { count: 'exact', head: true })
+      .eq('booking_id', bookingId)
+
+    const countToRelease = travellerCount ?? 1
+
+    if (departure) {
+      await supabaseAdmin
+        .from('departures')
+        .update({
+          available_seats: (departure.available_seats ?? 0) + countToRelease,
+        })
+        .eq('id', booking.departure_id)
+    }
+
+    // 6. Log activity timeline event
+    await supabaseAdmin.from('booking_timeline').insert({
+      booking_id: bookingId,
+      event: 'Booking Cancelled',
+      description: `Cancelled by customer. Policy: ${policyLabel}. Calculated refund: ₹${refundAmount.toLocaleString('en-IN')}`,
+      actor: 'CUSTOMER',
+    })
+
+    // 7. Write audit log
+    await supabaseAdmin.from('booking_logs').insert({
+      booking_id: bookingId,
+      action: 'CUSTOMER_CANCELLATION',
+      payload: { userId, refundAmount, policyLabel },
+      response: { success: true },
+    })
+
+    return {
+      success: true,
+      refundAmount,
+      policyLabel,
+      message: `Booking cancelled successfully. Refund calculated: ₹${refundAmount.toLocaleString('en-IN')} (${policyLabel}).`,
+    }
+  })

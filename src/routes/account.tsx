@@ -7,14 +7,16 @@ import { FloatingUI } from "@/components/site/FloatingUI";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { 
   User, Calendar, MapPin, Phone, Heart, Users, ShieldAlert, LogOut, Lock, 
   ChevronRight, Compass, MessageCircle, CircleHelp, FileText, CheckCircle2, Settings,
-  Eye, Loader2
+  Eye, Loader2, XCircle
 } from "lucide-react";
 import { getJourneys } from "@/lib/queries-client";
+import { cancelBookingCustomerFn } from "@/lib/mutations/payment";
 
 export const Route = createFileRoute("/account")({
   validateSearch: (search: Record<string, unknown>): { tab?: string } => ({
@@ -73,6 +75,9 @@ function AccountDashboard() {
   const [bookings, setBookings] = useState<any[]>([]);
   const [wishlistItems, setWishlistItems] = useState<any[]>([]);
   const [allJourneys, setAllJourneys] = useState<any[]>([]);
+  const [cancelBookingItem, setCancelBookingItem] = useState<any>(null);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
 
   // Load user data
   useEffect(() => {
@@ -189,6 +194,56 @@ function AccountDashboard() {
     } else {
       const { data: fallbackData } = await supabase.from("bookings").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
       if (fallbackData) setBookings(fallbackData);
+    }
+  };
+
+  const handleInitiateCancel = (booking: any) => {
+    setCancelBookingItem(booking);
+    setCancelReason("");
+  };
+
+  const getRefundEstimate = (booking: any) => {
+    if (!booking) return { amount: 0, percentage: 0, policy: "" };
+    const depDate = booking.departures?.departure_date;
+    if (!depDate) return { amount: 0, percentage: 0, policy: "No Date" };
+
+    const departureDate = new Date(depDate);
+    const today = new Date();
+    const diffTime = departureDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    const amountPaid = booking.amount_paid || 0;
+    if (diffDays > 15) {
+      return { amount: amountPaid, percentage: 100, policy: "Full Refund (> 15 Days)" };
+    } else if (diffDays >= 7) {
+      return { amount: Math.round(amountPaid * 0.5), percentage: 50, policy: "Partial Refund (7-15 Days)" };
+    } else {
+      return { amount: 0, percentage: 0, policy: "No Refund (< 7 Days)" };
+    }
+  };
+
+  const handleConfirmCancel = async () => {
+    if (!cancelBookingItem || !user) return;
+    setCancellingId(cancelBookingItem.id);
+    try {
+      const res = await cancelBookingCustomerFn({
+        data: {
+          bookingId: cancelBookingItem.id,
+          userId: user.id,
+          reason: cancelReason,
+        }
+      });
+      if (res && res.success) {
+        toast.success(res.message);
+        setCancelBookingItem(null);
+        await loadBookings();
+      } else {
+        toast.error("Failed to cancel booking.");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to cancel booking.");
+    } finally {
+      setCancellingId(null);
     }
   };
 
@@ -460,9 +515,21 @@ function AccountDashboard() {
                                     <MessageCircle className="h-3.5 w-3.5 text-[#25D366]" /> Join Convoy Group
                                   </a>
                                 </Button>
-                                <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => toast.success(`Generating Invoice for ${b.booking_id || 'Booking'}...`)}>
-                                  <FileText className="h-3.5 w-3.5" /> Invoice PDF
-                                </Button>
+                                <a href={`/invoice/${b.booking_id || b.id}`} target="_blank" rel="noreferrer">
+                                  <Button variant="outline" size="sm" className="h-8 text-xs gap-1">
+                                    <FileText className="h-3.5 w-3.5" /> Invoice PDF
+                                  </Button>
+                                </a>
+                                {b.booking_status !== 'Cancelled' && b.booking_status !== 'CANCELLED' && b.status !== 'CANCELLED' && b.status !== 'REFUNDED' && (
+                                  <Button 
+                                    variant="destructive" 
+                                    size="sm" 
+                                    className="h-8 text-xs gap-1 font-semibold"
+                                    onClick={() => handleInitiateCancel(b)}
+                                  >
+                                    <XCircle className="h-3.5 w-3.5" /> Cancel Booking
+                                  </Button>
+                                )}
                               </div>
                               <span className="text-[10px] text-muted-foreground italic flex items-center gap-1">
                                 <CheckCircle2 className="h-3.5 w-3.5 text-secondary" /> Status: {b.booking_status || b.status || "Pending"}
@@ -857,6 +924,81 @@ function AccountDashboard() {
       </main>
       <Footer />
       <FloatingUI />
+
+      {/* Cancellation Dialog Modal */}
+      <Dialog open={!!cancelBookingItem} onOpenChange={(open) => { if (!open) setCancelBookingItem(null); }}>
+        <DialogContent className="max-w-md bg-white border rounded-2xl p-6 font-poppins">
+          <DialogHeader>
+            <DialogTitle className="font-poppins font-bold text-lg text-primary flex items-center gap-2">
+              <XCircle className="h-5 w-5 text-destructive" /> Cancel Booking?
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Please review the cancellation policy and refund eligibility below.
+            </DialogDescription>
+          </DialogHeader>
+
+          {cancelBookingItem && (
+            <div className="py-4 space-y-3.5 text-xs">
+              <div className="p-3 bg-muted/10 border rounded-xl space-y-1.5">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Booking Ref:</span>
+                  <span className="font-bold font-mono">{cancelBookingItem.booking_id ?? cancelBookingItem.id.slice(0, 8)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Trip:</span>
+                  <span className="font-bold text-right">{cancelBookingItem.departures?.journeys?.name || "Nomadik Road Trip"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Departure Date:</span>
+                  <span className="font-bold">{cancelBookingItem.departures?.departure_date ? new Date(cancelBookingItem.departures.departure_date).toLocaleDateString("en-IN") : "TBA"}</span>
+                </div>
+              </div>
+
+              <div className="p-3 bg-blue-50/50 border border-blue-100 rounded-xl space-y-1.5">
+                <div className="flex justify-between">
+                  <span className="text-blue-800 font-medium">Amount Paid:</span>
+                  <span className="font-bold text-blue-900">₹{Number(cancelBookingItem.amount_paid || 0).toLocaleString("en-IN")}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-blue-800 font-medium">Refund Policy:</span>
+                  <span className="font-bold text-blue-900">{getRefundEstimate(cancelBookingItem).policy}</span>
+                </div>
+                <div className="flex justify-between border-t border-blue-200/50 pt-1.5 mt-1.5">
+                  <span className="text-blue-800 font-bold">Estimated Refund:</span>
+                  <span className="font-extrabold text-blue-900 text-sm">₹{Number(getRefundEstimate(cancelBookingItem).amount).toLocaleString("en-IN")}</span>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground font-poppins">Reason for cancellation (optional)</label>
+                <textarea
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  placeholder="Tell us why you are cancelling..."
+                  rows={2}
+                  className="w-full text-xs p-3 rounded-xl border border-border bg-white focus:outline-none focus:ring-1 focus:ring-primary font-poppins"
+                />
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" size="sm" onClick={() => setCancelBookingItem(null)} className="rounded-xl h-9 text-xs font-poppins">
+              Keep Booking
+            </Button>
+            <Button 
+              variant="destructive" 
+              size="sm" 
+              onClick={handleConfirmCancel} 
+              disabled={!!cancellingId}
+              className="rounded-xl h-9 text-xs gap-1.5 font-semibold font-poppins"
+            >
+              {cancellingId ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+              Confirm Cancellation
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

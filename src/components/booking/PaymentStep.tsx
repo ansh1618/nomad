@@ -14,7 +14,7 @@ import {
   Tag,
 } from "lucide-react";
 import { createBookingFn } from "@/lib/booking-fns";
-import { createRazorpayOrderFn, verifyRazorpayPaymentFn } from "@/lib/mutations/payment";
+import { createRazorpayOrderFn, verifyRazorpayPaymentFn, releaseBookingLocksFn } from "@/lib/mutations/payment";
 import { supabase } from "@/lib/supabase";
 
 declare global {
@@ -178,6 +178,15 @@ export function PaymentStep({
       onNext();
     } catch (err: any) {
       console.error("[Booking] Payment flow error:", err);
+      // Call server to unlock seats immediately on payment failure or modal dismissal
+      if (bookingId) {
+        try {
+          await releaseBookingLocksFn({ data: bookingId });
+          console.log("[PaymentStep] Released seats for booking ID:", bookingId);
+        } catch (lockReleaseErr) {
+          console.error("[PaymentStep] Failed to release locks:", lockReleaseErr);
+        }
+      }
       const userMsg = err.message?.includes("cancelled")
         ? "Payment process was cancelled."
         : err.message || "Payment process could not be completed. Please try again.";

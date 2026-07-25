@@ -332,6 +332,13 @@ export async function duplicateDeparture(id: string, newDepartureDate: string, n
 // INVENTORY MANAGEMENT
 // ==========================================
 export async function getDepartureInventory(departureId: string): Promise<DepartureInventory[]> {
+  // Release any expired locks first (lazy cleanup)
+  await supabase
+    .from('departure_inventory')
+    .update({ status: 'AVAILABLE', booking_id: null, locked_by: null, locked_at: null, locked_until: null })
+    .eq('status', 'LOCKED')
+    .lt('locked_until', new Date().toISOString())
+
   const { data, error } = await supabase
     .from('departure_inventory')
     .select('*, bus_seats(seat_number, seat_type, row_number, column_letter), hotel_rooms(room_type, sharing_type)')
@@ -383,6 +390,13 @@ export async function lockSeats(
   userId: string,
   lockMinutes = 15
 ): Promise<void> {
+  // Release any expired locks first (lazy cleanup)
+  await supabase
+    .from('departure_inventory')
+    .update({ status: 'AVAILABLE', booking_id: null, locked_by: null, locked_at: null, locked_until: null })
+    .eq('status', 'LOCKED')
+    .lt('locked_until', new Date().toISOString())
+
   const lockedUntil = new Date(Date.now() + lockMinutes * 60 * 1000).toISOString()
 
   // Check availability first

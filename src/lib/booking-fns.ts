@@ -58,6 +58,13 @@ export const lockInventoryFn = createServerFn({ method: "POST" })
     try {
       const { departureId, inventoryIds, userId } = data;
 
+      // Release any expired locks first (lazy cleanup)
+      await supabaseAdmin
+        .from('departure_inventory')
+        .update({ status: 'AVAILABLE', booking_id: null, locked_by: null, locked_at: null, locked_until: null })
+        .eq('status', 'LOCKED')
+        .lt('locked_until', new Date().toISOString());
+
       const { error } = await supabase.rpc("lock_inventory", {
         p_departure_id: departureId,
         p_inventory_ids: inventoryIds,
@@ -290,7 +297,6 @@ export const createBookingFn = createServerFn({ method: "POST" })
         status: "PAYMENT_PENDING",
         booking_status: "Pending",
         payment_status: "Pending",
-        traveller_count: travellerCount,
         travellers_count: travellerCount,
         base_amount: serverPricing.effectiveBasePrice * serverPricing.travellersCount,
         addon_amount: addonAmount,
@@ -321,7 +327,6 @@ export const createBookingFn = createServerFn({ method: "POST" })
           status: "PAYMENT_PENDING",
           booking_status: "Pending",
           payment_status: "Pending",
-          traveller_count: travellerCount,
           travellers_count: travellerCount,
           total_amount: totalAmount,
           final_amount: totalAmount,
@@ -342,7 +347,6 @@ export const createBookingFn = createServerFn({ method: "POST" })
           departure_id: data.departureId,
           journey_id: journey.id || null,
           status: "PAYMENT_PENDING",
-          traveller_count: travellerCount,
           travellers_count: travellerCount,
           total_amount: totalAmount,
           final_amount: totalAmount,
@@ -357,7 +361,6 @@ export const createBookingFn = createServerFn({ method: "POST" })
           customer_name: customerName,
           phone: customerPhone,
           email: customerEmail,
-          traveller_count: travellerCount,
           travellers_count: travellerCount,
           status: "PAYMENT_PENDING",
           total_amount: totalAmount,
@@ -523,7 +526,7 @@ export const createGuestBookingFn = createServerFn({ method: "POST" })
           status: "CREATED",
           booking_status: "Pending",
           payment_status: "Pending",
-          traveller_count: 1,
+          travellers_count: 1,
           base_amount: baseAmount,
           gst_rate: 5,
           gst_amount: gstAmount,
