@@ -86,14 +86,15 @@ async function fetchProfileFromDB(userId: string): Promise<UserProfile | null> {
 // ─────────────────────────────────────────────────────────────
 
 async function mergeGuestBookings(email: string, userId: string): Promise<void> {
+  if (!email || !userId) return;
   try {
-    const { data, error } = await supabase.rpc("merge_guest_bookings", {
-      p_email: email,
-      p_user_id: userId,
-    });
-    if (!error && data && data > 0) {
-      console.log(`[Auth] Merged ${data} guest booking(s) for ${email}`);
-      toast.success(`${data} previous booking${data > 1 ? "s" : ""} linked to your account!`);
+    const { error } = await supabase
+      .from("bookings")
+      .update({ user_id: userId })
+      .eq("email", email)
+      .is("user_id", null);
+    if (!error) {
+      console.log(`[Auth] Checked/merged guest bookings for ${email}`);
     }
   } catch (err) {
     console.warn("[Auth] Guest merge failed (non-fatal):", err);
