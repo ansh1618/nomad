@@ -44,7 +44,11 @@ export const createRazorpayOrderFn = createServerFn({ method: 'POST' })
 
     if (!response.ok) {
       const err = await response.json()
-      throw new Error(err.error?.description || 'Failed to create Razorpay order')
+      const desc = err.error?.description || 'Failed to create Razorpay order'
+      if (response.status === 401 || desc.includes('Authentication failed')) {
+        throw new Error('Razorpay API Key/Secret Authentication failed. Please verify your RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET credentials in .env.')
+      }
+      throw new Error(`Razorpay Order Failed: ${desc}`)
     }
 
     const order = await response.json()
