@@ -49,16 +49,20 @@ export const createRazorpayOrderFn = createServerFn({ method: 'POST' })
 
     const order = await response.json()
 
-    await supabaseAdmin.from('payments').insert({
-      booking_id: bookingId,
-      amount,
-      currency,
-      status: 'Pending',
-      payment_type: paymentType,
-      gateway: 'razorpay',
-      payment_gateway: 'RAZORPAY',
-      gateway_order_id: order.id,
-    })
+    try {
+      await supabaseAdmin.from('payments').insert({
+        booking_id: bookingId,
+        amount,
+        currency,
+        status: 'Pending',
+        payment_type: paymentType,
+        gateway: 'razorpay',
+        payment_gateway: 'RAZORPAY',
+        gateway_order_id: order.id,
+      });
+    } catch (payErr) {
+      console.warn("[createRazorpayOrderFn] Payments table insert warning:", payErr);
+    }
 
     return {
       orderId: order.id,
