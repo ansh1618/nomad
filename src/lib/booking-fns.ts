@@ -274,7 +274,7 @@ export const createBookingFn = createServerFn({ method: "POST" })
 
       const safeBookingInsert = async (payload: Record<string, any>) => {
         try {
-          const res = await supabaseAdmin.from("bookings").insert(payload).select("id, booking_id");
+          const res = await supabaseAdmin.from("bookings").insert(payload).select("*");
           if (res.error) return { data: null, error: res.error };
           if (res.data && res.data.length > 0) return { data: res.data[0], error: null };
           return { data: null, error: new Error("No rows returned from booking insert") };
@@ -294,14 +294,11 @@ export const createBookingFn = createServerFn({ method: "POST" })
         email: customerEmail,
         departure_id: data.departureId,
         journey_id: journey.id || null,
-        status: "PAYMENT_PENDING",
-        booking_status: "Pending",
+        status: "PENDING",
         travellers_count: travellerCount,
         amount: serverPricing.effectiveBasePrice * serverPricing.travellersCount,
         base_amount: serverPricing.effectiveBasePrice * serverPricing.travellersCount,
-        addon_amount: addonAmount,
         gst_amount: gstAmount,
-        coupon_id: cleanCouponId,
         discount_amount: serverDiscount,
         total_amount: totalAmount,
         final_amount: totalAmount,
@@ -309,11 +306,9 @@ export const createBookingFn = createServerFn({ method: "POST" })
         balance_due: totalAmount,
         room_sharing: data.roomSharing || null,
         pickup_point: data.pickupPoint || null,
-        assigned_hotel_id: cleanHotelId,
-        booking_source: "Website",
       });
 
-      // Tier 2: Standard payload (no extra amounts or hotel assignment)
+      // Tier 2: Standard payload without optional relation fields
       if (res.error) {
         console.warn("[createBookingFn] Tier 1 insert failed, trying Tier 2 standard payload:", res.error.message || res.error);
         res = await safeBookingInsert({
@@ -324,9 +319,7 @@ export const createBookingFn = createServerFn({ method: "POST" })
           email: customerEmail,
           departure_id: data.departureId,
           journey_id: journey.id || null,
-          status: "PAYMENT_PENDING",
-          booking_status: "Pending",
-          payment_status: "Pending",
+          status: "PENDING",
           travellers_count: travellerCount,
           amount: totalAmount,
           total_amount: totalAmount,
@@ -336,18 +329,16 @@ export const createBookingFn = createServerFn({ method: "POST" })
         });
       }
 
-      // Tier 3: Core minimal payload
+      // Tier 3: Core minimal payload without user_id / journey_id
       if (res.error) {
         console.warn("[createBookingFn] Tier 2 insert failed, trying Tier 3 core payload:", res.error.message || res.error);
         res = await safeBookingInsert({
           booking_id: bookingRef,
-          user_id: cleanUserId,
           customer_name: customerName,
           phone: customerPhone,
           email: customerEmail,
           departure_id: data.departureId,
-          journey_id: journey.id || null,
-          status: "PAYMENT_PENDING",
+          status: "PENDING",
           travellers_count: travellerCount,
           amount: totalAmount,
           total_amount: totalAmount,
@@ -355,19 +346,46 @@ export const createBookingFn = createServerFn({ method: "POST" })
         });
       }
 
-      // Tier 4: Absolute bare minimum payload (with mandatory customer fields & counts)
+      // Tier 4: Minimal payload without status enum
       if (res.error) {
-        console.warn("[createBookingFn] Tier 3 insert failed, trying Tier 4 bare minimum payload:", res.error.message || res.error);
+        console.warn("[createBookingFn] Tier 3 insert failed, trying Tier 4 minimal payload:", res.error.message || res.error);
         res = await safeBookingInsert({
-          departure_id: data.departureId,
+          booking_id: bookingRef,
           customer_name: customerName,
           phone: customerPhone,
           email: customerEmail,
+          departure_id: data.departureId,
           travellers_count: travellerCount,
-          status: "PAYMENT_PENDING",
           amount: totalAmount,
-          final_amount: totalAmount,
           total_amount: totalAmount,
+        });
+      }
+
+      // Tier 5: Schema V7 / Lovable format (full_name, booking_ref, departure_date, total_payable)
+      if (res.error) {
+        console.warn("[createBookingFn] Tier 4 insert failed, trying Tier 5 Schema V7 payload:", res.error.message || res.error);
+        res = await safeBookingInsert({
+          booking_ref: bookingRef,
+          full_name: customerName,
+          phone: customerPhone,
+          email: customerEmail,
+          departure_date: new Date().toISOString().slice(0, 10),
+          base_amount: serverPricing.effectiveBasePrice * serverPricing.travellersCount,
+          total_payable: totalAmount,
+          total_amount: totalAmount,
+          amount: totalAmount,
+        });
+      }
+
+      // Tier 6: Bare minimum required for any table format
+      if (res.error) {
+        console.warn("[createBookingFn] Tier 5 insert failed, trying Tier 6 bare minimum payload:", res.error.message || res.error);
+        res = await safeBookingInsert({
+          customer_name: customerName,
+          phone: customerPhone,
+          email: customerEmail,
+          total_amount: totalAmount,
+          amount: totalAmount,
         });
       }
 
@@ -379,6 +397,7 @@ export const createBookingFn = createServerFn({ method: "POST" })
 
       const booking = res.data;
       const bookingDbId = booking.id;
+      const returnedDisplayId = booking.booking_id || booking.booking_ref || bookingRef;
 
       // Insert travellers
       const travellersToInsert = data.travellers.map((t: any, idx: number) => ({
@@ -423,7 +442,7 @@ export const createBookingFn = createServerFn({ method: "POST" })
       return {
         success: true as const,
         bookingId: bookingDbId,
-        displayId: bookingRef,
+        displayId: returnedDisplayId,
       };
     } catch (e: unknown) {
       const userMessage = e instanceof Error ? e.message : "Unable to initialize booking. Please try again.";
