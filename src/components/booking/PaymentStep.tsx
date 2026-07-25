@@ -57,12 +57,17 @@ export function PaymentStep({
     setIsProcessing(true);
     setError("");
 
+    let createdBookingId: string | null = null;
+
     try {
-      // ── Step 1: Get user ───────────────────────────────────────────────────
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      const userId = user?.id || null;
+      // ── Step 1: Get optional user (guest booking allowed, never throws auth error) ──
+      let userId: string | null = null;
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        userId = sessionData?.session?.user?.id || null;
+      } catch {
+        userId = null;
+      }
 
       // ── Step 2: Validate departureId ───────────────────────────────────────
       if (!data.departureId) {
@@ -91,27 +96,28 @@ export function PaymentStep({
 
       const booking = await createBookingFn({ data: bookingPayload });
 
-      if (!booking || !booking.success) {
+      if (!booking || !booking.success || !booking.bookingId) {
         const serverError = (booking as any)?.error || "Unable to initialize booking. Please check details and try again.";
         throw new Error(serverError);
       }
 
-      if (!booking.bookingId) {
-        throw new Error("Booking was created but ID is missing. Please contact support.");
-      }
-
-      const bookingId = booking.bookingId;
+      createdBookingId = booking.bookingId;
+      const currentBookingId = booking.bookingId;
 
       // ── Step 4: Create Razorpay Order (backend adds GST) ──────────────────
       // Send pricing.total (subtotal + GST) to Razorpay
       const order = await createRazorpayOrderFn({
         data: {
-          bookingId,
+          bookingId: currentBookingId,
           amount: pricing.total, // GST-inclusive amount for the actual charge
           currency: "INR",
           paymentType: "FULL",
         },
       });
+
+      if (!order || !order.orderId) {
+        throw new Error("Failed to create Razorpay payment order. Please try again.");
+      }
 
       // ── Step 5: Load Razorpay SDK and open checkout ───────────────────────
       const loaded = await loadRazorpayScript();
@@ -139,7 +145,7 @@ export function PaymentStep({
             try {
               const verification = await verifyRazorpayPaymentFn({
                 data: {
-                  bookingId,
+                  bookingId: currentBookingId,
                   orderId: response.razorpay_order_id,
                   paymentId: response.razorpay_payment_id,
                   signature: response.razorpay_signature,
@@ -156,7 +162,7 @@ export function PaymentStep({
 
               updateData((prev: any) => ({
                 ...prev,
-                bookingId,
+                bookingId: currentBookingId,
                 paymentId: response.razorpay_payment_id,
                 paymentStatus: "SUCCESS",
               }));
@@ -179,10 +185,10 @@ export function PaymentStep({
     } catch (err: any) {
       console.error("[Booking] Payment flow error:", err);
       // Call server to unlock seats immediately on payment failure or modal dismissal
-      if (bookingId) {
+      if (createdBookingId) {
         try {
-          await releaseBookingLocksFn({ data: bookingId });
-          console.log("[PaymentStep] Released seats for booking ID:", bookingId);
+          await releaseBookingLocksFn({ data: createdBookingId });
+          console.log("[PaymentStep] Released seats for booking ID:", createdBookingId);
         } catch (lockReleaseErr) {
           console.error("[PaymentStep] Failed to release locks:", lockReleaseErr);
         }
