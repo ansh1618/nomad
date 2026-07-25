@@ -19,25 +19,7 @@ export const updateInquiryStatusFn = createServerFn({ method: "POST" })
     return await db.updateInquiryStatus(data.id, data.status, data.notes);
   });
 
-export const createBookingFn = createServerFn({ method: "POST" })
-  .validator((data: {
-    inquiryId?: string;
-    journeySlug: string;
-    tripBatchId?: string;
-    customerName: string;
-    phone: string;
-    email?: string;
-    travelDate?: string;
-    travellersCount: number;
-    amount: number;
-    discountAmount?: number;
-    paymentMethod?: string;
-    couponCode?: string;
-    notes?: string;
-  }) => data)
-  .handler(async ({ data }) => {
-    return await db.createBooking(data);
-  });
+export { createBookingFn } from "@/lib/booking-fns";
 
 export const getBookingsFn = createServerFn({ method: "GET" })
   .validator((status: db.BookingStatus | undefined) => status)
