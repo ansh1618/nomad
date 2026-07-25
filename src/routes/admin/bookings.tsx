@@ -181,7 +181,7 @@ function BookingsPage() {
         email: b.customers?.email ?? '',
         package: b.departures?.journeys?.name ?? '',
         departure_date: b.departures?.departure_date ?? '',
-        travellers: b.traveller_count,
+        travellers: b.traveller_count ?? (b as any).travellers_count ?? b.booking_travellers?.length ?? 1,
         total: b.total_amount,
         paid: b.amount_paid,
         balance: b.balance_due,
@@ -242,7 +242,7 @@ function BookingsPage() {
       cell: ({ row }) => (
         <div className="flex items-center gap-1 text-sm">
           <Users className="h-3.5 w-3.5 text-muted-foreground" />
-          {row.original.traveller_count}
+          {row.original.traveller_count ?? (row.original as any).travellers_count ?? row.original.booking_travellers?.length ?? 1}
         </div>
       ),
     },

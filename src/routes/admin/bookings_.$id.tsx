@@ -673,7 +673,7 @@ function BookingDetailPage() {
           <Tabs defaultValue="overview" className="w-full">
             <TabsList className="grid w-full grid-cols-3 bg-muted/50 p-1 rounded-xl h-11 border">
               <TabsTrigger value="overview" className="rounded-lg text-xs font-semibold py-2 font-poppins">Overview</TabsTrigger>
-              <TabsTrigger value="travellers" className="rounded-lg text-xs font-semibold py-2 font-poppins">Travellers ({b.traveller_count})</TabsTrigger>
+              <TabsTrigger value="travellers" className="rounded-lg text-xs font-semibold py-2 font-poppins">Travellers ({b?.traveller_count ?? (b as any)?.travellers_count ?? b?.booking_travellers?.length ?? 1})</TabsTrigger>
               <TabsTrigger value="docs_timeline" className="rounded-lg text-xs font-semibold py-2 font-poppins">Docs & Timeline</TabsTrigger>
             </TabsList>
 
@@ -846,7 +846,7 @@ function BookingDetailPage() {
               <Card className="border shadow-none">
                 <CardHeader>
                   <CardTitle className="text-sm font-semibold flex items-center justify-between">
-                    <span>Active Explorers ({b.traveller_count})</span>
+                    <span>Active Explorers ({b?.traveller_count ?? (b as any)?.travellers_count ?? b?.booking_travellers?.length ?? 1})</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">

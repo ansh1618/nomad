@@ -239,7 +239,7 @@ export async function confirmBookingAfterPayment(
   // 1. Fetch booking
   const { data: booking, error: fetchErr } = await adminClient
     .from("bookings")
-    .select("id, customer_id, departure_id, total_amount, traveller_count, booking_status")
+    .select("id, customer_id, departure_id, total_amount, booking_status")
     .eq("id", bookingId)
     .single();
 
@@ -342,10 +342,18 @@ export async function confirmBookingAfterPayment(
       .single();
 
     if (dep) {
+      // Get count of travellers for seat inventory update
+      const { count: travellerCount } = await adminClient
+        .from("booking_travellers")
+        .select("id", { count: "exact", head: true })
+        .eq("booking_id", bookingId);
+
+      const finalTravellerCount = travellerCount ?? 1;
+
       await adminClient
         .from("departures")
         .update({
-          available_seats: Math.max(0, (dep.available_seats ?? 0) - (booking.traveller_count ?? 1)),
+          available_seats: Math.max(0, (dep.available_seats ?? 0) - finalTravellerCount),
         })
         .eq("id", booking.departure_id);
     }

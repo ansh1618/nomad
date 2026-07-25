@@ -485,7 +485,7 @@ function AdminDashboard() {
                           </Badge>
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          {b.traveller_count} traveller{b.traveller_count !== 1 ? 's' : ''} · {new Date(b.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                          {b.traveller_count ?? (b as any).travellers_count ?? b.booking_travellers?.length ?? 1} traveller{(b.traveller_count ?? (b as any).travellers_count ?? b.booking_travellers?.length ?? 1) !== 1 ? 's' : ''} · {new Date(b.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                         </p>
                       </div>
                       <div className="text-right flex items-center gap-2">

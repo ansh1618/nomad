@@ -518,7 +518,7 @@ export async function getDashboardStats() {
     // Recent 5 bookings with user info
     supabase
       .from("bookings")
-      .select("id, booking_id, status, total_amount, created_at, traveller_count, user_id, departure_id")
+      .select("id, booking_id, status, total_amount, created_at, user_id, departure_id, booking_travellers(id)")
       .order("created_at", { ascending: false })
       .limit(5),
 
