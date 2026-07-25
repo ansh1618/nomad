@@ -84,24 +84,6 @@ export const APIRoute = createAPIFileRoute("/api/razorpay/verify")({
 
       console.log("[Razorpay Verify] ✅ Booking confirmed:", booking.booking_id);
 
-      // ── 4. Fire-and-forget email confirmation ─────────────────────────────
-      if (booking.customer_id) {
-        const { data: customer } = await supabaseAdmin
-          .from("customers")
-          .select("name, email, phone")
-          .eq("id", booking.customer_id)
-          .single();
-
-        if (customer?.email) {
-          sendBookingConfirmationEmail({
-            customerName: customer.name,
-            customerEmail: customer.email,
-            bookingId: booking.booking_id ?? booking.id,
-            amountPaid: booking.total_amount ?? 0,
-          }).catch((err) => console.error("[Razorpay Verify] Email failed:", err));
-        }
-      }
-
       return new Response(JSON.stringify({ success: true, bookingId: booking.id }), {
         status: 200,
         headers: { "Content-Type": "application/json" },

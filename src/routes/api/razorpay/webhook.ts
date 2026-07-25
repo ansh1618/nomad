@@ -163,24 +163,6 @@ async function handlePaymentSuccess(body: RazorpayWebhookBody, eventType: string
   );
 
   console.log(`[Razorpay Webhook] ✅ Booking confirmed: ${booking.booking_id}`);
-
-  // Fire-and-forget email
-  if (booking.customer_id) {
-    const { data: customer } = await supabaseAdmin
-      .from("customers")
-      .select("name, email")
-      .eq("id", booking.customer_id)
-      .single();
-
-    if (customer?.email) {
-      sendBookingConfirmationEmail({
-        customerName: customer.name,
-        customerEmail: customer.email,
-        bookingId: booking.booking_id ?? booking.id,
-        amountPaid: amountPaid || (booking.total_amount ?? 0),
-      }).catch((err) => console.error("[Razorpay Webhook] Email failed:", err));
-    }
-  }
 }
 
 async function handlePaymentFailed(body: RazorpayWebhookBody) {

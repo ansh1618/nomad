@@ -84,24 +84,6 @@ export const APIRoute = createAPIFileRoute("/api/verify-payment")({
         );
 
         console.log("[Razorpay Verification] Booking successfully confirmed:", booking.booking_id);
-
-        // Send booking confirmation email asynchronously (fire-and-forget)
-        if (booking.customer_id) {
-          const { data: customer } = await supabaseAdmin
-            .from("customers")
-            .select("name, email, phone")
-            .eq("id", booking.customer_id)
-            .single();
-
-          if (customer?.email) {
-            sendBookingConfirmationEmail({
-              customerName: customer.name,
-              customerEmail: customer.email,
-              bookingId: booking.booking_id ?? booking.id,
-              amountPaid: booking.total_amount ?? 0,
-            }).catch((err) => console.error("[Razorpay Verification] Email sending failed:", err));
-          }
-        }
       }
 
       return new Response(
