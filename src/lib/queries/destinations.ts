@@ -151,11 +151,24 @@ export async function getDestinationById(id: string): Promise<Destination | null
 // CREATE
 // ==========================================
 export async function createDestination(payload: DestinationInsert): Promise<Destination> {
-  const { status, is_featured, priority, altitude, seo_title, seo_description, seo, google_map_url, short_description, ...allowedPayload } = payload as any
-  const dbPayload = {
-    ...allowedPayload,
-    is_published: status === 'PUBLISHED'
+  const p = payload as any
+  const dbPayload: any = {
+    name: p.name,
+    slug: p.slug,
+    subtitle: p.subtitle || null,
+    country: p.country || 'India',
+    state: p.state || null,
+    region: p.region || null,
+    description: p.description || null,
+    hero_image: p.hero_image || null,
+    hero_video: p.hero_video || null,
+    gallery: p.gallery || [],
+    things_to_do: p.things_to_do || [],
+    faqs: p.faqs || [],
+    is_published: (p.status || 'DRAFT').toString().toUpperCase().trim() === 'PUBLISHED',
   }
+  if (p.created_by) dbPayload.created_by = p.created_by
+  if (p.updated_by) dbPayload.updated_by = p.updated_by
 
   const { data, error } = await supabase
     .from('destinations')
@@ -177,12 +190,24 @@ export async function createDestination(payload: DestinationInsert): Promise<Des
 // UPDATE
 // ==========================================
 export async function updateDestination(id: string, payload: DestinationUpdate): Promise<Destination> {
-  const { status, is_featured, priority, altitude, seo_title, seo_description, seo, google_map_url, short_description, ...allowedPayload } = payload as any
-  const dbPayload = {
-    ...allowedPayload,
-    is_published: status === 'PUBLISHED',
+  const p = payload as any
+  const dbPayload: any = {
+    name: p.name,
+    slug: p.slug,
+    subtitle: p.subtitle || null,
+    country: p.country || 'India',
+    state: p.state || null,
+    region: p.region || null,
+    description: p.description || null,
+    hero_image: p.hero_image || null,
+    hero_video: p.hero_video || null,
+    gallery: p.gallery || [],
+    things_to_do: p.things_to_do || [],
+    faqs: p.faqs || [],
+    is_published: (p.status || 'DRAFT').toString().toUpperCase().trim() === 'PUBLISHED',
     updated_at: new Date().toISOString()
   }
+  if (p.updated_by) dbPayload.updated_by = p.updated_by
 
   const { data, error } = await supabase
     .from('destinations')
