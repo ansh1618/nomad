@@ -5,7 +5,7 @@ import { getApprovedReviews as sharedGetApprovedReviews } from "./queries/admin"
 
 const REAL_DEST_IMAGE_MAP: Record<string, string> = {
   "manali": "/images/manali/manali-snow-valley.jpg",
-  "jibhi": "/images/jibhi/jibhi-raghupur-swing.jpg",
+  "jibhi": "/images/jibhi/jibhi-raghupur-fort-temple.jpg",
   "udaipur": "/images/udaipur-palace.png",
   "mcleodganj": "/images/mcleodganj/mcleodganj-town-view.jpg",
   "chopta-tungnath": "https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800&q=80",
@@ -20,7 +20,7 @@ export function getRealDestinationImage(slug: string, dbImage?: string | null): 
     return "/images/manali/manali-snow-valley.jpg";
   }
   if (s.includes("jibhi") || s.includes("tirthan")) {
-    return "/images/jibhi/jibhi-raghupur-swing.jpg";
+    return "/images/jibhi/jibhi-raghupur-fort-temple.jpg";
   }
   if (s.includes("udaipur")) {
     return "/images/udaipur-palace.png";
