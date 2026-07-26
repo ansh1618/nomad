@@ -163,6 +163,30 @@ export const createBookingFn = createServerFn({ method: "POST" })
               .maybeSingle();
             if (jData) dep.journeys = jData;
           }
+        } else if (data.departureId && data.departureId.startsWith("dep-gen-")) {
+          // Resolve auto-generated departure IDs (format: dep-gen-{journeyId}-{YYYY-MM-DD})
+          const lastHyphenIndex = data.departureId.lastIndexOf("-");
+          const dateStr = data.departureId.substring(lastHyphenIndex + 1);
+          const prefixAndJourneyId = data.departureId.substring(0, lastHyphenIndex);
+          const jId = prefixAndJourneyId.replace("dep-gen-", "");
+
+          const { data: jData } = await supabaseAdmin
+            .from("journeys")
+            .select("id, starting_price, name, slug")
+            .eq("id", jId)
+            .maybeSingle();
+
+          if (jData) {
+            dep = {
+              id: data.departureId,
+              journey_id: jData.id,
+              departure_date: dateStr,
+              base_price: jData.starting_price || 6499,
+              journeys: jData,
+            };
+          } else {
+            depError = directErr || joinedErr;
+          }
         } else {
           depError = directErr || joinedErr;
         }

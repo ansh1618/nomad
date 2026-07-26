@@ -62,10 +62,96 @@ export async function getDepartures(
 }
 
 // ==========================================
+// GENERATE SCHEDULED DEPARTURES (RULE-BASED)
+// ==========================================
+export function generateScheduledDepartures(
+  journey: { id: string; name?: string; slug?: string; starting_price?: number },
+  existingDepartures: Departure[] = []
+): Departure[] {
+  if (!journey || !journey.id) return existingDepartures;
+
+  const journeyName = (journey.name || '').toLowerCase();
+  const journeySlug = (journey.slug || '').toLowerCase();
+
+  // Daily availability for Chopta, Tungnath, and Manali trips
+  const isDaily =
+    journeyName.includes('chopta') ||
+    journeyName.includes('tungnath') ||
+    journeyName.includes('manali') ||
+    journeySlug.includes('chopta') ||
+    journeySlug.includes('tungnath') ||
+    journeySlug.includes('manali');
+
+  const existingDatesSet = new Set(
+    existingDepartures
+      .map((d) => (d.departure_date ? d.departure_date.split('T')[0] : ''))
+      .filter(Boolean)
+  );
+
+  const generatedList: Departure[] = [...existingDepartures];
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() + 1); // Start from tomorrow
+
+  const totalDaysToGenerate = 90;
+
+  for (let i = 0; i < totalDaysToGenerate; i++) {
+    const currentDate = new Date(startDate);
+    currentDate.setDate(startDate.getDate() + i);
+
+    const dateStr = currentDate.toISOString().split('T')[0];
+
+    if (existingDatesSet.has(dateStr)) {
+      continue; // Keep existing database departure for this date
+    }
+
+    const dayOfWeek = currentDate.getDay(); // 0 = Sun, 5 = Fri
+
+    if (isDaily || dayOfWeek === 5) {
+      // Daily for Chopta / Tungnath / Manali; Every Friday for all other trips
+      generatedList.push({
+        id: `dep-gen-${journey.id}-${dateStr}`,
+        journey_id: journey.id,
+        departure_date: dateStr,
+        return_date: dateStr,
+        base_price: journey.starting_price || 6499,
+        dynamic_price: journey.starting_price || 6499,
+        available_seats: 18,
+        max_capacity: 18,
+        is_sold_out: false,
+        is_visible: true,
+        is_cancelled: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      } as any);
+    }
+  }
+
+  // Sort by departure_date ascending
+  return generatedList.sort((a, b) =>
+    (a.departure_date || '') > (b.departure_date || '') ? 1 : -1
+  );
+}
+
+// ==========================================
 // UPCOMING (for package page departure picker)
 // ==========================================
 export async function getUpcomingDepartures(journeyId: string): Promise<Departure[]> {
-  const today = new Date().toISOString().split('T')[0]
+  const today = new Date().toISOString().split('T')[0];
+  let existingDeps: Departure[] = [];
+  let journeyInfo: { id: string; name?: string; slug?: string; starting_price?: number } | null = null;
+
+  // Fetch journey info to determine departure rules
+  try {
+    const { data: jData } = await supabase
+      .from('journeys')
+      .select('id, name, slug, starting_price')
+      .eq('id', journeyId)
+      .maybeSingle();
+
+    if (jData) journeyInfo = jData;
+  } catch (jErr) {
+    console.warn('[getUpcomingDepartures] Failed to fetch journey info:', jErr);
+  }
 
   try {
     const { data, error } = await supabase
@@ -75,43 +161,53 @@ export async function getUpcomingDepartures(journeyId: string): Promise<Departur
       .eq('is_visible', true)
       .eq('is_cancelled', false)
       .gte('departure_date', today)
-      .order('departure_date', { ascending: true })
+      .order('departure_date', { ascending: true });
 
-    if (!error) return (data ?? []) as Departure[]
+    if (!error && data) {
+      existingDeps = data as Departure[];
+    }
   } catch (e) {
-    console.warn('Modern getUpcomingDepartures failed, falling back to trip_batches:', e)
+    console.warn('Modern getUpcomingDepartures failed, falling back to trip_batches:', e);
   }
 
-  // Fallback to legacy trip_batches table
-  const { data: batches, error: batchesError } = await supabase
-    .from('trip_batches')
-    .select('*')
-    .eq('journey_id', journeyId)
-    .neq('status', 'CANCELLED')
-    .gte('departure_date', today)
-    .order('departure_date', { ascending: true })
+  if (existingDeps.length === 0) {
+    // Fallback to legacy trip_batches table
+    try {
+      const { data: batches } = await supabase
+        .from('trip_batches')
+        .select('*')
+        .eq('journey_id', journeyId)
+        .neq('status', 'CANCELLED')
+        .gte('departure_date', today)
+        .order('departure_date', { ascending: true });
 
-  if (batchesError) {
-    console.error('Error fetching legacy trip_batches:', batchesError)
-    return []
+      if (batches && batches.length > 0) {
+        existingDeps = batches.map((batch: any) => ({
+          id: batch.id,
+          journey_id: batch.journey_id,
+          departure_date: batch.departure_date,
+          return_date: batch.return_date || batch.departure_date,
+          base_price: Number(batch.price || 0),
+          dynamic_price: Number(batch.price || 0),
+          available_seats: batch.remaining_seats ?? batch.max_capacity ?? 18,
+          max_capacity: batch.max_capacity ?? 18,
+          is_sold_out: (batch.remaining_seats ?? 1) <= 0,
+          is_visible: true,
+          is_cancelled: false,
+          created_at: batch.created_at,
+          updated_at: batch.updated_at,
+        })) as any[];
+      }
+    } catch (batchErr) {
+      console.warn('Error fetching legacy trip_batches:', batchErr);
+    }
   }
 
-  // Map trip_batches fields to Departure model structure
-  return (batches ?? []).map((batch: any) => ({
-    id: batch.id,
-    journey_id: batch.journey_id,
-    departure_date: batch.departure_date,
-    return_date: batch.return_date || batch.departure_date,
-    base_price: Number(batch.price || 0),
-    dynamic_price: Number(batch.price || 0),
-    available_seats: batch.remaining_seats ?? batch.max_capacity ?? 18,
-    max_capacity: batch.max_capacity ?? 18,
-    is_sold_out: (batch.remaining_seats ?? 1) <= 0,
-    is_visible: true,
-    is_cancelled: false,
-    created_at: batch.created_at,
-    updated_at: batch.updated_at,
-  })) as any[]
+  if (journeyInfo) {
+    return generateScheduledDepartures(journeyInfo, existingDeps);
+  }
+
+  return existingDeps;
 }
 
 // ==========================================
