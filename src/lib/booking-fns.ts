@@ -358,18 +358,33 @@ export const createBookingFn = createServerFn({ method: "POST" })
 
       console.warn("[createBookingFn] PL/pgSQL RPC fallback activated:", txError?.message);
 
-      // 4. FALLBACK: Exception-safe multi-step save via JS
+      // 4. FALLBACK: Exception-safe multi-step save via JS with dynamic column auto-stripping
       const bookingRef = `NMK-${destCode}-${new Date().toISOString().slice(2, 4)}${new Date().toISOString().slice(5, 7)}${Math.floor(10 + Math.random() * 90)}`;
 
       const safeBookingInsert = async (payload: Record<string, any>) => {
-        try {
-          const res = await supabaseAdmin.from("bookings").insert(payload).select("*");
-          if (res.error) return { data: null, error: res.error };
-          if (res.data && res.data.length > 0) return { data: res.data[0], error: null };
-          return { data: null, error: new Error("No rows returned from booking insert") };
-        } catch (err: any) {
-          return { data: null, error: err };
+        let currentPayload = { ...payload };
+        for (let attempt = 0; attempt < 6; attempt++) {
+          try {
+            const res = await supabaseAdmin.from("bookings").insert(currentPayload).select("*");
+            if (!res.error && res.data && res.data.length > 0) {
+              return { data: res.data[0], error: null };
+            }
+            if (res.error) {
+              // Parse PostgREST missing column error: "Could not find the 'col' column of 'bookings' in the schema cache"
+              const match = res.error.message?.match(/Could not find the '([^']+)' column of 'bookings'/i);
+              if (match && match[1]) {
+                const badCol = match[1];
+                console.warn(`[safeBookingInsert] Stripping non-existent column '${badCol}' and retrying insert...`);
+                delete currentPayload[badCol];
+                continue;
+              }
+              return { data: null, error: res.error };
+            }
+          } catch (err: any) {
+            return { data: null, error: err };
+          }
         }
+        return { data: null, error: new Error("Booking insert failed after column stripping attempts") };
       };
 
       const travellerCount = Math.max(1, Array.isArray(data.travellers) ? data.travellers.length : 1);
@@ -386,7 +401,6 @@ export const createBookingFn = createServerFn({ method: "POST" })
         booking_status: "PENDING",
         payment_status: "PENDING",
         travellers_count: travellerCount,
-        traveller_count: travellerCount,
         amount: totalAmount,
         addon_amount: addonAmount,
         discount_amount: serverDiscount,
@@ -433,7 +447,6 @@ export const createBookingFn = createServerFn({ method: "POST" })
           phone: customerPhone,
           email: customerEmail,
           travellers_count: travellerCount,
-          traveller_count: travellerCount,
           amount: totalAmount,
           total_amount: totalAmount,
           final_amount: totalAmount,

@@ -16,6 +16,22 @@ const REAL_DEST_IMAGE_MAP: Record<string, string> = {
 export function getRealDestinationImage(slug: string, dbImage?: string | null): string {
   const s = (slug || '').toLowerCase().trim();
 
+  // 1. If valid Admin Panel DB image exists (and is not a screenshot/devtools asset), USE ADMIN IMAGE
+  if (
+    dbImage &&
+    typeof dbImage === "string" &&
+    !dbImage.includes("assets/dest-") &&
+    !dbImage.includes("dest-") &&
+    !dbImage.includes("localhost") &&
+    !dbImage.includes("127.0.0.1") &&
+    !dbImage.includes("screenshot") &&
+    !dbImage.includes("devtools") &&
+    (dbImage.startsWith("/") || dbImage.startsWith("http"))
+  ) {
+    return dbImage;
+  }
+
+  // 2. Fallback to curated high-resolution photography by slug
   if (s.includes("manali")) {
     return "/images/manali/manali-snow-valley.jpg";
   }
@@ -39,19 +55,6 @@ export function getRealDestinationImage(slug: string, dbImage?: string | null): 
   }
   if (s.includes("kedarnath")) {
     return "https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800&q=80";
-  }
-
-  // Also check if dbImage is a valid non-screenshot URL
-  if (
-    dbImage &&
-    typeof dbImage === "string" &&
-    !dbImage.includes("assets/dest-") &&
-    !dbImage.includes("dest-") &&
-    !dbImage.includes("localhost") &&
-    !dbImage.includes("127.0.0.1") &&
-    (dbImage.startsWith("/") || dbImage.startsWith("http"))
-  ) {
-    return dbImage;
   }
 
   return "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80";
