@@ -338,7 +338,7 @@ export function BookingWizard({
         </div>
 
         {/* Form Container */}
-        <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-border min-h-[400px]">
+        <div className="bg-white p-4 sm:p-8 rounded-3xl shadow-sm border border-border min-h-[400px]">
           {currentStep === 0 && <TravellerDetailsStep data={bookingData} updateData={setBookingData} onNext={nextStep} isSidebar={isSidebar} pricing={pricing} departures={departures} />}
           {currentStep === 1 && <AccommodationSelectionStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} isSidebar={isSidebar} pricing={pricing} />}
           {currentStep === 2 && <AddonsAndCouponsStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} isSidebar={isSidebar} pricing={pricing} />}
