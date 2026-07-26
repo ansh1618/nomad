@@ -3,13 +3,34 @@ import { getPublishedDestinations, getDestinationBySlug as sharedGetDestinationB
 import { getPublishedPackages, getPackageBySlug } from "./queries/packages";
 import { getApprovedReviews as sharedGetApprovedReviews } from "./queries/admin";
 
+const REAL_DEST_IMAGE_MAP: Record<string, string> = {
+  "manali": "/images/manali/manali-snow-valley.jpg",
+  "jibhi": "/images/jibhi/jibhi-raghupur-swing.jpg",
+  "udaipur": "/images/udaipur-palace.png",
+  "mcleodganj": "/images/mcleodganj/mcleodganj-ropeway.jpg",
+  "chopta-tungnath": "https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800&q=80",
+  "kasol": "https://images.unsplash.com/photo-1596895111956-bf1cf0599ce5?w=800&q=80",
+  "spiti": "https://images.unsplash.com/photo-1581793745862-99fde7fa73d2?w=800&q=80",
+};
+
+export function getRealDestinationImage(slug: string, dbImage?: string | null): string {
+  const normSlug = (slug || '').toLowerCase().trim();
+  if (REAL_DEST_IMAGE_MAP[normSlug]) {
+    return REAL_DEST_IMAGE_MAP[normSlug];
+  }
+  if (dbImage && !dbImage.includes("assets/dest-") && !dbImage.includes("dest-")) {
+    return dbImage;
+  }
+  return "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80";
+}
+
 export async function getDestinations() {
   const data = await getPublishedDestinations();
   return data.map((d: any) => ({
     slug: d.slug,
     name: d.name,
     subtitle: d.subtitle,
-    image: d.hero_image || (d.gallery?.[0]?.url ?? d.gallery?.[0]) || '',
+    image: getRealDestinationImage(d.slug, d.hero_image || (d.gallery?.[0]?.url ?? d.gallery?.[0])),
     gallery: d.gallery || [],
     overview: d.description,
     weather: d.weather,
@@ -39,7 +60,7 @@ export async function getDestinationBySlug(slug: string) {
     slug: data.slug,
     name: data.name,
     subtitle: data.subtitle,
-    image: data.hero_image || (data.gallery?.[0]?.url ?? data.gallery?.[0]) || '',
+    image: getRealDestinationImage(data.slug, data.hero_image || (data.gallery?.[0]?.url ?? data.gallery?.[0])),
     gallery: data.gallery || [],
     overview: data.description,
     weather: data.weather,

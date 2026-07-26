@@ -6,6 +6,8 @@ import { Route } from "@/routes/index";
 import { useQuery } from "@tanstack/react-query";
 import { getCmsSection } from "@/lib/queries/cms";
 
+import { getRealDestinationImage } from "@/lib/queries-client";
+
 export function PopularDestinations() {
   const { destinations, journeys } = Route.useLoaderData();
 
@@ -69,7 +71,7 @@ export function PopularDestinations() {
               <article className="hover-lift overflow-hidden rounded-3xl bg-card border border-border shadow-soft flex flex-col h-full">
                 <div className="relative aspect-[4/3] overflow-hidden">
                   <img
-                    src={d.image || 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80'}
+                    src={getRealDestinationImage(d.slug, d.image)}
                     alt={`${d.name} road trip destination`}
                     loading="lazy"
                     className="h-full w-full object-cover transition-transform duration-750 group-hover:scale-105"

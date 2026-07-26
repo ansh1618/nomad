@@ -4,19 +4,18 @@ import dubai from "@/assets/dest-dubai.jpg";
 import thailand from "@/assets/dest-thailand.jpg";
 import kashmir from "@/assets/dest-kashmir.jpg";
 import goa from "@/assets/dest-goa.jpg";
-import manali from "@/assets/dest-manali.jpg";
-import honeymoon from "@/assets/pkg-honeymoon.jpg";
-import adventure from "@/assets/pkg-adventure.jpg";
+const manali = "/images/manali/manali-snow-valley.jpg";
+const jibhi = "/images/jibhi/jibhi-raghupur-swing.jpg";
 
 const images = [
   { src: kashmir, alt: "Kashmir Dal lake", label: "Kashmir" },
   { src: dubai, alt: "Dubai skyline", label: "Dubai" },
   { src: thailand, alt: "Thailand beach", label: "Thailand" },
   { src: honeymoon, alt: "Maldives honeymoon", label: "Maldives" },
-  { src: bali, alt: "Bali temples", label: "Bali" },
+  { src: jibhi, alt: "Jibhi pine valley swing", label: "Jibhi" },
   { src: goa, alt: "Goa sunset", label: "Goa" },
   { src: adventure, alt: "Mountain adventure", label: "Adventure" },
-  { src: manali, alt: "Manali mountains", label: "Manali" },
+  { src: manali, alt: "Manali snow valley", label: "Manali" },
 ];
 
 export function Gallery() {

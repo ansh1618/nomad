@@ -4,9 +4,9 @@ import { Footer } from "@/components/site/Footer";
 import { FloatingUI } from "@/components/site/FloatingUI";
 import { Reveal } from "@/components/site/Reveal";
 import { Compass, Users, Heart, ShieldCheck, Award } from "lucide-react";
-import teamFounder from "@/assets/dest-udaipur.jpg"; // using Udaipur as nice backdrop placeholder for founder profile
-import teamCaptain1 from "@/assets/dest-manali.jpg"; // using Manali as nice backdrop placeholder for team captain
-import teamCaptain2 from "@/assets/dest-goa.jpg"; // using Goa as nice backdrop placeholder for team captain
+const teamFounder = "/images/udaipur-palace.png";
+const teamCaptain1 = "/images/manali/manali-snow-valley.jpg";
+const teamCaptain2 = "/images/jibhi/jibhi-raghupur-swing.jpg";
 
 export const Route = createFileRoute("/about")({
   head: () => ({
