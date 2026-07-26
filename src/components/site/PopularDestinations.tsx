@@ -62,54 +62,58 @@ export function PopularDestinations() {
         </p>
       </Reveal>
 
-      <div className="mt-14 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 justify-center">
+      <div className="mt-14 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 items-stretch">
         {destinations.map((d, i) => {
           const meta = getDestMeta(d.slug);
           const linkPath = `/destinations/${d.slug}`;
           return (
             <Reveal key={d.slug} delay={i} className="group">
-              <article className="hover-lift overflow-hidden rounded-3xl bg-card border border-border shadow-soft flex flex-col h-full">
-                <div className="relative aspect-[4/3] overflow-hidden">
+              <article className="flex flex-col h-[480px] rounded-3xl overflow-hidden border border-border bg-white shadow-soft hover:shadow-elegant transition-all duration-300 hover:-translate-y-1">
+                {/* Top Image — Fixed 16:10 aspect ratio */}
+                <div className="relative aspect-[16/10] overflow-hidden bg-muted">
                   <img
                     src={getRealDestinationImage(d.slug, d.image)}
                     alt={`${d.name} road trip destination`}
                     loading="lazy"
-                    className="h-full w-full object-cover transition-transform duration-750 group-hover:scale-105"
+                    className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                     onError={(e) => {
                       const target = e.currentTarget;
                       target.onerror = null;
                       target.src = 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80';
                     }}
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                  <span className="glass absolute left-4 top-4 rounded-full px-3.5 py-1.5 text-[10px] font-poppins font-bold text-primary tracking-wide uppercase">
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-60" />
+                  <span className="absolute left-4 top-4 bg-[#0F2942]/90 backdrop-blur-md text-white font-poppins font-bold text-[9px] uppercase tracking-wider px-3 py-1.5 rounded-full shadow">
                     {meta.tag}
                   </span>
-                  <div className="absolute bottom-4 left-4 flex items-center gap-1.5 text-white">
-                    <MapPin className="h-4 w-4 text-gold" />
-                    <span className="font-display text-2xl font-bold">{d.name}</span>
-                  </div>
                 </div>
 
-                <div className="p-6 flex flex-col justify-between flex-1 space-y-6">
-                  <div>
-                    <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
+                {/* Bottom White Section */}
+                <div className="p-6 flex flex-col justify-between flex-1 bg-white space-y-4">
+                  <div className="space-y-2">
+                    <p className="text-[11px] text-gold font-poppins font-bold uppercase tracking-wider flex items-center gap-1">
+                      <MapPin className="h-3.5 w-3.5 text-gold shrink-0" /> {d.name}
+                    </p>
+                    <h3 className="font-display text-xl font-bold leading-tight text-[#0F2942] group-hover:text-gold transition-colors line-clamp-1">
+                      {d.name} Journey
+                    </h3>
+                    <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
                       {d.overview}
                     </p>
                   </div>
 
-                  <div className="flex items-center justify-between pt-4 border-t border-border">
+                  <div className="pt-4 border-t border-border flex items-center justify-between mt-auto">
                     <div>
-                      <span className="text-[10px] text-muted-foreground uppercase tracking-wider block">Starting from</span>
-                      <p className="font-display text-2xl font-bold text-primary">{meta.startPrice}</p>
+                      <span className="text-[9px] text-muted-foreground uppercase font-poppins font-bold block tracking-wider">Starts at</span>
+                      <p className="font-display text-lg font-bold text-gold">{meta.startPrice}</p>
                     </div>
                     <Button
-                      variant="hero"
-                      size="default"
+                      size="sm"
+                      className="bg-[#0F2942] hover:bg-[#1A365D] text-white font-poppins font-bold text-xs px-4 py-2 rounded-full shadow-md transition-all duration-300"
                       asChild
                     >
                       <Link to={linkPath}>
-                        Start Your Journey
+                        Start Journey
                       </Link>
                     </Button>
                   </div>

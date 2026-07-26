@@ -6,6 +6,8 @@ import { Route } from "@/routes/index";
 import { useQuery } from "@tanstack/react-query";
 import { getCmsSection } from "@/lib/queries/cms";
 
+import { getRealDestinationImage } from "@/lib/queries-client";
+
 export function FeaturedPackages() {
   const { journeys } = Route.useLoaderData();
 
@@ -60,7 +62,7 @@ export function FeaturedPackages() {
                 {/* Image */}
                 <div className="relative aspect-[16/10] overflow-hidden">
                   <img
-                    src={j.image || 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&q=80'}
+                    src={getRealDestinationImage(j.slug || j.destinationSlug, j.image)}
                     alt={j.name}
                     loading="lazy"
                     className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"

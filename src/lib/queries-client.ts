@@ -14,13 +14,46 @@ const REAL_DEST_IMAGE_MAP: Record<string, string> = {
 };
 
 export function getRealDestinationImage(slug: string, dbImage?: string | null): string {
-  const normSlug = (slug || '').toLowerCase().trim();
-  if (REAL_DEST_IMAGE_MAP[normSlug]) {
-    return REAL_DEST_IMAGE_MAP[normSlug];
+  const s = (slug || '').toLowerCase().trim();
+
+  if (s.includes("manali")) {
+    return "/images/manali/manali-snow-valley.jpg";
   }
-  if (dbImage && !dbImage.includes("assets/dest-") && !dbImage.includes("dest-")) {
+  if (s.includes("jibhi") || s.includes("tirthan")) {
+    return "/images/jibhi/jibhi-raghupur-swing.jpg";
+  }
+  if (s.includes("udaipur")) {
+    return "/images/udaipur-palace.png";
+  }
+  if (s.includes("mcleod") || s.includes("dharamshala") || s.includes("triund")) {
+    return "/images/mcleodganj/mcleodganj-ropeway.jpg";
+  }
+  if (s.includes("chopta") || s.includes("tungnath") || s.includes("chandrashila")) {
+    return "https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800&q=80";
+  }
+  if (s.includes("spiti")) {
+    return "https://images.unsplash.com/photo-1581793745862-99fde7fa73d2?w=800&q=80";
+  }
+  if (s.includes("kasol")) {
+    return "https://images.unsplash.com/photo-1596895111956-bf1cf0599ce5?w=800&q=80";
+  }
+  if (s.includes("kedarnath")) {
+    return "https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800&q=80";
+  }
+
+  // Also check if dbImage is a valid non-screenshot URL
+  if (
+    dbImage &&
+    typeof dbImage === "string" &&
+    !dbImage.includes("assets/dest-") &&
+    !dbImage.includes("dest-") &&
+    !dbImage.includes("localhost") &&
+    !dbImage.includes("127.0.0.1") &&
+    (dbImage.startsWith("/") || dbImage.startsWith("http"))
+  ) {
     return dbImage;
   }
+
   return "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80";
 }
 
@@ -76,13 +109,14 @@ export async function getJourneys() {
   const data = await getPublishedPackages();
   return data.map((j: any) => {
     const it = j.itinerary_days || [];
+    const rawImg = (j.gallery as any)?.[0]?.url || (j.gallery as any)?.[0] || j.hero_banner || "";
     return {
       slug: j.slug,
       destinationSlug: j.destinations?.slug || "",
       destinationName: j.destinations?.name || "",
       category: j.category || "",
       name: j.name,
-      image: (j.gallery as any)?.[0]?.url || (j.gallery as any)?.[0] || j.hero_banner || "",
+      image: getRealDestinationImage(j.slug || j.destinations?.slug || "", rawImg),
       duration: j.duration,
       transport: j.transport,
       difficulty: j.difficulty,
@@ -123,6 +157,7 @@ export async function getJourneyBySlug(slug: string) {
   if (!data) return null;
 
   const it = data.itinerary_days || [];
+  const rawImg = (data.gallery as any)?.[0]?.url || (data.gallery as any)?.[0] || data.hero_banner || "";
   return {
     id: data.id,
     slug: data.slug,
@@ -130,7 +165,7 @@ export async function getJourneyBySlug(slug: string) {
     destinationName: (data.destinations as any)?.name || "",
     category: data.category || "",
     name: data.name,
-    image: (data.gallery as any)?.[0]?.url || (data.gallery as any)?.[0] || data.hero_banner || "",
+    image: getRealDestinationImage(data.slug || (data.destinations as any)?.slug || "", rawImg),
     duration: data.duration,
     transport: data.transport,
     difficulty: data.difficulty,

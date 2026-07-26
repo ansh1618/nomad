@@ -4,15 +4,11 @@ import { Footer } from "@/components/site/Footer";
 import { FloatingUI } from "@/components/site/FloatingUI";
 import { Reveal } from "@/components/site/Reveal";
 import { Compass, Users, Heart, ShieldCheck, Award } from "lucide-react";
-const teamFounder = "/images/udaipur-palace.png";
-const teamCaptain1 = "/images/manali/manali-snow-valley.jpg";
-const teamCaptain2 = "/images/jibhi/jibhi-raghupur-swing.jpg";
-
 export const Route = createFileRoute("/about")({
   head: () => ({
     meta: [
-      { title: "About Us & Meet the Captains | Nomadik" },
-      { name: "description", content: "Learn about Nomadik's mission, values, and meet our founders, trip captains, and local guides." },
+      { title: "About Us | Nomadik" },
+      { name: "description", content: "Learn about Nomadik's mission, values, and road travel philosophy." },
     ],
   }),
   component: AboutRoute,
@@ -22,12 +18,6 @@ const values = [
   { icon: Compass, title: "Experience-First", desc: "We prioritize local cafe walks, high-altitude summits, and stream walks over packed travel packages." },
   { icon: Users, title: "Tribe & Connection", desc: "We don't plan standard tours. We build communities, connect solo travelers, and coordinate co-travels." },
   { icon: ShieldCheck, title: "Explorer Safety", desc: "Vetted premium cottages, GPS-tracked caravans, and experienced mountain guides on all paths." }
-];
-
-const team = [
-  { name: "Anshul Tanwar", role: "Co-Founder & Captain", img: teamFounder, bio: "Avid road traveler and explorer. Spends half the year mapping new trails in Kinnaur and Spiti Valley." },
-  { name: "Vikram Malhotra", role: "Himachal Trip Lead", img: teamCaptain1, bio: "Triund & Jalori Pass specialist. Certified mountain guide with over 80 high-altitude group treks." },
-  { name: "Shalini Dixit", role: "Rajasthan Explorer Lead", img: teamCaptain2, bio: "Heritage walking storyteller. Specializes in Udaipur haveli walks, local Rajasthani cuisines, and history." }
 ];
 
 function AboutRoute() {
@@ -85,40 +75,6 @@ function AboutRoute() {
             </div>
           </div>
         </section>
-
-        {/* Meet the Team */}
-        <section className="max-w-7xl mx-auto px-5 py-20">
-          <Reveal className="text-center pb-12">
-            <span className="text-xs font-poppins font-bold uppercase tracking-[0.25em] text-gold">THE TRIBE LEADER</span>
-            <h2 className="font-display text-3xl font-bold text-primary mt-2">Meet Your Trip Captains</h2>
-            <p className="text-xs text-muted-foreground mt-2">Experienced guides who lead all road convoys</p>
-          </Reveal>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {team.map((member, i) => (
-              <Reveal key={i} delay={i}>
-                <div className="border border-border bg-card rounded-3xl overflow-hidden shadow-soft flex flex-col h-full">
-                  <div className="h-64 overflow-hidden relative">
-                    <img src={member.img} alt={member.name} className="h-full w-full object-cover" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-                    <span className="absolute bottom-4 left-4 bg-gold-gradient text-gold-foreground font-poppins font-bold px-3 py-1 rounded-lg text-xs">
-                      {member.role}
-                    </span>
-                  </div>
-                  <div className="p-6 space-y-2 flex-1 flex flex-col justify-between">
-                    <div>
-                      <h4 className="font-display text-xl font-bold text-primary">{member.name}</h4>
-                      <p className="text-xs text-muted-foreground leading-relaxed pt-2">
-                        {member.bio}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </Reveal>
-            ))}
-          </div>
-        </section>
-
       </main>
       <Footer />
       <FloatingUI />
