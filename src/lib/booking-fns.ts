@@ -373,19 +373,21 @@ export const createBookingFn = createServerFn({ method: "POST" })
       };
 
       const travellerCount = Math.max(1, Array.isArray(data.travellers) ? data.travellers.length : 1);
+      const realDepartureId = (dep && dep.id) ? dep.id : data.departureId;
 
-      // Tier 1: Full ERP payload
+      // Tier 1: Full ERP payload with real departure_id and travellers_count
       let res = await safeBookingInsert({
         booking_id: bookingRef,
         user_id: cleanUserId,
         customer_name: customerName,
         phone: customerPhone,
         email: customerEmail,
-        departure_id: data.departureId,
+        departure_id: realDepartureId,
         journey_id: journey.id || null,
         status: "PENDING",
+        payment_status: "PENDING",
         travellers_count: travellerCount,
-        amount: serverPricing.effectiveBasePrice * serverPricing.travellersCount,
+        amount: totalAmount,
         base_amount: serverPricing.effectiveBasePrice * serverPricing.travellersCount,
         gst_amount: gstAmount,
         discount_amount: serverDiscount,
@@ -406,9 +408,10 @@ export const createBookingFn = createServerFn({ method: "POST" })
           customer_name: customerName,
           phone: customerPhone,
           email: customerEmail,
-          departure_id: data.departureId,
+          departure_id: realDepartureId,
           journey_id: journey.id || null,
           status: "PENDING",
+          payment_status: "PENDING",
           travellers_count: travellerCount,
           amount: totalAmount,
           total_amount: totalAmount,
@@ -418,7 +421,7 @@ export const createBookingFn = createServerFn({ method: "POST" })
         });
       }
 
-      // Tier 3: Core minimal payload without user_id / journey_id
+      // Tier 3: Core minimal payload
       if (res.error) {
         console.warn("[createBookingFn] Tier 2 insert failed, trying Tier 3 core payload:", res.error.message || res.error);
         res = await safeBookingInsert({
@@ -426,8 +429,9 @@ export const createBookingFn = createServerFn({ method: "POST" })
           customer_name: customerName,
           phone: customerPhone,
           email: customerEmail,
-          departure_id: data.departureId,
+          departure_id: realDepartureId,
           status: "PENDING",
+          payment_status: "PENDING",
           travellers_count: travellerCount,
           amount: totalAmount,
           total_amount: totalAmount,
@@ -443,22 +447,24 @@ export const createBookingFn = createServerFn({ method: "POST" })
           customer_name: customerName,
           phone: customerPhone,
           email: customerEmail,
-          departure_id: data.departureId,
+          departure_id: realDepartureId,
           travellers_count: travellerCount,
           amount: totalAmount,
           total_amount: totalAmount,
         });
       }
 
-      // Tier 5: Schema V7 / Lovable format (full_name, booking_ref, departure_date, total_payable)
+      // Tier 5: Schema V7 / Lovable format with travellers_count
       if (res.error) {
         console.warn("[createBookingFn] Tier 4 insert failed, trying Tier 5 Schema V7 payload:", res.error.message || res.error);
         res = await safeBookingInsert({
           booking_ref: bookingRef,
           full_name: customerName,
+          customer_name: customerName,
           phone: customerPhone,
           email: customerEmail,
           departure_date: new Date().toISOString().slice(0, 10),
+          travellers_count: travellerCount,
           base_amount: serverPricing.effectiveBasePrice * serverPricing.travellersCount,
           total_payable: totalAmount,
           total_amount: totalAmount,
@@ -466,13 +472,14 @@ export const createBookingFn = createServerFn({ method: "POST" })
         });
       }
 
-      // Tier 6: Bare minimum required for any table format
+      // Tier 6: Bare minimum required for any table format with travellers_count
       if (res.error) {
         console.warn("[createBookingFn] Tier 5 insert failed, trying Tier 6 bare minimum payload:", res.error.message || res.error);
         res = await safeBookingInsert({
           customer_name: customerName,
           phone: customerPhone,
           email: customerEmail,
+          travellers_count: travellerCount,
           total_amount: totalAmount,
           amount: totalAmount,
         });
