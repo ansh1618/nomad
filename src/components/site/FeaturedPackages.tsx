@@ -62,7 +62,7 @@ export function FeaturedPackages() {
                 {/* Image */}
                 <div className="relative aspect-[16/10] overflow-hidden">
                   <img
-                    src={getRealDestinationImage(j.slug || j.destinationSlug, j.image)}
+                    src={getRealDestinationImage(j.slug || j.destinationSlug, (j as any).hero_banner || (j as any).destinations?.hero_image || j.image)}
                     alt={j.name}
                     loading="lazy"
                     className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"

@@ -72,7 +72,7 @@ export function PopularDestinations() {
                 {/* Top Image — Fixed 16:10 aspect ratio */}
                 <div className="relative aspect-[16/10] overflow-hidden bg-muted">
                   <img
-                    src={getRealDestinationImage(d.slug, d.image)}
+                    src={getRealDestinationImage(d.slug, (d as any).hero_image || d.image)}
                     alt={`${d.name} road trip destination`}
                     loading="lazy"
                     className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
