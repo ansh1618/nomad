@@ -7,7 +7,7 @@ const REAL_DEST_IMAGE_MAP: Record<string, string> = {
   "manali": "/images/manali/manali-snow-valley.jpg",
   "jibhi": "/images/jibhi/jibhi-raghupur-swing.jpg",
   "udaipur": "/images/udaipur-palace.png",
-  "mcleodganj": "/images/mcleodganj/mcleodganj-ropeway.jpg",
+  "mcleodganj": "/images/mcleodganj/mcleodganj-town-view.jpg",
   "chopta-tungnath": "https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800&q=80",
   "kasol": "https://images.unsplash.com/photo-1596895111956-bf1cf0599ce5?w=800&q=80",
   "spiti": "https://images.unsplash.com/photo-1581793745862-99fde7fa73d2?w=800&q=80",
@@ -26,7 +26,7 @@ export function getRealDestinationImage(slug: string, dbImage?: string | null): 
     return "/images/udaipur-palace.png";
   }
   if (s.includes("mcleod") || s.includes("dharamshala") || s.includes("triund")) {
-    return "/images/mcleodganj/mcleodganj-ropeway.jpg";
+    return "/images/mcleodganj/mcleodganj-town-view.jpg";
   }
   if (s.includes("chopta") || s.includes("tungnath") || s.includes("chandrashila")) {
     return "https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800&q=80";
