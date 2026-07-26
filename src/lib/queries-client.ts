@@ -34,7 +34,7 @@ export function getRealDestinationImage(slug: string, dbImage?: string | null): 
     );
   };
 
-  // 1. If valid custom Admin Panel image exists (not a screenshot/legacy asset), USE ADMIN IMAGE
+  // 1. If valid custom Admin Panel image exists, USE ADMIN IMAGE FIRST
   if (
     dbImage &&
     !isInvalidOrScreenshot(dbImage) &&
@@ -124,7 +124,7 @@ export async function getJourneys() {
   const data = await getPublishedPackages();
   return data.map((j: any) => {
     const it = j.itinerary_days || [];
-    const rawImg = (j.gallery as any)?.[0]?.url || (j.gallery as any)?.[0] || j.hero_banner || "";
+    const rawImg = j.hero_banner || j.destinations?.hero_image || (j.gallery as any)?.[0]?.url || (j.gallery as any)?.[0] || "";
     return {
       slug: j.slug,
       destinationSlug: j.destinations?.slug || "",
@@ -172,7 +172,7 @@ export async function getJourneyBySlug(slug: string) {
   if (!data) return null;
 
   const it = data.itinerary_days || [];
-  const rawImg = (data.gallery as any)?.[0]?.url || (data.gallery as any)?.[0] || data.hero_banner || "";
+  const rawImg = data.hero_banner || (data.destinations as any)?.hero_image || (data.gallery as any)?.[0]?.url || (data.gallery as any)?.[0] || "";
   return {
     id: data.id,
     slug: data.slug,
