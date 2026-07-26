@@ -347,7 +347,7 @@ export function MediaPicker({ open, onClose, onSelect, accept = 'image', multipl
   )
 }
 
-// Inline image picker trigger (for forms)
+// Inline image picker trigger (for forms) with direct local file upload & URL input
 interface ImageFieldProps {
   label?: string
   value: string
@@ -355,34 +355,116 @@ interface ImageFieldProps {
   folder?: string
 }
 
-export function ImageField({ label = 'Image', value, onChange, folder = '/' }: ImageFieldProps) {
+export function ImageField({ label = 'Image', value, onChange, folder = '/destinations' }: ImageFieldProps) {
+  const { admin } = useAdminAuth()
   const [open, setOpen] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const directFileRef = useRef<HTMLInputElement>(null)
+
+  const handleDirectFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+    const file = files[0]
+    setUploading(true)
+    try {
+      const adminId = admin?.id || 'admin'
+      const asset = await uploadMedia(file, folder, adminId)
+      if (asset && asset.url) {
+        onChange(asset.url)
+        toast.success(`Uploaded ${file.name} successfully`)
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to upload local image')
+    } finally {
+      setUploading(false)
+      if (directFileRef.current) directFileRef.current.value = ''
+    }
+  }
 
   return (
     <div className="space-y-2">
-      {label && <p className="text-sm font-medium">{label}</p>}
-      <div className="flex items-center gap-3">
+      {label && <p className="text-sm font-medium text-foreground">{label}</p>}
+      
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+        {/* Preview Container */}
         {value ? (
-          <div className="relative h-20 w-32 rounded-lg overflow-hidden border bg-muted">
-            <img src={value} alt="" className="h-full w-full object-cover" />
+          <div className="relative h-24 w-36 rounded-xl overflow-hidden border bg-muted shadow-sm shrink-0 group">
+            <img src={value} alt="Preview" className="h-full w-full object-cover" />
             <button
-              className="absolute top-1 right-1 p-0.5 rounded-full bg-black/60 text-white"
+              type="button"
+              className="absolute top-1.5 right-1.5 p-1 rounded-full bg-black/70 text-white hover:bg-red-600 transition-colors"
               onClick={() => onChange('')}
             >
-              <X className="h-3 w-3" />
+              <X className="h-3.5 w-3.5" />
             </button>
           </div>
         ) : (
           <div
-            className="h-20 w-32 rounded-lg border-2 border-dashed flex items-center justify-center cursor-pointer hover:border-primary/50 transition-colors bg-muted/30"
-            onClick={() => setOpen(true)}
+            className="h-24 w-36 rounded-xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer hover:border-primary/60 transition-colors bg-muted/20 shrink-0"
+            onClick={() => directFileRef.current?.click()}
           >
-            <ImageIcon className="h-6 w-6 text-muted-foreground" />
+            {uploading ? (
+              <Loader2 className="h-6 w-6 text-primary animate-spin" />
+            ) : (
+              <>
+                <ImageIcon className="h-6 w-6 text-muted-foreground/70" />
+                <span className="text-[10px] text-muted-foreground mt-1">Upload Photo</span>
+              </>
+            )}
           </div>
         )}
-        <Button variant="outline" size="sm" type="button" onClick={() => setOpen(true)}>
-          {value ? 'Change' : 'Select Image'}
-        </Button>
+
+        {/* Controls */}
+        <div className="flex flex-col gap-2 w-full max-w-md">
+          <div className="flex items-center gap-2">
+            {/* Hidden file input */}
+            <input
+              type="file"
+              ref={directFileRef}
+              accept="image/*"
+              className="hidden"
+              onChange={handleDirectFileUpload}
+            />
+
+            <Button
+              type="button"
+              variant="default"
+              size="sm"
+              disabled={uploading}
+              onClick={() => directFileRef.current?.click()}
+              className="gap-1.5"
+            >
+              {uploading ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <span>Uploading...</span>
+                </>
+              ) : (
+                <>
+                  <Upload className="h-3.5 w-3.5" />
+                  <span>Upload Local File</span>
+                </>
+              )}
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setOpen(true)}
+            >
+              Media Library
+            </Button>
+          </div>
+
+          <Input
+            type="text"
+            placeholder="Or paste image URL (https://...)"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            className="text-xs h-8"
+          />
+        </div>
       </div>
 
       <MediaPicker

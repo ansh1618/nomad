@@ -359,24 +359,41 @@ export async function getMediaFolders(): Promise<string[]> {
 export async function uploadMedia(file: File, folder: string, adminId: string): Promise<MediaAsset> {
   const ext = file.name.split('.').pop()
   const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
-  const storagePath = `${folder.replace(/^\//, '')}/${fileName}`
+  const cleanFolder = folder.replace(/^\//, '')
+  const storagePath = cleanFolder ? `${cleanFolder}/${fileName}` : fileName
 
   const { error: uploadError } = await supabase.storage
     .from('media')
-    .upload(storagePath, file, { cacheControl: '3600', upsert: false })
+    .upload(storagePath, file, { cacheControl: '3600', upsert: true })
 
-  if (uploadError) throw new Error(uploadError.message)
+  if (uploadError) {
+    console.error('[uploadMedia] Supabase storage upload error:', uploadError.message)
+    throw new Error(uploadError.message)
+  }
 
   const { data: { publicUrl } } = supabase.storage.from('media').getPublicUrl(storagePath)
 
-  return createMediaAsset({
-    filename: fileName,
-    size: file.size,
-    mime_type: file.type,
-    url: publicUrl,
-    folder,
-    uploaded_by: adminId,
-  } as any)
+  try {
+    return await createMediaAsset({
+      filename: fileName,
+      size: file.size,
+      mime_type: file.type,
+      url: publicUrl,
+      folder,
+      uploaded_by: adminId,
+    } as any)
+  } catch (err) {
+    console.warn('[uploadMedia] media_assets table insert skipped, using storage URL directly:', err)
+    return {
+      id: fileName,
+      filename: fileName,
+      size: file.size,
+      mime_type: file.type,
+      url: publicUrl,
+      folder,
+      created_at: new Date().toISOString(),
+    } as any
+  }
 }
 
 // ==========================================
