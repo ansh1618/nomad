@@ -8,6 +8,8 @@ import { cn } from "@/lib/utils";
 import { useLoaderData } from "@tanstack/react-router";
 import { useAuth } from "./AuthContext";
 import { useQuery } from "@tanstack/react-query";
+import { getCmsSection } from "@/lib/queries/cms";
+import { getRealDestinationImage } from "@/lib/queries-client";
 import { getPackageDocumentBySlugFn } from "@/lib/itinerary-pdf-fns";
 import { ItineraryPreviewCard } from "./ItineraryPreviewCard";
 import { ItineraryLoginModal } from "./ItineraryLoginModal";
@@ -58,6 +60,22 @@ export function DestinationTemplate({ slug }: DestinationTemplateProps) {
   // Find related journeys (other destinations) for recommendation
   const relatedJourneys = journeys.filter((j) => j.destinationSlug !== slug).slice(0, 3);
 
+  // Fetch CMS destination banners override
+  const { data: bannerCms } = useQuery({
+    queryKey: ['cms', 'destination_banners'],
+    queryFn: () => getCmsSection('destination_banners'),
+    staleTime: 1000,
+  });
+
+  const getHeroBannerSrc = () => {
+    const content = bannerCms?.content as any;
+    const key = `${slug.replace(/-/g, '_')}_hero`;
+    if (content?.[key] && typeof content[key] === 'string' && content[key].trim().length > 5) {
+      return getRealDestinationImage(slug, content[key]);
+    }
+    return getRealDestinationImage(slug, dest?.image);
+  };
+
   return (
     <div className="bg-background min-h-screen text-foreground font-sans">
       
@@ -65,9 +83,14 @@ export function DestinationTemplate({ slug }: DestinationTemplateProps) {
       <section className="relative min-h-[75vh] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0">
           <img
-            src={dest.image}
+            src={getHeroBannerSrc()}
             alt={dest.name}
             className="w-full h-full object-cover scale-105 animate-[zoom-slow_20s_ease-out_infinite]"
+            onError={(e) => {
+              const target = e.currentTarget;
+              target.onerror = null;
+              target.src = '/images/manali/manali-snow-valley.jpg';
+            }}
           />
           <div className="absolute inset-0 bg-gradient-to-b from-primary/60 via-primary/30 to-background" />
         </div>

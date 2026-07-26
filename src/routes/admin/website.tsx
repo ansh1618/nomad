@@ -39,6 +39,13 @@ const CMS_MODULES = [
     color: 'text-rose-600 bg-rose-50',
   },
   {
+    title: 'Destination Hero Banners',
+    description: 'Customize hero header banner images for Manali, Jibhi, McLeod Ganj & all destinations.',
+    icon: Paintbrush,
+    href: '/admin/website/destination_banners',
+    color: 'text-purple-600 bg-purple-50',
+  },
+  {
     title: 'Travel Statistics',
     description: 'Edit live numbers like happy travelers, average ratings, etc.',
     icon: BarChart,

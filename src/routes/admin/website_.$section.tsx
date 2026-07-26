@@ -1220,6 +1220,21 @@ function WebsiteSectionEditor() {
           ]}
         />
 
+      case 'destination_banners':
+        return <CmsSectionJsonEditor
+          sectionKey="destination_banners"
+          title="Destination Hero Banners"
+          description="Manage and override custom Hero Header Banner URLs for all destination pages."
+          schema={[]}
+          jsonFields={[
+            { field: 'manali_hero', label: 'Manali Hero Banner URL', placeholder: 'https://images.unsplash.com/... or /images/manali/manali-snow-valley.jpg' },
+            { field: 'jibhi_hero', label: 'Jibhi Hero Banner URL', placeholder: 'https://images.unsplash.com/... or /images/jibhi/jibhi-raghupur-fort-temple.jpg' },
+            { field: 'mcleodganj_hero', label: 'McLeod Ganj Hero Banner URL', placeholder: 'https://images.unsplash.com/... or /images/mcleodganj/mcleodganj-town-view.jpg' },
+            { field: 'udaipur_hero', label: 'Udaipur Hero Banner URL', placeholder: 'https://images.unsplash.com/... or /images/udaipur-palace.png' },
+            { field: 'chopta_hero', label: 'Chopta & Tungnath Hero Banner URL', placeholder: 'https://images.unsplash.com/...' },
+          ]}
+        />
+
       case 'featured_packages':
         return <CmsSectionJsonEditor
           sectionKey="featured_packages"
