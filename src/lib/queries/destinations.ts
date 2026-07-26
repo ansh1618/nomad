@@ -152,7 +152,7 @@ export async function getDestinationById(id: string): Promise<Destination | null
 // ==========================================
 export async function createDestination(payload: DestinationInsert): Promise<Destination> {
   const p = payload as any
-  const dbPayload: any = {
+  const fullPayload: any = {
     name: p.name,
     slug: p.slug,
     subtitle: p.subtitle || null,
@@ -167,17 +167,47 @@ export async function createDestination(payload: DestinationInsert): Promise<Des
     faqs: p.faqs || [],
     is_published: (p.status || 'DRAFT').toString().toUpperCase().trim() === 'PUBLISHED',
   }
-  if (p.created_by) dbPayload.created_by = p.created_by
-  if (p.updated_by) dbPayload.updated_by = p.updated_by
+  if (p.created_by) fullPayload.created_by = p.created_by
+  if (p.updated_by) fullPayload.updated_by = p.updated_by
 
-  const { data, error } = await supabase
+  // Tier 1: Full payload
+  let res = await supabase
     .from('destinations')
-    .insert(dbPayload)
+    .insert(fullPayload)
     .select('*')
     .single()
 
-  if (error) throw new Error(error.message)
+  // Tier 2: Without optional JSONB columns (faqs, things_to_do, gallery, hero_video)
+  if (res.error && (res.error.message?.includes('schema cache') || res.error.message?.includes('column'))) {
+    console.warn('[createDestination] Tier 1 failed, trying Tier 2 (no JSONB columns):', res.error.message)
+    const { faqs, things_to_do, gallery, hero_video, ...tier2Payload } = fullPayload
+    res = await supabase
+      .from('destinations')
+      .insert(tier2Payload)
+      .select('*')
+      .single()
+  }
 
+  // Tier 3: Core minimal columns
+  if (res.error && (res.error.message?.includes('schema cache') || res.error.message?.includes('column'))) {
+    console.warn('[createDestination] Tier 2 failed, trying Tier 3 (minimal core):', res.error.message)
+    const tier3Payload = {
+      name: p.name,
+      slug: p.slug,
+      subtitle: p.subtitle || null,
+      description: p.description || null,
+      is_published: (p.status || 'DRAFT').toString().toUpperCase().trim() === 'PUBLISHED',
+    }
+    res = await supabase
+      .from('destinations')
+      .insert(tier3Payload)
+      .select('*')
+      .single()
+  }
+
+  if (res.error) throw new Error(res.error.message)
+
+  const data = res.data
   return {
     ...data,
     status: (data as any).is_published ? 'PUBLISHED' : 'DRAFT',
@@ -191,7 +221,7 @@ export async function createDestination(payload: DestinationInsert): Promise<Des
 // ==========================================
 export async function updateDestination(id: string, payload: DestinationUpdate): Promise<Destination> {
   const p = payload as any
-  const dbPayload: any = {
+  const fullPayload: any = {
     name: p.name,
     slug: p.slug,
     subtitle: p.subtitle || null,
@@ -207,17 +237,50 @@ export async function updateDestination(id: string, payload: DestinationUpdate):
     is_published: (p.status || 'DRAFT').toString().toUpperCase().trim() === 'PUBLISHED',
     updated_at: new Date().toISOString()
   }
-  if (p.updated_by) dbPayload.updated_by = p.updated_by
+  if (p.updated_by) fullPayload.updated_by = p.updated_by
 
-  const { data, error } = await supabase
+  // Tier 1: Full payload
+  let res = await supabase
     .from('destinations')
-    .update(dbPayload)
+    .update(fullPayload)
     .eq('id', id)
     .select('*')
     .single()
 
-  if (error) throw new Error(error.message)
+  // Tier 2: Without optional JSONB columns (faqs, things_to_do, gallery, hero_video)
+  if (res.error && (res.error.message?.includes('schema cache') || res.error.message?.includes('column'))) {
+    console.warn('[updateDestination] Tier 1 failed, trying Tier 2 (no JSONB columns):', res.error.message)
+    const { faqs, things_to_do, gallery, hero_video, ...tier2Payload } = fullPayload
+    res = await supabase
+      .from('destinations')
+      .update(tier2Payload)
+      .eq('id', id)
+      .select('*')
+      .single()
+  }
 
+  // Tier 3: Core minimal columns
+  if (res.error && (res.error.message?.includes('schema cache') || res.error.message?.includes('column'))) {
+    console.warn('[updateDestination] Tier 2 failed, trying Tier 3 (minimal core):', res.error.message)
+    const tier3Payload = {
+      name: p.name,
+      slug: p.slug,
+      subtitle: p.subtitle || null,
+      description: p.description || null,
+      is_published: (p.status || 'DRAFT').toString().toUpperCase().trim() === 'PUBLISHED',
+      updated_at: new Date().toISOString()
+    }
+    res = await supabase
+      .from('destinations')
+      .update(tier3Payload)
+      .eq('id', id)
+      .select('*')
+      .single()
+  }
+
+  if (res.error) throw new Error(res.error.message)
+
+  const data = res.data
   return {
     ...data,
     status: (data as any).is_published ? 'PUBLISHED' : 'DRAFT',
