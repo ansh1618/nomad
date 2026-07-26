@@ -1,5 +1,5 @@
 const manaliImg = "/images/manali/manali-snow-valley.jpg";
-const jibhiImg = "/assets/dest-jibhi.jpg";
+const jibhiImg = "/images/jibhi/jibhi-raghupur-swing.jpg";
 const udaipurImg = "/images/udaipur-palace.png";
 const mcleodImg = "/images/mcleodganj/mcleodganj-ropeway.jpg";
 const adventureImg = "/assets/pkg-adventure.jpg"; // using as fallback for Chopta
