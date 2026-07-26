@@ -112,16 +112,16 @@ export const lockInventoryFn = createServerFn({ method: "POST" })
 // ==========================================
 
 const createBookingSchema = z.object({
-  userId: z.string().uuid().nullable().optional(),
-  departureId: z.string().uuid(),
+  userId: z.string().nullable().optional(),
+  departureId: z.string().min(1, "Departure ID is required"),
   travellers: z.array(z.any()),
   baseAmount: z.number().default(0),
   addonAmount: z.number().default(0),
   gstAmount: z.number().default(0),
   totalAmount: z.number().default(0),
-  couponId: z.string().uuid().nullable().optional(),
+  couponId: z.string().nullable().optional(),
   discountAmount: z.number().default(0),
-  hotelId: z.string().uuid().nullable().optional(),
+  hotelId: z.string().nullable().optional(),
   roomSharing: z.string().nullable().optional(),
   pickupPoint: z.string().nullable().optional(),
   addons: z.array(z.any()).optional().default([]),

@@ -1,7 +1,7 @@
 const manaliImg = "/assets/dest-manali.jpg";
 const jibhiImg = "/assets/dest-jibhi.jpg";
 const udaipurImg = "/images/udaipur-palace.png";
-const kashmirImg = "/assets/dest-kashmir.jpg"; // McLeod Ganj
+const mcleodImg = "/images/mcleodganj/mcleodganj-ropeway.jpg";
 const adventureImg = "/assets/pkg-adventure.jpg"; // Chopta
 
 export interface Journey {
@@ -258,7 +258,7 @@ export const journeys: Journey[] = [
     slug: "mcleod-bir",
     destinationSlug: "mcleodganj",
     name: "McLeod Ganj & Bir Billing Adventure",
-    image: kashmirImg,
+    image: mcleodImg,
     duration: "4 Nights / 5 Days",
     transport: "AC Semi-Sleeper Coach",
     difficulty: "Moderate",

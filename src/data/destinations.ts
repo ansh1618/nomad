@@ -1,7 +1,7 @@
 const manaliImg = "/assets/dest-manali.jpg";
 const jibhiImg = "/assets/dest-jibhi.jpg";
 const udaipurImg = "/images/udaipur-palace.png";
-const kashmirImg = "/assets/dest-kashmir.jpg"; // using as fallback for McLeod Ganj
+const mcleodImg = "/images/mcleodganj/mcleodganj-ropeway.jpg";
 const adventureImg = "/assets/pkg-adventure.jpg"; // using as fallback for Chopta
 
 export interface Destination {
@@ -140,7 +140,7 @@ export const destinations: Destination[] = [
     slug: "mcleodganj",
     name: "McLeod Ganj",
     subtitle: "The vibrant home of His Holiness the Dalai Lama",
-    image: kashmirImg,
+    image: mcleodImg,
     overview: "McLeod Ganj, a suburb of Dharamshala in Himachal Pradesh, is affectionately known as 'Little Lhasa'. Nestled in the Dhauladhar range, it boasts a unique blend of Tibetan culture, spiritual monasteries, breathtaking cafes, and classic trails like Triund.",
     bestTime: "September to June (Perfect weather for exploring and trekking)",
     weather: {
