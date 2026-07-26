@@ -128,7 +128,8 @@ function DestinationsCatalogPage() {
               {filteredJourneys.map((j, i) => {
                 const dest = destinations.find((d) => d.slug === j.destinationSlug)
                 const regionName = dest?.name || 'India'
-                const cardImg = getRealDestinationImage(j.slug || j.destinationSlug, j.image)
+                const rawImg = dest?.hero_image || j.hero_banner || j.image
+                const cardImg = getRealDestinationImage(j.slug || j.destinationSlug, rawImg)
 
                 return (
                   <motion.article
