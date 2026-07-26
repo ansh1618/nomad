@@ -54,7 +54,7 @@ export interface Invoice {
   customer_phone: string | null
   trip_name: string | null
   departure_date: string | null
-  base_amount: number
+  base_amount?: number
   discount_amount: number
   gst_rate: number
   gst_amount: number

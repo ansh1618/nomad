@@ -108,7 +108,7 @@ export const savePendingBookingFn = createServerFn({ method: "POST" })
           room_sharing: data.roomSharing,
           coupon_code: data.couponCode,
           coupon_id: data.couponId,
-          base_amount: data.baseAmount,
+          amount: data.baseAmount,
           discount_amount: data.discountAmount,
           total_payable: data.totalPayable,
           payment_schedule: data.paymentSchedule,

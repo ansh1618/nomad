@@ -643,7 +643,7 @@ export interface Booking {
   booking_status: string
   payment_status: string
   traveller_count: number
-  base_amount: number
+  base_amount?: number
   addon_amount: number
   gst_rate: number
   gst_amount: number

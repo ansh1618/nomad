@@ -486,7 +486,7 @@ function BookingDetailPage() {
 
     // Recalculate financial breakdown
     const gstRate = Number(b.gst_rate || 5)
-    const base = Number(editForm.base_amount)
+    const base = Number(editForm.amount)
     const addon = Number(editForm.addon_amount)
     const disc = Number(editForm.discount_amount)
     const coupon = Number(editForm.coupon_discount)
@@ -503,7 +503,7 @@ function BookingDetailPage() {
       room_preference: editForm.room_preference,
       food_preference: editForm.food_preference,
       special_requests: editForm.special_requests,
-      base_amount: base,
+      amount: base,
       addon_amount: addon,
       discount_amount: disc,
       coupon_discount: coupon,
@@ -1177,7 +1177,7 @@ function BookingDetailPage() {
             </CardHeader>
             <CardContent className="space-y-2 text-xs">
               {[
-                { label: 'Base Invoice price', value: b.base_amount },
+                { label: 'Base Invoice price', value: b.amount || b.total_amount || 0 },
                 { label: 'Addon charge total', value: b.addon_amount },
                 { label: `GST (${b.gst_rate}%)`, value: b.gst_amount },
                 ...(b.discount_amount > 0 ? [{ label: 'Referral discount', value: -b.discount_amount }] : []),
@@ -1214,7 +1214,7 @@ function BookingDetailPage() {
       {/* Booking Details Edit Modal */}
       <Dialog open={showEditDetails} onOpenChange={setShowEditDetails}>
         <DialogContent className="max-w-md bg-white border max-h-[90vh] overflow-y-auto">
-          <form onSubmit={handleEditDetailsSubmit} className="space-y-4">
+          <form onSubmit={handleDetailsSubmit} className="space-y-4">
             <DialogHeader>
               <DialogTitle>Edit Booking Details</DialogTitle>
               <DialogDescription>
@@ -1244,12 +1244,12 @@ function BookingDetailPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="base_amount">Base Amount (₹)</Label>
+                  <Label htmlFor="amount">Base Amount (₹)</Label>
                   <Input
-                    id="base_amount"
+                    id="amount"
                     type="number"
-                    value={editForm.base_amount}
-                    onChange={(e) => setEditForm({ ...editForm, base_amount: parseFloat(e.target.value) || 0 })}
+                    value={editForm.amount}
+                    onChange={(e) => setEditForm({ ...editForm, amount: parseFloat(e.target.value) || 0 })}
                     className="mt-1.5"
                   />
                 </div>

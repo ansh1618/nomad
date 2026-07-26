@@ -241,7 +241,7 @@ export async function confirmBookingAfterPayment(
   // 1. Fetch booking
   const { data: booking, error: fetchErr } = await adminClient
     .from("bookings")
-    .select("id, booking_id, customer_id, departure_id, base_amount, gst_rate, gst_amount, discount_amount, coupon_discount, total_amount, booking_status, customer_name, phone, email")
+    .select("id, booking_id, customer_id, departure_id, amount, gst_rate, gst_amount, discount_amount, coupon_discount, total_amount, booking_status, customer_name, phone, email")
     .eq("id", bookingId)
     .single();
 
@@ -352,11 +352,9 @@ export async function confirmBookingAfterPayment(
     customer_address: pickupPoint || null,
     trip_name: tripName,
     departure_date: departureDate,
-    amount: booking.total_amount || amountPaid,
-    subtotal: booking.base_amount || 0,
+    subtotal: booking.amount || booking.total_amount || 0,
     gst: booking.gst_amount || 0,
     total: booking.total_amount || amountPaid,
-    base_amount: booking.base_amount || 0,
     discount_amount: booking.discount_amount || booking.coupon_discount || 0,
     gst_rate: booking.gst_rate || 5,
     gst_amount: booking.gst_amount || 0,

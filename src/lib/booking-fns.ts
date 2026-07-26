@@ -391,7 +391,6 @@ export const createBookingFn = createServerFn({ method: "POST" })
         traveller_count: travellerCount,
         amount: totalAmount,
         subtotal: serverPricing.subtotal,
-        base_amount: serverPricing.effectiveBasePrice * serverPricing.travellersCount,
         addon_amount: addonAmount,
         discount_amount: serverDiscount,
         discount: serverDiscount,
@@ -451,7 +450,6 @@ export const createBookingFn = createServerFn({ method: "POST" })
           total_amount: totalAmount,
           final_amount: totalAmount,
           total_payable: totalAmount,
-          base_amount: serverPricing.effectiveBasePrice * serverPricing.travellersCount,
         });
       }
 
@@ -617,7 +615,6 @@ export const createGuestBookingFn = createServerFn({ method: "POST" })
           payment_status: "Pending",
           travellers_count: 1,
           amount: baseAmount,
-          base_amount: baseAmount,
           gst_rate: 5,
           gst_amount: gstAmount,
           discount_amount: discount,

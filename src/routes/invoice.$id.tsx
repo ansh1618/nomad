@@ -25,7 +25,7 @@ export const getInvoiceDetailsFn = createServerFn({ method: "GET" })
     if (!invoice) {
       const { data: booking } = await supabaseAdmin
         .from("bookings")
-        .select("id, booking_id, customer_name, phone, email, base_amount, discount_amount, coupon_discount, gst_rate, gst_amount, total_amount, amount_paid, departure_id")
+        .select("id, booking_id, customer_name, phone, email, amount, discount_amount, coupon_discount, gst_rate, gst_amount, total_amount, amount_paid, departure_id")
         .or(`id.eq.${bookingId},booking_id.eq.${bookingId}`)
         .maybeSingle();
 
@@ -53,7 +53,7 @@ export const getInvoiceDetailsFn = createServerFn({ method: "GET" })
           customer_address: "Delhi/NCR",
           trip_name: tripName,
           departure_date: departureDate,
-          base_amount: booking.base_amount || 0,
+          amount: booking.amount || booking.total_amount || 0,
           discount_amount: booking.discount_amount || booking.coupon_discount || 0,
           gst_rate: booking.gst_rate || 5,
           gst_amount: booking.gst_amount || 0,
@@ -301,7 +301,7 @@ function InvoiceDetailsPage() {
           <div className="space-y-2">
             <div className="flex justify-between py-1.5 border-b border-gray-50">
               <span className="text-muted-foreground">Subtotal Base Amount</span>
-              <span className="font-semibold">₹{Number(invoice.base_amount).toLocaleString("en-IN")}</span>
+              <span className="font-semibold">₹{Number(invoice.amount || invoice.subtotal || invoice.total_amount || 0).toLocaleString("en-IN")}</span>
             </div>
             
             {invoice.discount_amount > 0 && (
