@@ -68,21 +68,24 @@ export function PopularDestinations() {
           const linkPath = `/destinations/${d.slug}`;
           return (
             <Reveal key={d.slug} delay={i} className="group">
-              <article className="flex flex-col h-[480px] rounded-3xl overflow-hidden border border-border bg-white shadow-soft hover:shadow-elegant transition-all duration-300 hover:-translate-y-1">
-                {/* Top Image — Fixed 16:10 aspect ratio */}
-                <div className="relative aspect-[16/10] overflow-hidden bg-muted">
+              <article className="flex flex-col h-[500px] w-full max-w-[360px] mx-auto rounded-3xl overflow-hidden border border-border bg-white shadow-soft hover:shadow-elegant transition-all duration-300 hover:-translate-y-1">
+                {/* Top Image — Fixed 230px height with object-cover and gradient overlay */}
+                <div className="relative h-[230px] w-full overflow-hidden bg-muted">
                   <img
-                    src={getRealDestinationImage(d.slug, (d as any).hero_image || d.image)}
+                    src={getRealDestinationImage(d.slug, (d as any).thumbnail || (d as any).cover_image || (d as any).hero_image || d.image)}
                     alt={`${d.name} road trip destination`}
                     loading="lazy"
                     className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                     onError={(e) => {
                       const target = e.currentTarget;
                       target.onerror = null;
-                      target.src = 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80';
+                      target.src = '/images/manali/manali-snow-valley.jpg';
                     }}
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-60" />
+                  {/* Dark gradient overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                  
+                  {/* Badge Top-Left */}
                   <span className="absolute left-4 top-4 bg-[#0F2942]/90 backdrop-blur-md text-white font-poppins font-bold text-[9px] uppercase tracking-wider px-3 py-1.5 rounded-full shadow">
                     {meta.tag}
                   </span>
@@ -102,6 +105,7 @@ export function PopularDestinations() {
                     </p>
                   </div>
 
+                  {/* Footer Price & CTA */}
                   <div className="pt-4 border-t border-border flex items-center justify-between mt-auto">
                     <div>
                       <span className="text-[9px] text-muted-foreground uppercase font-poppins font-bold block tracking-wider">Starts at</span>
@@ -109,11 +113,11 @@ export function PopularDestinations() {
                     </div>
                     <Button
                       size="sm"
-                      className="bg-[#0F2942] hover:bg-[#1A365D] text-white font-poppins font-bold text-xs px-4 py-2 rounded-full shadow-md transition-all duration-300"
+                      className="bg-[#0F2942] hover:bg-[#1A365D] text-white font-poppins font-bold text-xs px-5 py-2.5 rounded-full shadow-md transition-all duration-300"
                       asChild
                     >
                       <Link to={linkPath}>
-                        Start Journey
+                        Book Now
                       </Link>
                     </Button>
                   </div>

@@ -1419,6 +1419,25 @@ function PackageFormPage() {
 
         {/* ==================== COMMUNITY HUB / TRIP EXPERIENCES ==================== */}
         <TabsContent value="experiences" className="space-y-6">
+          {/* Card Thumbnail & Hero Banner */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <ImageIcon className="h-5 w-5 text-primary" />
+                Card Thumbnail & Hero Banner
+              </CardTitle>
+              <p className="text-xs text-muted-foreground">Upload local photo file or choose image for journey card thumbnail and hero banner.</p>
+            </CardHeader>
+            <CardContent>
+              <ImageField
+                label="Hero Banner / Card Thumbnail Image"
+                value={watch('hero_banner') ?? ''}
+                onChange={(url) => setValue('hero_banner', url, { shouldDirty: true })}
+                folder="/packages"
+              />
+            </CardContent>
+          </Card>
+
           {/* Stats Overwrite */}
           <Card>
             <CardHeader>

@@ -128,7 +128,7 @@ function DestinationsCatalogPage() {
               {filteredJourneys.map((j, i) => {
                 const dest = destinations.find((d) => d.slug === j.destinationSlug)
                 const regionName = dest?.name || 'India'
-                const rawImg = dest?.hero_image || j.hero_banner || j.image
+                const rawImg = (j as any).thumbnail || (j as any).cover_image || dest?.thumbnail || dest?.cover_image || dest?.hero_image || j.hero_banner || j.image
                 const cardImg = getRealDestinationImage(j.slug || j.destinationSlug, rawImg)
 
                 return (
@@ -137,10 +137,10 @@ function DestinationsCatalogPage() {
                     initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.4, delay: i * 0.05 }}
-                    className="group flex flex-col h-[480px] rounded-3xl overflow-hidden border border-border bg-white shadow-soft hover:shadow-elegant transition-all duration-300 hover:-translate-y-1"
+                    className="group flex flex-col h-[500px] w-full max-w-[360px] mx-auto rounded-3xl overflow-hidden border border-border bg-white shadow-soft hover:shadow-elegant transition-all duration-300 hover:-translate-y-1"
                   >
-                    {/* Top Image — Fixed 16:10 aspect ratio */}
-                    <div className="relative aspect-[16/10] overflow-hidden bg-muted">
+                    {/* Top Image — Fixed 230px height with object-cover & dark gradient overlay */}
+                    <div className="relative h-[230px] w-full overflow-hidden bg-muted">
                       <img
                         src={cardImg}
                         alt={j.name}
@@ -149,13 +149,13 @@ function DestinationsCatalogPage() {
                         onError={(e) => {
                           const target = e.currentTarget
                           target.onerror = null
-                          target.src = 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80'
+                          target.src = '/images/manali/manali-snow-valley.jpg'
                         }}
                       />
 
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-60" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
 
-                      {/* Difficulty Badge */}
+                      {/* Difficulty Badge Top-Left */}
                       <span className="absolute left-4 top-4 bg-[#0F2942]/90 backdrop-blur-md text-white font-poppins font-bold text-[9px] uppercase tracking-wider px-3 py-1.5 rounded-full shadow">
                         {j.difficulty} Trip
                       </span>
@@ -179,14 +179,14 @@ function DestinationsCatalogPage() {
                       <div className="pt-4 border-t border-border flex items-center justify-between mt-auto">
                         <div>
                           <span className="text-[9px] text-muted-foreground uppercase font-poppins font-bold block tracking-wider">Starts at</span>
-                          <span className="font-display text-lg font-bold text-gold">{j.price}</span>
+                          <p className="font-display text-lg font-bold text-gold">Rs.{j.price ? Number(j.price).toLocaleString('en-IN') : '6,499'}</p>
                         </div>
                         <Button
                           size="sm"
-                          className="bg-[#0F2942] hover:bg-[#1A365D] text-white font-poppins font-bold text-xs px-4 py-2 rounded-full shadow-md transition-all duration-300"
+                          className="bg-[#0F2942] hover:bg-[#1A365D] text-white font-poppins font-bold text-xs px-5 py-2.5 rounded-full shadow-md transition-all duration-300"
                           asChild
                         >
-                          <Link to="/journeys/$journeyId" params={{ journeyId: j.slug }} search={{ book: true }}>
+                          <Link to={`/journeys/${j.slug}`}>
                             Book Now
                           </Link>
                         </Button>

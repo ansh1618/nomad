@@ -13,6 +13,8 @@ const REAL_DEST_IMAGE_MAP: Record<string, string> = {
   "spiti": "https://images.unsplash.com/photo-1581793745862-99fde7fa73d2?w=800&q=80",
 };
 
+const NOMADIK_PLACEHOLDER = "/images/manali/manali-snow-valley.jpg";
+
 export function getRealDestinationImage(slug: string, dbImage?: string | null): string {
   const s = (slug || '').toLowerCase().trim();
 
@@ -20,20 +22,20 @@ export function getRealDestinationImage(slug: string, dbImage?: string | null): 
     if (!url || typeof url !== "string") return true;
     const lower = url.toLowerCase();
     return (
-      lower.includes("assets/dest-") ||
-      lower.includes("assets/pkg-") ||
+      lower.includes("blob:") ||
       lower.includes("localhost") ||
       lower.includes("127.0.0.1") ||
+      lower.includes("chrome-extension") ||
+      lower.includes("data:image") ||
+      lower.includes("payment") ||
+      lower.includes("debug") ||
+      lower.includes("console") ||
+      lower.includes("178") ||
+      lower.includes("media_") ||
+      lower.includes("assets/dest-") ||
+      lower.includes("assets/pkg-") ||
       lower.includes("screenshot") ||
       lower.includes("devtools") ||
-      lower.includes("console") ||
-      lower.includes("tempmedia") ||
-      lower.includes("media_") ||
-      lower.includes("media__") ||
-      lower.includes("17849") ||
-      lower.includes("17850") ||
-      lower.includes("178") ||
-      lower.includes("blob:") ||
       lower.includes("traveller") ||
       lower.includes("booking") ||
       lower.includes("schema") ||
@@ -43,7 +45,7 @@ export function getRealDestinationImage(slug: string, dbImage?: string | null): 
     );
   };
 
-  // 1. If valid custom Admin Panel image exists, USE ADMIN IMAGE FIRST
+  // 1. If valid custom Admin Panel image exists (not a screenshot/debug asset), USE ADMIN IMAGE FIRST
   if (
     dbImage &&
     !isInvalidOrScreenshot(dbImage) &&
@@ -52,7 +54,7 @@ export function getRealDestinationImage(slug: string, dbImage?: string | null): 
     return dbImage;
   }
 
-  // 2. Fallback to authentic photography by destination slug
+  // 2. Fallback to authentic destination photography map by slug
   if (s.includes("manali")) {
     return "/images/manali/manali-snow-valley.jpg";
   }
@@ -83,20 +85,27 @@ export function getRealDestinationImage(slug: string, dbImage?: string | null): 
 
 export async function getDestinations() {
   const data = await getPublishedDestinations();
-  return data.map((d: any) => ({
-    slug: d.slug,
-    name: d.name,
-    subtitle: d.subtitle,
-    image: getRealDestinationImage(d.slug, d.hero_image || (d.gallery?.[0]?.url ?? d.gallery?.[0])),
-    gallery: d.gallery || [],
-    overview: d.description,
-    weather: d.weather,
-    howToReach: d.how_to_reach,
-    bestTime: d.best_time || "Best time to visit",
-    topPlaces: d.things_to_do || [],
-    faqs: d.faqs || [],
-    reviews: []
-  }));
+  return data.map((d: any) => {
+    // Column Extraction Order: thumbnail -> cover_image -> hero_image
+    const candidateImage = d.thumbnail || d.cover_image || d.hero_image || null;
+    return {
+      slug: d.slug,
+      name: d.name,
+      subtitle: d.subtitle,
+      thumbnail: d.thumbnail,
+      cover_image: d.cover_image,
+      hero_image: d.hero_image,
+      image: getRealDestinationImage(d.slug, candidateImage),
+      gallery: d.gallery || [],
+      overview: d.description,
+      weather: d.weather,
+      howToReach: d.how_to_reach,
+      bestTime: d.best_time || "Best time to visit",
+      topPlaces: d.things_to_do || [],
+      faqs: d.faqs || [],
+      reviews: []
+    };
+  });
 }
 
 export async function getDestinationBySlug(slug: string) {
@@ -113,11 +122,16 @@ export async function getDestinationBySlug(slug: string) {
     date: r.trip_date || "Recent"
   }));
 
+  const candidateImage = (data as any).thumbnail || (data as any).cover_image || data.hero_image || null;
+
   return {
     slug: data.slug,
     name: data.name,
     subtitle: data.subtitle,
-    image: getRealDestinationImage(data.slug, data.hero_image || (data.gallery?.[0]?.url ?? data.gallery?.[0])),
+    thumbnail: (data as any).thumbnail,
+    cover_image: (data as any).cover_image,
+    hero_image: data.hero_image,
+    image: getRealDestinationImage(data.slug, candidateImage),
     gallery: data.gallery || [],
     overview: data.description,
     weather: data.weather,
@@ -133,13 +147,17 @@ export async function getJourneys() {
   const data = await getPublishedPackages();
   return data.map((j: any) => {
     const it = j.itinerary_days || [];
-    const rawImg = j.hero_banner || j.destinations?.hero_image || (j.gallery as any)?.[0]?.url || (j.gallery as any)?.[0] || "";
+    // Column Extraction Order: thumbnail -> cover_image -> hero_banner -> destinations(hero_image)
+    const rawImg = j.thumbnail || j.cover_image || j.hero_banner || j.destinations?.hero_image || "";
     return {
       slug: j.slug,
       destinationSlug: j.destinations?.slug || "",
       destinationName: j.destinations?.name || "",
       category: j.category || "",
       name: j.name,
+      thumbnail: j.thumbnail,
+      cover_image: j.cover_image,
+      hero_banner: j.hero_banner,
       image: getRealDestinationImage(j.slug || j.destinations?.slug || "", rawImg),
       duration: j.duration,
       transport: j.transport,
