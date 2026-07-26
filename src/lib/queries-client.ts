@@ -29,6 +29,10 @@ export function getRealDestinationImage(slug: string, dbImage?: string | null): 
       lower.includes("console") ||
       lower.includes("tempmedia") ||
       lower.includes("media_") ||
+      lower.includes("media__") ||
+      lower.includes("17849") ||
+      lower.includes("17850") ||
+      lower.includes("178") ||
       lower.includes("blob:") ||
       lower.includes("traveller") ||
       lower.includes("booking") ||
