@@ -38,15 +38,32 @@ function NotFoundComponent() {
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
+
+  const isChunkError =
+    error.message?.includes("Failed to fetch dynamically imported module") ||
+    error.message?.includes("Importing a module script failed") ||
+    error.message?.includes("error loading dynamically imported module");
+
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
-  }, [error]);
+
+    // Auto-reload on stale deployment chunk hash 404 error
+    if (isChunkError) {
+      const storageKey = "last_chunk_reload";
+      const lastReload = sessionStorage.getItem(storageKey);
+      const now = Date.now();
+      if (!lastReload || now - parseInt(lastReload) > 10000) {
+        sessionStorage.setItem(storageKey, now.toString());
+        window.location.reload();
+      }
+    }
+  }, [error, isChunkError]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
+      <div className="max-w-md text-center space-y-4">
         <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          This page didn't load
+          {isChunkError ? "Updating Application..." : "This page didn't load"}
         </h1>
         <p className="mt-2 text-sm text-red-500 font-mono whitespace-pre-wrap text-left bg-red-500/10 p-4 rounded-md">
           {error.message}
@@ -54,12 +71,16 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
             onClick={() => {
-              router.invalidate();
-              reset();
+              if (isChunkError) {
+                window.location.reload();
+              } else {
+                router.invalidate();
+                reset();
+              }
             }}
             className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            Try again
+            {isChunkError ? "Reload Page" : "Try again"}
           </button>
           <a
             href="/"

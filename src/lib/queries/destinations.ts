@@ -151,7 +151,7 @@ export async function getDestinationById(id: string): Promise<Destination | null
 // CREATE
 // ==========================================
 export async function createDestination(payload: DestinationInsert): Promise<Destination> {
-  const { status, is_featured, priority, ...allowedPayload } = payload as any
+  const { status, is_featured, priority, altitude, seo_title, seo_description, seo, google_map_url, short_description, ...allowedPayload } = payload as any
   const dbPayload = {
     ...allowedPayload,
     is_published: status === 'PUBLISHED'
@@ -177,7 +177,7 @@ export async function createDestination(payload: DestinationInsert): Promise<Des
 // UPDATE
 // ==========================================
 export async function updateDestination(id: string, payload: DestinationUpdate): Promise<Destination> {
-  const { status, is_featured, priority, ...allowedPayload } = payload as any
+  const { status, is_featured, priority, altitude, seo_title, seo_description, seo, google_map_url, short_description, ...allowedPayload } = payload as any
   const dbPayload = {
     ...allowedPayload,
     is_published: status === 'PUBLISHED',

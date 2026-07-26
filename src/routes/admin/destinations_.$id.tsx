@@ -58,9 +58,7 @@ const destinationSchema = z.object({
   region: z.string().optional(),
   hero_image: z.string().optional(),
   hero_video: z.string().optional(),
-  short_description: z.string().optional(),
   description: z.string().optional(),
-  altitude: z.string().optional(),
   best_time: z.string().optional(),
   google_map_url: z.string().optional(),
   status: z.preprocess((val) => {
@@ -306,19 +304,11 @@ function DestinationFormPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <Label className="flex items-center gap-1.5">
-                      <Mountain className="h-3.5 w-3.5" /> Altitude
-                    </Label>
-                    <Input {...register('altitude')} placeholder="e.g., 2,050m above sea level" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="flex items-center gap-1.5">
-                      <Clock className="h-3.5 w-3.5" /> Best Time to Visit
-                    </Label>
-                    <Input {...register('best_time')} placeholder="e.g., March to June" />
-                  </div>
+                <div className="space-y-1.5">
+                  <Label className="flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5" /> Best Time to Visit
+                  </Label>
+                  <Input {...register('best_time')} placeholder="e.g., March to June" />
                 </div>
 
                 <div className="space-y-1.5">
