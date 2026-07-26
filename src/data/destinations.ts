@@ -1,6 +1,6 @@
 const manaliImg = "/assets/dest-manali.jpg";
 const jibhiImg = "/assets/dest-jibhi.jpg";
-const udaipurImg = "/assets/dest-udaipur.jpg";
+const udaipurImg = "/images/udaipur-palace.png";
 const kashmirImg = "/assets/dest-kashmir.jpg"; // using as fallback for McLeod Ganj
 const adventureImg = "/assets/pkg-adventure.jpg"; // using as fallback for Chopta
 
