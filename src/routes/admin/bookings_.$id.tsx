@@ -322,7 +322,7 @@ function BookingDetailPage() {
         room_preference: b.room_preference || '',
         food_preference: b.food_preference || '',
         special_requests: b.special_requests || '',
-        base_amount: Number(b.base_amount || 0),
+        base_amount: Number(b.amount || 0),
         addon_amount: Number(b.addon_amount || 0),
         discount_amount: Number(b.discount_amount || 0),
         coupon_discount: Number(b.coupon_discount || 0),

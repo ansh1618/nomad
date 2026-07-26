@@ -376,12 +376,10 @@ export const createBookingFn = createServerFn({ method: "POST" })
       const realDepartureId = (dep && dep.id) ? dep.id : data.departureId;
       const departureDateStr = (dep && dep.departure_date) ? dep.departure_date : new Date().toISOString().slice(0, 10);
 
-      // Unified complete base payload
+      // Unified complete base payload matching ONLY actual Supabase columns
       const basePayload = {
         booking_id: bookingRef,
-        booking_ref: bookingRef,
         customer_name: customerName,
-        full_name: customerName,
         phone: customerPhone,
         email: customerEmail,
         status: "PENDING",
@@ -390,21 +388,14 @@ export const createBookingFn = createServerFn({ method: "POST" })
         travellers_count: travellerCount,
         traveller_count: travellerCount,
         amount: totalAmount,
-        subtotal: serverPricing.subtotal,
         addon_amount: addonAmount,
         discount_amount: serverDiscount,
-        discount: serverDiscount,
+        coupon_discount: serverDiscount,
         gst_amount: gstAmount,
-        gst: gstAmount,
         total_amount: totalAmount,
         final_amount: totalAmount,
-        total_payable: totalAmount,
         amount_paid: 0,
         balance_due: totalAmount,
-        departure_date: departureDateStr,
-        travel_date: departureDateStr,
-        currency: "INR",
-        payment_provider: "RAZORPAY",
         room_sharing: data.roomSharing || null,
         pickup_point: data.pickupPoint || null,
       };
@@ -433,23 +424,19 @@ export const createBookingFn = createServerFn({ method: "POST" })
         res = await safeBookingInsert(basePayload);
       }
 
-      // Tier 4: Alternative field naming compatibility payload
+      // Tier 4: Minimal core payload for strict schema
       if (res.error) {
-        console.warn("[createBookingFn] Tier 3 insert failed, trying Tier 4 schema V7 payload:", res.error.message || res.error);
+        console.warn("[createBookingFn] Tier 3 insert failed, trying Tier 4 core fallback:", res.error.message || res.error);
         res = await safeBookingInsert({
-          booking_ref: bookingRef,
           booking_id: bookingRef,
-          full_name: customerName,
           customer_name: customerName,
           phone: customerPhone,
           email: customerEmail,
-          departure_date: departureDateStr,
           travellers_count: travellerCount,
           traveller_count: travellerCount,
           amount: totalAmount,
           total_amount: totalAmount,
           final_amount: totalAmount,
-          total_payable: totalAmount,
         });
       }
 
@@ -461,7 +448,7 @@ export const createBookingFn = createServerFn({ method: "POST" })
 
       const booking = res.data;
       const bookingDbId = booking.id;
-      const returnedDisplayId = booking.booking_id || booking.booking_ref || bookingRef;
+      const returnedDisplayId = booking.booking_id || bookingRef;
 
       // Insert travellers
       const travellersToInsert = data.travellers.map((t: any, idx: number) => ({
