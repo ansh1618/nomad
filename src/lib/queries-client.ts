@@ -22,15 +22,20 @@ export function getRealDestinationImage(slug: string, dbImage?: string | null): 
     return (
       lower.includes("assets/dest-") ||
       lower.includes("assets/pkg-") ||
-      lower.includes("dest-") ||
-      lower.includes("pkg-") ||
       lower.includes("localhost") ||
       lower.includes("127.0.0.1") ||
       lower.includes("screenshot") ||
       lower.includes("devtools") ||
       lower.includes("console") ||
       lower.includes("tempmedia") ||
-      lower.includes("blob:")
+      lower.includes("media_") ||
+      lower.includes("blob:") ||
+      lower.includes("traveller") ||
+      lower.includes("booking") ||
+      lower.includes("schema") ||
+      lower.includes("cache") ||
+      lower.includes("elements") ||
+      lower.includes("network")
     );
   };
 
