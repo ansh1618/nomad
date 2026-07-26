@@ -1,4 +1,4 @@
-const manaliImg = "/assets/dest-manali.jpg";
+const manaliImg = "/images/manali/manali-snow-valley.jpg";
 const jibhiImg = "/assets/dest-jibhi.jpg";
 const udaipurImg = "/images/udaipur-palace.png";
 const mcleodImg = "/images/mcleodganj/mcleodganj-ropeway.jpg";
