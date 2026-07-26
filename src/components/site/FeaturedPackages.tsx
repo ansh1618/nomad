@@ -6,7 +6,7 @@ import { Route } from "@/routes/index";
 import { useQuery } from "@tanstack/react-query";
 import { getCmsSection } from "@/lib/queries/cms";
 
-import { getRealDestinationImage } from "@/lib/queries-client";
+import { getJourneys, getRealDestinationImage, formatPriceDisplay } from '@/lib/queries-client';
 
 export function FeaturedPackages() {
   const { journeys } = Route.useLoaderData();
@@ -134,7 +134,7 @@ export function FeaturedPackages() {
                   <div className="mt-auto pt-4 border-t border-border">
                     <span className="text-[10px] text-muted-foreground uppercase tracking-wider block">Price per Explorer</span>
                     <p className="font-display text-2xl font-bold text-primary">
-                      {j.price} <span className="text-xs text-muted-foreground font-sans font-normal">/ Person</span>
+                      {formatPriceDisplay(j.price)} <span className="text-xs text-muted-foreground font-sans font-normal">/ Person</span>
                     </p>
                   </div>
 

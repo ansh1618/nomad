@@ -15,6 +15,24 @@ const REAL_DEST_IMAGE_MAP: Record<string, string> = {
 
 const NOMADIK_PLACEHOLDER = "/images/manali/manali-snow-valley.jpg";
 
+export function formatPriceDisplay(price: any): string {
+  if (price === null || price === undefined) return "Rs. 6,499";
+  if (typeof price === "number") {
+    if (isNaN(price) || price <= 0) return "Rs. 6,499";
+    return `Rs. ${price.toLocaleString('en-IN')}`;
+  }
+  const str = String(price).trim();
+  if (!str || str.toLowerCase() === "nan" || str.toLowerCase() === "null") return "Rs. 6,499";
+  
+  const cleanNumeric = str.replace(/[^0-9.]/g, "");
+  const num = parseFloat(cleanNumeric);
+  if (!isNaN(num) && num > 0) {
+    return `Rs. ${num.toLocaleString('en-IN')}`;
+  }
+  if (str.startsWith("Rs") || str.startsWith("₹")) return str;
+  return `Rs. ${str}`;
+}
+
 export function getRealDestinationImage(slug: string, dbImage?: string | null): string {
   const s = (slug || '').toLowerCase().trim();
 
@@ -165,8 +183,8 @@ export async function getJourneys() {
       distance: j.distance,
       bestSeason: j.season || j.best_season || "Best season",
       groupSize: j.group_size || j.group_size_max,
-      price: `Rs.${Number(j.price || j.starting_price || 0).toLocaleString()}`,
-      priceNumber: Number(j.price || j.starting_price || 0),
+      price: formatPriceDisplay(j.price || j.starting_price || 6499),
+      priceNumber: Number(j.price || j.starting_price) > 0 ? Number(j.price || j.starting_price) : 6499,
       maxCapacity: j.max_capacity || j.group_size_max || 18,
       remainingSeats: j.remaining_seats || j.available_seats || 18,
       pickupPoint: j.pickup_point,
@@ -214,8 +232,8 @@ export async function getJourneyBySlug(slug: string) {
     distance: data.distance,
     bestSeason: data.season || data.best_season || "Best season",
     groupSize: data.group_size || data.group_size_max,
-    price: `Rs.${Number(data.price || data.starting_price || 0).toLocaleString()}`,
-    priceNumber: Number(data.price || data.starting_price || 0),
+    price: formatPriceDisplay(data.price || data.starting_price || 6499),
+    priceNumber: Number(data.price || data.starting_price) > 0 ? Number(data.price || data.starting_price) : 6499,
     maxCapacity: data.max_capacity || data.group_size_max || 18,
     remainingSeats: data.remaining_seats || data.available_seats || 18,
     pickupPoint: data.pickup_point,

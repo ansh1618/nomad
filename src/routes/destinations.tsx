@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Navbar } from '@/components/site/Navbar'
 import { Footer } from '@/components/site/Footer'
 import { FloatingUI } from '@/components/site/FloatingUI'
-import { getDestinations, getJourneys, getRealDestinationImage } from '@/lib/queries-client'
+import { getDestinations, getJourneys, getRealDestinationImage, formatPriceDisplay } from '@/lib/queries-client'
 import { Search, Compass, MapPin } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -179,7 +179,7 @@ function DestinationsCatalogPage() {
                       <div className="pt-4 border-t border-border flex items-center justify-between mt-auto">
                         <div>
                           <span className="text-[9px] text-muted-foreground uppercase font-poppins font-bold block tracking-wider">Starts at</span>
-                          <p className="font-display text-lg font-bold text-gold">Rs.{j.price ? Number(j.price).toLocaleString('en-IN') : '6,499'}</p>
+                          <p className="font-display text-lg font-bold text-gold">{formatPriceDisplay(j.price)}</p>
                         </div>
                         <Button
                           size="sm"

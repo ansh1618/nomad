@@ -6,7 +6,7 @@ import { Route } from "@/routes/index";
 import { useQuery } from "@tanstack/react-query";
 import { getCmsSection } from "@/lib/queries/cms";
 
-import { getRealDestinationImage } from "@/lib/queries-client";
+import { getDestinations, getJourneys, getRealDestinationImage, formatPriceDisplay } from '@/lib/queries-client';
 
 export function PopularDestinations() {
   const { destinations, journeys } = Route.useLoaderData();
@@ -109,7 +109,7 @@ export function PopularDestinations() {
                   <div className="pt-4 border-t border-border flex items-center justify-between mt-auto">
                     <div>
                       <span className="text-[9px] text-muted-foreground uppercase font-poppins font-bold block tracking-wider">Starts at</span>
-                      <p className="font-display text-lg font-bold text-gold">{meta.startPrice}</p>
+                      <p className="font-display text-lg font-bold text-gold">{formatPriceDisplay(meta.startPrice)}</p>
                     </div>
                     <Button
                       size="sm"
