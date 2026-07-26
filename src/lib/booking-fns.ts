@@ -374,114 +374,84 @@ export const createBookingFn = createServerFn({ method: "POST" })
 
       const travellerCount = Math.max(1, Array.isArray(data.travellers) ? data.travellers.length : 1);
       const realDepartureId = (dep && dep.id) ? dep.id : data.departureId;
+      const departureDateStr = (dep && dep.departure_date) ? dep.departure_date : new Date().toISOString().slice(0, 10);
 
-      // Tier 1: Full ERP payload with real departure_id and travellers_count
-      let res = await safeBookingInsert({
+      // Unified complete base payload
+      const basePayload = {
         booking_id: bookingRef,
-        user_id: cleanUserId,
+        booking_ref: bookingRef,
         customer_name: customerName,
+        full_name: customerName,
         phone: customerPhone,
         email: customerEmail,
-        departure_id: realDepartureId,
-        journey_id: journey.id || null,
         status: "PENDING",
+        booking_status: "PENDING",
         payment_status: "PENDING",
         travellers_count: travellerCount,
+        traveller_count: travellerCount,
         amount: totalAmount,
+        subtotal: serverPricing.subtotal,
         base_amount: serverPricing.effectiveBasePrice * serverPricing.travellersCount,
-        gst_amount: gstAmount,
+        addon_amount: addonAmount,
         discount_amount: serverDiscount,
+        discount: serverDiscount,
+        gst_amount: gstAmount,
+        gst: gstAmount,
         total_amount: totalAmount,
         final_amount: totalAmount,
+        total_payable: totalAmount,
         amount_paid: 0,
         balance_due: totalAmount,
+        departure_date: departureDateStr,
+        travel_date: departureDateStr,
+        currency: "INR",
+        payment_provider: "RAZORPAY",
         room_sharing: data.roomSharing || null,
         pickup_point: data.pickupPoint || null,
+      };
+
+      // Tier 1: Full ERP payload with user_id, departure_id & journey_id
+      let res = await safeBookingInsert({
+        ...basePayload,
+        user_id: cleanUserId,
+        departure_id: realDepartureId,
+        journey_id: journey.id || null,
       });
 
-      // Tier 2: Standard payload without optional relation fields
+      // Tier 2: Payload with departure_id & journey_id (without user_id)
       if (res.error) {
-        console.warn("[createBookingFn] Tier 1 insert failed, trying Tier 2 standard payload:", res.error.message || res.error);
+        console.warn("[createBookingFn] Tier 1 insert failed, trying Tier 2 (no user_id):", res.error.message || res.error);
         res = await safeBookingInsert({
-          booking_id: bookingRef,
-          user_id: cleanUserId,
-          customer_name: customerName,
-          phone: customerPhone,
-          email: customerEmail,
+          ...basePayload,
           departure_id: realDepartureId,
           journey_id: journey.id || null,
-          status: "PENDING",
-          payment_status: "PENDING",
-          travellers_count: travellerCount,
-          amount: totalAmount,
-          total_amount: totalAmount,
-          final_amount: totalAmount,
-          room_sharing: data.roomSharing || null,
-          pickup_point: data.pickupPoint || null,
         });
       }
 
-      // Tier 3: Core minimal payload
+      // Tier 3: Core payload without FK constraints
       if (res.error) {
         console.warn("[createBookingFn] Tier 2 insert failed, trying Tier 3 core payload:", res.error.message || res.error);
-        res = await safeBookingInsert({
-          booking_id: bookingRef,
-          customer_name: customerName,
-          phone: customerPhone,
-          email: customerEmail,
-          departure_id: realDepartureId,
-          status: "PENDING",
-          payment_status: "PENDING",
-          travellers_count: travellerCount,
-          amount: totalAmount,
-          total_amount: totalAmount,
-          final_amount: totalAmount,
-        });
+        res = await safeBookingInsert(basePayload);
       }
 
-      // Tier 4: Minimal payload without status enum
+      // Tier 4: Alternative field naming compatibility payload
       if (res.error) {
-        console.warn("[createBookingFn] Tier 3 insert failed, trying Tier 4 minimal payload:", res.error.message || res.error);
-        res = await safeBookingInsert({
-          booking_id: bookingRef,
-          customer_name: customerName,
-          phone: customerPhone,
-          email: customerEmail,
-          departure_id: realDepartureId,
-          travellers_count: travellerCount,
-          amount: totalAmount,
-          total_amount: totalAmount,
-        });
-      }
-
-      // Tier 5: Schema V7 / Lovable format with travellers_count
-      if (res.error) {
-        console.warn("[createBookingFn] Tier 4 insert failed, trying Tier 5 Schema V7 payload:", res.error.message || res.error);
+        console.warn("[createBookingFn] Tier 3 insert failed, trying Tier 4 schema V7 payload:", res.error.message || res.error);
         res = await safeBookingInsert({
           booking_ref: bookingRef,
+          booking_id: bookingRef,
           full_name: customerName,
           customer_name: customerName,
           phone: customerPhone,
           email: customerEmail,
-          departure_date: new Date().toISOString().slice(0, 10),
+          departure_date: departureDateStr,
           travellers_count: travellerCount,
-          base_amount: serverPricing.effectiveBasePrice * serverPricing.travellersCount,
+          traveller_count: travellerCount,
+          amount: totalAmount,
+          total_amount: totalAmount,
+          final_amount: totalAmount,
           total_payable: totalAmount,
-          total_amount: totalAmount,
-          amount: totalAmount,
-        });
-      }
-
-      // Tier 6: Bare minimum required for any table format with travellers_count
-      if (res.error) {
-        console.warn("[createBookingFn] Tier 5 insert failed, trying Tier 6 bare minimum payload:", res.error.message || res.error);
-        res = await safeBookingInsert({
-          customer_name: customerName,
-          phone: customerPhone,
-          email: customerEmail,
-          travellers_count: travellerCount,
-          total_amount: totalAmount,
-          amount: totalAmount,
+          base_amount: serverPricing.effectiveBasePrice * serverPricing.travellersCount,
         });
       }
 
