@@ -66,20 +66,42 @@ export function PopularDestinations() {
         {destinations.map((d, i) => {
           const meta = getDestMeta(d.slug);
           const linkPath = `/destinations/${d.slug}`;
+          const s = (d.slug || '').toLowerCase();
+          
+          // Fail-safe image resolver
+          const getSafeCardImg = () => {
+            const raw = (d as any).thumbnail || (d as any).cover_image || (d as any).hero_image || d.image;
+            const resolved = getRealDestinationImage(d.slug, raw);
+            if (!resolved || resolved.includes('media_') || resolved.includes('178') || resolved.includes('schema') || resolved.includes('booking')) {
+              if (s.includes('manali')) return '/images/manali/manali-snow-valley.jpg';
+              if (s.includes('jibhi') || s.includes('tirthan')) return '/images/jibhi/jibhi-raghupur-fort-temple.jpg';
+              if (s.includes('udaipur')) return '/images/udaipur-palace.png';
+              if (s.includes('mcleod') || s.includes('dharamshala')) return '/images/mcleodganj/mcleodganj-town-view.jpg';
+              return 'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800&q=80';
+            }
+            return resolved;
+          };
+
+          const cardImgSrc = getSafeCardImg();
+
           return (
             <Reveal key={d.slug} delay={i} className="group">
               <article className="flex flex-col h-[500px] w-full max-w-[360px] mx-auto rounded-3xl overflow-hidden border border-border bg-white shadow-soft hover:shadow-elegant transition-all duration-300 hover:-translate-y-1">
                 {/* Top Image — Fixed 230px height with object-cover and gradient overlay */}
                 <div className="relative h-[230px] w-full overflow-hidden bg-muted">
                   <img
-                    src={getRealDestinationImage(d.slug, (d as any).thumbnail || (d as any).cover_image || (d as any).hero_image || d.image)}
+                    src={cardImgSrc}
                     alt={`${d.name} road trip destination`}
                     loading="lazy"
                     className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                     onError={(e) => {
                       const target = e.currentTarget;
                       target.onerror = null;
-                      target.src = '/images/manali/manali-snow-valley.jpg';
+                      if (s.includes('manali')) target.src = '/images/manali/manali-snow-valley.jpg';
+                      else if (s.includes('jibhi') || s.includes('tirthan')) target.src = '/images/jibhi/jibhi-raghupur-fort-temple.jpg';
+                      else if (s.includes('udaipur')) target.src = '/images/udaipur-palace.png';
+                      else if (s.includes('mcleod') || s.includes('dharamshala')) target.src = '/images/mcleodganj/mcleodganj-town-view.jpg';
+                      else target.src = 'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800&q=80';
                     }}
                   />
                   {/* Dark gradient overlay */}

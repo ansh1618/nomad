@@ -56,20 +56,41 @@ export function FeaturedPackages() {
       <div className="mt-14 grid grid-cols-1 gap-8 lg:grid-cols-3">
         {journeys.slice(0, 3).map((j, i) => {
           const seatsLeft = j.remainingSeats ?? j.maxCapacity ?? 0;
+          const s = (j.slug || j.destinationSlug || '').toLowerCase();
+
+          const getSafeCardImg = () => {
+            const raw = (j as any).thumbnail || (j as any).cover_image || (j as any).hero_banner || (j as any).destinations?.hero_image || j.image;
+            const resolved = getRealDestinationImage(j.slug || j.destinationSlug, raw);
+            if (!resolved || resolved.includes('media_') || resolved.includes('178') || resolved.includes('schema') || resolved.includes('booking')) {
+              if (s.includes('manali')) return '/images/manali/manali-snow-valley.jpg';
+              if (s.includes('jibhi') || s.includes('tirthan')) return '/images/jibhi/jibhi-raghupur-fort-temple.jpg';
+              if (s.includes('udaipur')) return '/images/udaipur-palace.png';
+              if (s.includes('mcleod') || s.includes('dharamshala')) return '/images/mcleodganj/mcleodganj-town-view.jpg';
+              return 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&q=80';
+            }
+            return resolved;
+          };
+
+          const cardImgSrc = getSafeCardImg();
+
           return (
             <Reveal key={j.slug} delay={i} className="group">
               <article className="hover-lift flex h-full flex-col overflow-hidden rounded-3xl bg-card border border-border shadow-soft">
                 {/* Image */}
                 <div className="relative aspect-[16/10] overflow-hidden">
                   <img
-                    src={getRealDestinationImage(j.slug || j.destinationSlug, (j as any).hero_banner || (j as any).destinations?.hero_image || j.image)}
+                    src={cardImgSrc}
                     alt={j.name}
                     loading="lazy"
                     className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                     onError={(e) => {
                       const target = e.currentTarget;
                       target.onerror = null;
-                      target.src = 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&q=80';
+                      if (s.includes('manali')) target.src = '/images/manali/manali-snow-valley.jpg';
+                      else if (s.includes('jibhi') || s.includes('tirthan')) target.src = '/images/jibhi/jibhi-raghupur-fort-temple.jpg';
+                      else if (s.includes('udaipur')) target.src = '/images/udaipur-palace.png';
+                      else if (s.includes('mcleod') || s.includes('dharamshala')) target.src = '/images/mcleodganj/mcleodganj-town-view.jpg';
+                      else target.src = 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&q=80';
                     }}
                   />
                   <span className="absolute left-4 top-4 flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 text-[10px] font-poppins font-bold text-[#E53E3E] shadow animate-pulse">

@@ -128,8 +128,22 @@ function DestinationsCatalogPage() {
               {filteredJourneys.map((j, i) => {
                 const dest = destinations.find((d) => d.slug === j.destinationSlug)
                 const regionName = dest?.name || 'India'
-                const rawImg = (j as any).thumbnail || (j as any).cover_image || dest?.thumbnail || dest?.cover_image || dest?.hero_image || j.hero_banner || j.image
-                const cardImg = getRealDestinationImage(j.slug || j.destinationSlug, rawImg)
+                const s = (j.slug || j.destinationSlug || '').toLowerCase();
+
+                const getSafeCardImg = () => {
+                  const raw = (j as any).thumbnail || (j as any).cover_image || dest?.thumbnail || dest?.cover_image || dest?.hero_image || j.hero_banner || j.image;
+                  const resolved = getRealDestinationImage(j.slug || j.destinationSlug, raw);
+                  if (!resolved || resolved.includes('media_') || resolved.includes('178') || resolved.includes('schema') || resolved.includes('booking')) {
+                    if (s.includes('manali')) return '/images/manali/manali-snow-valley.jpg';
+                    if (s.includes('jibhi') || s.includes('tirthan')) return '/images/jibhi/jibhi-raghupur-fort-temple.jpg';
+                    if (s.includes('udaipur')) return '/images/udaipur-palace.png';
+                    if (s.includes('mcleod') || s.includes('dharamshala')) return '/images/mcleodganj/mcleodganj-town-view.jpg';
+                    return 'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800&q=80';
+                  }
+                  return resolved;
+                };
+
+                const cardImg = getSafeCardImg();
 
                 return (
                   <motion.article
@@ -149,7 +163,11 @@ function DestinationsCatalogPage() {
                         onError={(e) => {
                           const target = e.currentTarget
                           target.onerror = null
-                          target.src = '/images/manali/manali-snow-valley.jpg'
+                          if (s.includes('manali')) target.src = '/images/manali/manali-snow-valley.jpg';
+                          else if (s.includes('jibhi') || s.includes('tirthan')) target.src = '/images/jibhi/jibhi-raghupur-fort-temple.jpg';
+                          else if (s.includes('udaipur')) target.src = '/images/udaipur-palace.png';
+                          else if (s.includes('mcleod') || s.includes('dharamshala')) target.src = '/images/mcleodganj/mcleodganj-town-view.jpg';
+                          else target.src = 'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800&q=80';
                         }}
                       />
 
