@@ -82,16 +82,16 @@ export function ItineraryUnlockModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg bg-background border border-border p-0 rounded-3xl shadow-elegant overflow-hidden glass">
+      <DialogContent className="max-w-lg w-[95vw] sm:w-full max-h-[88vh] flex flex-col bg-background border border-border p-0 rounded-3xl shadow-elegant overflow-hidden glass">
         
-        {/* Banner */}
-        <div className="bg-[#0F172A] py-8 px-6 text-center text-white relative">
+        {/* Banner — Pinned Top */}
+        <div className="bg-[#0F172A] py-6 px-6 text-center text-white relative shrink-0">
           <div className="absolute inset-0 bg-gradient-to-r from-blue-900/40 via-transparent to-amber-900/20" />
-          <div className="relative z-10 space-y-2">
+          <div className="relative z-10 space-y-1.5">
             <span className="glass-dark inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-poppins font-bold uppercase tracking-widest text-[#F59E0B] border border-[#F59E0B]/30">
               <ShieldCheck className="h-3.5 w-3.5 animate-pulse" /> Nomadik Premium Guide
             </span>
-            <DialogTitle className="font-display text-2xl font-bold tracking-wide text-white">
+            <DialogTitle className="font-display text-xl sm:text-2xl font-bold tracking-wide text-white">
               Unlock Your Complete Travel Guide
             </DialogTitle>
             <DialogDescription className="text-white/80 font-sans text-xs max-w-sm mx-auto">
@@ -100,8 +100,8 @@ export function ItineraryUnlockModal({
           </div>
         </div>
 
-        {/* Benefits Grid */}
-        <div className="p-6 md:p-8 space-y-6">
+        {/* Benefits Grid — Scrollable Container */}
+        <div className="p-6 space-y-6 overflow-y-auto flex-1 custom-scrollbar">
           <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs font-poppins text-muted-foreground bg-muted/30 p-4 rounded-2xl border border-border/50">
             <div className="flex items-center gap-2">
               <Check className="h-4 w-4 text-emerald-600 shrink-0" />

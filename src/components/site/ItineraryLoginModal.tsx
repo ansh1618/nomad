@@ -100,18 +100,18 @@ export function ItineraryLoginModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md w-full bg-[#0F172A] border border-[#334155] p-0 rounded-[28px] shadow-[0_25px_60px_rgba(0,0,0,0.8)] overflow-hidden text-white font-sans backdrop-blur-xl">
+      <DialogContent className="max-w-md w-[95vw] sm:w-full max-h-[88vh] flex flex-col bg-[#0F172A] border border-[#334155] p-0 rounded-[28px] shadow-[0_25px_60px_rgba(0,0,0,0.8)] overflow-hidden text-white font-sans backdrop-blur-xl">
         
-        {/* Banner Header */}
-        <div className="bg-gradient-to-r from-slate-950 via-[#1E293B] to-slate-950 p-6 text-center border-b border-[#334155] relative">
+        {/* Banner Header — Fixed Top Pinned */}
+        <div className="bg-gradient-to-r from-slate-950 via-[#1E293B] to-slate-950 p-5 sm:p-6 text-center border-b border-[#334155] relative shrink-0">
           <div className="absolute top-0 right-0 w-32 h-32 bg-[#F59E0B]/10 rounded-full blur-2xl pointer-events-none" />
 
-          <div className="relative z-10 space-y-2">
+          <div className="relative z-10 space-y-1.5">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-poppins font-bold uppercase tracking-widest bg-[#F59E0B]/15 text-[#F59E0B] border border-[#F59E0B]/30">
               <Lock className="h-3 w-3" /> Unlock Complete Itinerary
             </span>
 
-            <DialogTitle className="font-display font-bold text-2xl text-white tracking-wide">
+            <DialogTitle className="font-display font-bold text-xl sm:text-2xl text-white tracking-wide leading-tight">
               {title || "Travel Guide & Roadmap"}
             </DialogTitle>
 
@@ -121,8 +121,8 @@ export function ItineraryLoginModal({
           </div>
         </div>
 
-        {/* Modal Body */}
-        <div className="p-6 space-y-6">
+        {/* Modal Body — Scrollable Container */}
+        <div className="p-5 sm:p-6 space-y-5 overflow-y-auto flex-1 custom-scrollbar">
           
           {/* Feature Checklist */}
           <div className="bg-slate-900/80 border border-slate-800 p-3.5 rounded-2xl space-y-2">
