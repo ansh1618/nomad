@@ -126,6 +126,7 @@ function AdminPremiumDocumentsPage() {
 
   const handleUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("STEP 1 Validate");
     if (!selectedPackageId || !title || !selectedFile) {
       toast.error('Please fill in all fields and select a PDF file.');
       return;
@@ -140,53 +141,63 @@ function AdminPremiumDocumentsPage() {
       const cleanFileName = selectedFile.name.replace(/[^a-zA-Z0-9.-]/g, '_');
       const storagePath = `${pkgSlug}/${documentType.toLowerCase()}/${Date.now()}-${cleanFileName}`;
 
+      console.log("STEP 2 Start Storage Upload", { storagePath, fileSize: selectedFile.size });
       setUploadProgress(30);
 
-      // 1. Get signed upload URL from server (0 file bytes sent to server endpoint!)
+      // A. Get signed upload credentials from server (0 file bytes sent to server endpoint!)
       const uploadCredentials = await getSignedUploadUrlFn({
         data: { storagePath }
       });
 
       setUploadProgress(50);
+      let uploadErrObj: any = null;
 
-      // 2. Upload file directly from browser to Supabase Storage
-      let uploadSuccessful = false;
-      if (uploadCredentials?.signedUrl) {
-        const res = await fetch(uploadCredentials.signedUrl, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/pdf',
-          },
-          body: selectedFile,
-        });
-        uploadSuccessful = res.ok;
-      }
-
-      if (!uploadSuccessful && uploadCredentials?.token) {
-        const { error: tokenErr } = await supabase.storage
+      // B. Upload file directly from browser to Supabase Storage via uploadToSignedUrl or upload
+      if (uploadCredentials?.token) {
+        console.log("Attempting uploadToSignedUrl with token...");
+        const { data: uploadData, error: tokenErr } = await supabase.storage
           .from('itineraries')
-          .uploadToSignedUrl(storagePath, uploadCredentials.token, selectedFile);
-        uploadSuccessful = !tokenErr;
+          .uploadToSignedUrl(storagePath, uploadCredentials.token, selectedFile, {
+            contentType: 'application/pdf'
+          });
+
+        if (tokenErr) {
+          console.warn("uploadToSignedUrl failed, trying direct upload fallback:", tokenErr.message);
+          uploadErrObj = tokenErr;
+        } else {
+          console.log("STEP 3 Storage Upload Success", uploadData);
+          uploadErrObj = null;
+        }
       }
 
-      if (!uploadSuccessful) {
-        const { error: directErr } = await supabase.storage
+      if (uploadErrObj) {
+        const { data: directData, error: directErr } = await supabase.storage
           .from('itineraries')
           .upload(storagePath, selectedFile, {
             contentType: 'application/pdf',
             upsert: true
           });
-        uploadSuccessful = !directErr;
+
+        if (directErr) {
+          console.error("Direct upload failed:", directErr);
+          throw new Error(directErr.message || "Storage upload failed");
+        }
+        console.log("STEP 3 Storage Upload Success (Direct)", directData);
       }
 
-      if (!uploadSuccessful) {
-        throw new Error('Direct storage upload failed. Please check network connectivity.');
-      }
+      setUploadProgress(75);
+
+      // C. Get public URL for verification
+      const { data: urlData } = supabase.storage
+        .from('itineraries')
+        .getPublicUrl(storagePath);
+      console.log("STEP 4 Get Public URL", urlData?.publicUrl);
 
       setUploadProgress(85);
+      console.log("STEP 5 Insert Database Metadata", { package_id: selectedPackageId, storagePath });
 
-      // 3. Send ONLY metadata payload to server database insert
-      await createOrUpdateDocumentFn({
+      // D. Send ONLY metadata payload to server database insert
+      const dbRes = await createOrUpdateDocumentFn({
         data: {
           package_id: selectedPackageId,
           document_type: documentType,
@@ -202,19 +213,23 @@ function AdminPremiumDocumentsPage() {
         }
       });
 
+      console.log("Database metadata insert result:", dbRes);
       setUploadProgress(100);
 
+      console.log("STEP 6 Success");
       toast.success('Premium Document uploaded successfully!');
       qc.invalidateQueries({ queryKey: ['admin_documents'] });
       
-      // Reset states
+      console.log("STEP 7 Close Dialog");
       setSelectedPackageId('');
       setTitle('');
       setSelectedFile(null);
       setUploadOpen(false);
     } catch (err: any) {
+      console.error("Upload error caught:", err);
       toast.error(err.message || 'Upload failed');
     } finally {
+      console.log("FINALLY Block executed: resetting loading states");
       setUploading(false);
       setUploadProgress(0);
     }
