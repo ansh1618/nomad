@@ -52,6 +52,15 @@ export function getRealDestinationImage(
   const isInvalidOrScreenshot = (url?: string | null): boolean => {
     if (!url || typeof url !== "string") return true;
     const lower = url.toLowerCase();
+
+    // Reject any Supabase storage media bucket test asset unless explicitly clean/unsplash or local /images/
+    const isSupabaseStorage = lower.includes("supabase.co/storage") || lower.includes("/storage/v1/object/public/");
+    const isKnownClean = lower.includes("unsplash.com") || lower.startsWith("/images/");
+
+    if (isSupabaseStorage && !isKnownClean) {
+      return true;
+    }
+
     return (
       lower.includes("blob:") ||
       lower.includes("localhost") ||
@@ -63,6 +72,7 @@ export function getRealDestinationImage(
       lower.includes("console") ||
       lower.includes("178") ||
       lower.includes("media_") ||
+      lower.includes("/media/") ||
       lower.includes("assets/dest-") ||
       lower.includes("assets/pkg-") ||
       lower.includes("screenshot") ||

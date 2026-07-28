@@ -72,7 +72,7 @@ export function PopularDestinations() {
           const getSafeCardImg = () => {
             const raw = (d as any).thumbnail || (d as any).cover_image || (d as any).hero_image || d.image;
             const resolved = getRealDestinationImage(d.slug, raw);
-            if (!resolved || resolved.includes('media_') || resolved.includes('178') || resolved.includes('schema') || resolved.includes('booking')) {
+            if (!resolved || resolved.includes('media') || resolved.includes('178') || resolved.includes('schema') || resolved.includes('booking')) {
               if (s.includes('manali')) return '/images/manali/manali-snow-valley.jpg';
               if (s.includes('jibhi') || s.includes('tirthan')) return '/images/jibhi/jibhi-raghupur-fort-temple.jpg';
               if (s.includes('udaipur')) return '/images/udaipur-palace.png';
