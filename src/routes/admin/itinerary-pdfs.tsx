@@ -194,7 +194,12 @@ function AdminPremiumDocumentsPage() {
       setUploadOpen(false);
     } catch (err: any) {
       console.error("Upload error caught:", err);
-      toast.error(err.message || 'Upload failed');
+      const msg = err?.message || err?.toString() || '';
+      if (msg.includes('<!doctype') || msg.includes('<html') || msg.includes('413') || msg.includes('Too Large')) {
+        toast.error('Upload failed. Please try again.');
+      } else {
+        toast.error(msg || 'Upload failed. Please try again.');
+      }
     } finally {
       console.log("FINALLY Block executed: resetting loading states");
       setUploading(false);

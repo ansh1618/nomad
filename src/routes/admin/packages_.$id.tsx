@@ -2334,7 +2334,13 @@ function PackageDocumentsTab({ packageId, packageSlug, isNew, adminId }: Package
       if (fileInputRef.current) fileInputRef.current.value = '';
       setUploadOpen(false);
     } catch (err: any) {
-      toast.error(err.message || 'Upload failed');
+      console.error("Package PDF upload error:", err);
+      const msg = err?.message || err?.toString() || '';
+      if (msg.includes('<!doctype') || msg.includes('<html') || msg.includes('413') || msg.includes('Too Large')) {
+        toast.error('Upload failed. Please try again.');
+      } else {
+        toast.error(msg || 'Upload failed. Please try again.');
+      }
     } finally {
       setUploading(false);
     }
