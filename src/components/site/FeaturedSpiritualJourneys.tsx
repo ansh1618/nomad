@@ -3,6 +3,7 @@ import { Clock, Star, Compass } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "./Reveal";
 import { Route } from "@/routes/index";
+import { getRealDestinationImage, formatPriceDisplay } from "@/lib/queries-client";
 
 export function FeaturedSpiritualJourneys() {
   const { journeys } = Route.useLoaderData();
@@ -30,16 +31,32 @@ export function FeaturedSpiritualJourneys() {
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           {spiritualJourneys.slice(0, 3).map((j, i) => {
             const seatsLeft = j.remainingSeats ?? j.maxCapacity ?? 0;
+            const s = (j.slug || j.destinationSlug || '').toLowerCase();
+
+            const getSafeCardImg = () => {
+              const raw = (j as any).thumbnail || (j as any).cover_image || (j as any).hero_banner || (j as any).destinations?.hero_image || j.image;
+              const resolved = getRealDestinationImage(j.slug || j.destinationSlug, raw);
+              if (!resolved || resolved.includes('media_') || resolved.includes('178') || resolved.includes('schema') || resolved.includes('booking')) {
+                return 'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800&q=80';
+              }
+              return resolved;
+            };
+
             return (
               <Reveal key={j.slug} delay={i} className="group">
                 <article className="hover-lift flex h-full flex-col overflow-hidden rounded-3xl bg-white border border-amber-100 shadow-soft hover:shadow-amber-100/40">
                   {/* Image */}
                   <div className="relative aspect-[16/10] overflow-hidden">
                     <img
-                      src={j.image}
+                      src={getSafeCardImg()}
                       alt={j.name}
                       loading="lazy"
                       className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                      onError={(e) => {
+                        const target = e.currentTarget;
+                        target.onerror = null;
+                        target.src = 'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800&q=80';
+                      }}
                     />
                     <span className="absolute left-4 top-4 flex items-center gap-1.5 rounded-full bg-amber-500 px-3 py-1.5 text-[10px] font-poppins font-bold text-white shadow-md">
                       <span className="h-1.5 w-1.5 rounded-full bg-white animate-ping" />
@@ -84,7 +101,7 @@ export function FeaturedSpiritualJourneys() {
                     <div className="flex items-center justify-between pt-2">
                       <div>
                         <span className="block text-[9px] uppercase tracking-wider text-muted-foreground/60">Starting From</span>
-                        <span className="font-display text-lg font-bold text-primary">{j.price}</span>
+                        <span className="font-display text-lg font-bold text-primary">{formatPriceDisplay(j.price)}</span>
                       </div>
                       <Link to="/$slug" params={{ slug: j.slug }}>
                         <Button className="h-9 rounded-xl bg-amber-600 text-white hover:bg-amber-700 text-xs font-poppins font-semibold px-4 shadow-sm transition-all group-hover:shadow-md">

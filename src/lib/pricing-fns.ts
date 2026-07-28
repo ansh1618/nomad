@@ -1,3 +1,18 @@
+function parseRupeeAmount(val: any): number {
+  if (val === null || val === undefined) return 0;
+  if (typeof val === "number") {
+    if (isNaN(val)) return 0;
+    if (val > 0 && val < 100) return Math.round(val * 10000);
+    return Math.round(val);
+  }
+  const str = String(val).trim();
+  const cleaned = str.replace(/rs\.?/gi, "").replace(/₹/g, "").replace(/inr/gi, "").replace(/,/g, "").trim();
+  const num = parseFloat(cleaned);
+  if (isNaN(num) || num <= 0) return 0;
+  if (num < 100) return Math.round(num * 10000);
+  return Math.round(num);
+}
+
 export function resolveBookingPricing({
   journey,
   departure,
@@ -13,18 +28,14 @@ export function resolveBookingPricing({
   addons: any[];
   coupon: any | null;
 }) {
-  // 1. Determine effective base price
-  // priority: departure.dynamic_price -> departure.base_price -> journey.starting_price (or journey.price)
-  const journeyPrice = journey?.starting_price ?? journey?.price ?? 0;
+  // 1. Determine effective base price in whole Rupees
+  const journeyPrice = parseRupeeAmount(journey?.starting_price ?? journey?.price) || 6499;
   let effectiveBasePrice = journeyPrice;
 
   if (departure) {
-    if (typeof departure.dynamic_price === "number") {
-      effectiveBasePrice = departure.dynamic_price;
-    } else if (typeof departure.base_price === "number") {
-      effectiveBasePrice = departure.base_price;
-    } else if (typeof departure.basePrice === "number") {
-      effectiveBasePrice = departure.basePrice;
+    const depPrice = parseRupeeAmount(departure.dynamic_price ?? departure.base_price ?? departure.basePrice ?? departure.price);
+    if (depPrice > 0) {
+      effectiveBasePrice = depPrice;
     }
   }
 

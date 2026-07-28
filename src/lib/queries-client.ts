@@ -16,24 +16,37 @@ const REAL_DEST_IMAGE_MAP: Record<string, string> = {
 const NOMADIK_PLACEHOLDER = "/images/manali/manali-snow-valley.jpg";
 
 export function formatPriceDisplay(price: any): string {
-  if (price === null || price === undefined) return "Rs. 6,499";
-  if (typeof price === "number") {
-    if (isNaN(price) || price <= 0) return "Rs. 6,499";
-    return `Rs. ${price.toLocaleString('en-IN')}`;
-  }
-  const str = String(price).trim();
-  if (!str || str.toLowerCase() === "nan" || str.toLowerCase() === "null") return "Rs. 6,499";
+  if (price === null || price === undefined) return "₹6,499";
   
-  const cleanNumeric = str.replace(/[^0-9.]/g, "");
-  const num = parseFloat(cleanNumeric);
-  if (!isNaN(num) && num > 0) {
-    return `Rs. ${num.toLocaleString('en-IN')}`;
+  if (typeof price === "number") {
+    if (isNaN(price) || price <= 0) return "₹6,499";
+    if (price > 0 && price < 100) return `₹${Math.round(price * 10000).toLocaleString('en-IN')}`;
+    return `₹${Math.round(price).toLocaleString('en-IN')}`;
   }
-  if (str.startsWith("Rs") || str.startsWith("₹")) return str;
-  return `Rs. ${str}`;
+
+  const str = String(price).trim();
+  if (!str || str.toLowerCase() === "nan" || str.toLowerCase() === "null") return "₹6,499";
+
+  let cleaned = str.replace(/rs\.?/gi, "").replace(/₹/g, "").replace(/inr/gi, "").replace(/,/g, "").trim();
+  
+  const num = parseFloat(cleaned);
+  if (!isNaN(num) && num > 0) {
+    if (num < 100) {
+      return `₹${Math.round(num * 10000).toLocaleString('en-IN')}`;
+    }
+    return `₹${Math.round(num).toLocaleString('en-IN')}`;
+  }
+
+  return "₹6,499";
 }
 
-export function getRealDestinationImage(slug: string, dbImage?: string | null): string {
+export function getRealDestinationImage(
+  slug: string,
+  heroImage?: string | null,
+  thumbnail?: string | null,
+  coverImage?: string | null,
+  galleryImage?: string | null
+): string {
   const s = (slug || '').toLowerCase().trim();
 
   const isInvalidOrScreenshot = (url?: string | null): boolean => {
@@ -63,16 +76,27 @@ export function getRealDestinationImage(slug: string, dbImage?: string | null): 
     );
   };
 
-  // 1. If valid custom Admin Panel image exists (not a screenshot/debug asset), USE ADMIN IMAGE FIRST
-  if (
-    dbImage &&
-    !isInvalidOrScreenshot(dbImage) &&
-    (dbImage.startsWith("/") || dbImage.startsWith("http"))
-  ) {
-    return dbImage;
+  // 1. Hero Image Priority
+  if (heroImage && !isInvalidOrScreenshot(heroImage) && (heroImage.startsWith("/") || heroImage.startsWith("http"))) {
+    return heroImage;
   }
 
-  // 2. Fallback to authentic destination photography map by slug
+  // 2. Thumbnail Priority
+  if (thumbnail && !isInvalidOrScreenshot(thumbnail) && (thumbnail.startsWith("/") || thumbnail.startsWith("http"))) {
+    return thumbnail;
+  }
+
+  // 3. Cover Image Priority
+  if (coverImage && !isInvalidOrScreenshot(coverImage) && (coverImage.startsWith("/") || coverImage.startsWith("http"))) {
+    return coverImage;
+  }
+
+  // 4. First Gallery Image Priority
+  if (galleryImage && !isInvalidOrScreenshot(galleryImage) && (galleryImage.startsWith("/") || galleryImage.startsWith("http"))) {
+    return galleryImage;
+  }
+
+  // 5. Fallback to authentic destination photography map by slug
   if (s.includes("manali")) {
     return "/images/manali/manali-snow-valley.jpg";
   }
@@ -94,9 +118,6 @@ export function getRealDestinationImage(slug: string, dbImage?: string | null): 
   if (s.includes("kasol")) {
     return "https://images.unsplash.com/photo-1596895111956-bf1cf0599ce5?w=800&q=80";
   }
-  if (s.includes("kedarnath")) {
-    return "https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800&q=80";
-  }
 
   return "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80";
 }
@@ -104,16 +125,15 @@ export function getRealDestinationImage(slug: string, dbImage?: string | null): 
 export async function getDestinations() {
   const data = await getPublishedDestinations();
   return data.map((d: any) => {
-    // Column Extraction Order: thumbnail -> cover_image -> hero_image
-    const candidateImage = d.thumbnail || d.cover_image || d.hero_image || null;
+    const galleryFirst = (d.gallery as any)?.[0]?.url || (d.gallery as any)?.[0] || null;
     return {
       slug: d.slug,
       name: d.name,
       subtitle: d.subtitle,
+      hero_image: d.hero_image,
       thumbnail: d.thumbnail,
       cover_image: d.cover_image,
-      hero_image: d.hero_image,
-      image: getRealDestinationImage(d.slug, candidateImage),
+      image: getRealDestinationImage(d.slug, d.hero_image, d.thumbnail, d.cover_image, galleryFirst),
       gallery: d.gallery || [],
       overview: d.description,
       weather: d.weather,
@@ -130,7 +150,6 @@ export async function getDestinationBySlug(slug: string) {
   const data = await sharedGetDestinationBySlug(slug);
   if (!data) return null;
 
-  // Fetch approved reviews via shared admin queries layer using is_approved = true
   const dbReviews = await sharedGetApprovedReviews(data.id, 6).catch(() => []);
   const reviewsList = dbReviews.map((r: any) => ({
     name: r.author_name,
@@ -140,16 +159,16 @@ export async function getDestinationBySlug(slug: string) {
     date: r.trip_date || "Recent"
   }));
 
-  const candidateImage = (data as any).thumbnail || (data as any).cover_image || data.hero_image || null;
+  const galleryFirst = (data.gallery as any)?.[0]?.url || (data.gallery as any)?.[0] || null;
 
   return {
     slug: data.slug,
     name: data.name,
     subtitle: data.subtitle,
+    hero_image: data.hero_image,
     thumbnail: (data as any).thumbnail,
     cover_image: (data as any).cover_image,
-    hero_image: data.hero_image,
-    image: getRealDestinationImage(data.slug, candidateImage),
+    image: getRealDestinationImage(data.slug, data.hero_image, (data as any).thumbnail, (data as any).cover_image, galleryFirst),
     gallery: data.gallery || [],
     overview: data.description,
     weather: data.weather,
@@ -165,18 +184,23 @@ export async function getJourneys() {
   const data = await getPublishedPackages();
   return data.map((j: any) => {
     const it = j.itinerary_days || [];
-    // Column Extraction Order: thumbnail -> cover_image -> hero_banner -> destinations(hero_image)
-    const rawImg = j.thumbnail || j.cover_image || j.hero_banner || j.destinations?.hero_image || "";
+    const galleryFirst = (j.gallery as any)?.[0]?.url || (j.gallery as any)?.[0] || null;
     return {
       slug: j.slug,
       destinationSlug: j.destinations?.slug || "",
       destinationName: j.destinations?.name || "",
       category: j.category || "",
       name: j.name,
+      hero_banner: j.hero_banner,
       thumbnail: j.thumbnail,
       cover_image: j.cover_image,
-      hero_banner: j.hero_banner,
-      image: getRealDestinationImage(j.slug || j.destinations?.slug || "", rawImg),
+      image: getRealDestinationImage(
+        j.slug || j.destinations?.slug || "",
+        j.hero_banner || j.destinations?.hero_image,
+        j.thumbnail,
+        j.cover_image,
+        galleryFirst
+      ),
       duration: j.duration,
       transport: j.transport,
       difficulty: j.difficulty,

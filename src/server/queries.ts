@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { formatPriceDisplay, getRealDestinationImage } from "@/lib/queries-client";
 import { sendEmail } from "@/lib/email";
 
 // ==========================================
@@ -120,15 +121,21 @@ export async function getJourneys() {
       slug: j.slug,
       destinationSlug: j.destinations?.slug || "",
       name: j.name,
-      image: (j.gallery as string[] | null)?.[0] || j.hero_banner || "",
+      image: getRealDestinationImage(
+        j.slug || j.destinations?.slug || "",
+        j.hero_banner || j.destinations?.hero_image,
+        j.thumbnail,
+        j.cover_image,
+        (j.gallery as any)?.[0]?.url || (j.gallery as any)?.[0] || null
+      ),
       duration: j.duration,
       transport: j.transport,
       difficulty: j.difficulty,
       distance: j.distance,
       bestSeason: j.season || j.best_season || "Best season",
       groupSize: j.group_size,
-      price: `Rs.${Number(j.price || j.starting_price || 0).toLocaleString()}`,
-      priceNumber: Number(j.price || j.starting_price || 0),
+      price: formatPriceDisplay(j.price || j.starting_price || 6499),
+      priceNumber: Number(j.price || j.starting_price) > 0 ? Number(j.price || j.starting_price) : 6499,
       maxCapacity: j.max_capacity || 18,
       remainingSeats: j.remaining_seats || 18,
       pickupPoint: j.pickup_point,
@@ -176,15 +183,21 @@ export async function getJourneyBySlug(slug: string) {
     destinationSlug: (data.destinations as any)?.slug || "",
     destinationName: (data.destinations as any)?.name || "",
     name: data.name,
-    image: (data.gallery as string[] | null)?.[0] || data.hero_banner || "",
+    image: getRealDestinationImage(
+      data.slug || (data.destinations as any)?.slug || "",
+      data.hero_banner || (data.destinations as any)?.hero_image,
+      data.thumbnail,
+      data.cover_image,
+      (data.gallery as any)?.[0]?.url || (data.gallery as any)?.[0] || null
+    ),
     duration: data.duration,
     transport: data.transport,
     difficulty: data.difficulty,
     distance: data.distance,
     bestSeason: data.season || data.best_season || "Best season",
     groupSize: data.group_size,
-    price: `Rs.${Number(data.price || data.starting_price || 0).toLocaleString()}`,
-    priceNumber: Number(data.price || data.starting_price || 0),
+    price: formatPriceDisplay(data.price || data.starting_price || 6499),
+    priceNumber: Number(data.price || data.starting_price) > 0 ? Number(data.price || data.starting_price) : 6499,
     maxCapacity: data.max_capacity || 18,
     remainingSeats: data.remaining_seats || 18,
     pickupPoint: data.pickup_point,
