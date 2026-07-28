@@ -196,6 +196,7 @@ export async function getJourneys() {
     const it = j.itinerary_days || [];
     const galleryFirst = (j.gallery as any)?.[0]?.url || (j.gallery as any)?.[0] || null;
     return {
+      id: j.id,
       slug: j.slug,
       destinationSlug: j.destinations?.slug || "",
       destinationName: j.destinations?.name || "",
