@@ -79,15 +79,10 @@ function ItineraryViewerPage() {
     enabled: !!slug && isAuthenticated
   });
 
-  // Get Signed URL once metadata is available
+  // Set public/signed URL once metadata is available
   useEffect(() => {
     if (documentMeta?.file_url) {
-      getItineraryPdfSignedUrlFn({ data: documentMeta.file_url })
-        .then(setSignedUrl)
-        .catch((err) => {
-          console.error("Error signing URL:", err);
-          toast.error("Failed to generate secure access token.");
-        });
+      setSignedUrl(documentMeta.file_url);
     }
   }, [documentMeta]);
 
