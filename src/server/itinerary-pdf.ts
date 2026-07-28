@@ -69,6 +69,7 @@ export async function getPackageDocumentBySlug(slug: string, documentType: Docum
     return null;
   }
 
+  // A. Check package_documents table
   try {
     const { data } = await supabaseAdmin
       .from("package_documents")
@@ -89,12 +90,57 @@ export async function getPackageDocumentBySlug(slug: string, documentType: Docum
     console.warn("Notice: package_documents query notice:", err.message);
   }
 
-  // Return null if no real PDF object is associated with this package
+  // B. Check Supabase Storage bucket for uploaded PDF files for this journey slug
+  try {
+    const targetSlug = pkgData?.slug || slug;
+    const { data: files } = await supabaseAdmin.storage
+      .from("itineraries")
+      .list(`${targetSlug}/${documentType.toLowerCase()}`, { limit: 10 });
+
+    if (files && files.length > 0) {
+      // Pick the latest file
+      const latestFile = files.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())[0];
+      const storagePath = `${targetSlug}/${documentType.toLowerCase()}/${latestFile.name}`;
+      const { data: urlData } = supabaseAdmin.storage
+        .from("itineraries")
+        .getPublicUrl(storagePath);
+
+      if (urlData?.publicUrl) {
+        return {
+          id: `storage-${latestFile.name}`,
+          package_id: packageId,
+          document_type: documentType,
+          title: `${pkgData?.name || 'Nomadik'} Official Itinerary`,
+          file_url: urlData.publicUrl,
+          page_count: 14,
+          size: latestFile.metadata?.size || 2450000,
+          version: 1,
+          is_active: true,
+          allow_download: true,
+          allow_print: true,
+          allow_copy: true,
+          watermark_enabled: true,
+          created_at: latestFile.created_at || new Date().toISOString(),
+          updated_at: latestFile.updated_at || new Date().toISOString(),
+          journey_name: pkgData?.name,
+          cover_image: pkgData?.hero_banner || pkgData?.thumbnail || pkgData?.cover_image || pkgData?.image_url,
+          journeys: pkgData
+        };
+      }
+    }
+  } catch (err: any) {
+    console.warn("Storage list check notice:", err.message);
+  }
+
   return null;
 }
 
 // 3. Get all documents (active or archived) for admin list
 export async function getAllPackageDocuments() {
+  const resultDocs: any[] = [];
+  const trackedDocIds = new Set<string>();
+
+  // A. Fetch from package_documents table if present
   try {
     const { data, error } = await supabaseAdmin
       .from("package_documents")
@@ -108,14 +154,70 @@ export async function getAllPackageDocuments() {
       `)
       .order("created_at", { ascending: false });
 
-    if (!error && data) {
-      return data;
+    if (!error && data && data.length > 0) {
+      data.forEach((d: any) => {
+        resultDocs.push(d);
+        trackedDocIds.add(d.package_id);
+      });
     }
   } catch (err: any) {
     console.warn("Notice: package_documents list fetch notice:", err.message);
   }
 
-  return [];
+  // B. Also scan Supabase Storage 'itineraries' bucket to discover all uploaded PDFs
+  try {
+    const { data: journeys } = await supabaseAdmin
+      .from("journeys")
+      .select("id, name, slug");
+
+    if (journeys && journeys.length > 0) {
+      for (const j of journeys) {
+        if (trackedDocIds.has(j.id)) continue;
+
+        const { data: files } = await supabaseAdmin.storage
+          .from("itineraries")
+          .list(`${j.slug}/itinerary`, { limit: 10 });
+
+        if (files && files.length > 0) {
+          const latestFile = files.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())[0];
+          const storagePath = `${j.slug}/itinerary/${latestFile.name}`;
+          const { data: urlData } = supabaseAdmin.storage
+            .from("itineraries")
+            .getPublicUrl(storagePath);
+
+          if (urlData?.publicUrl) {
+            resultDocs.push({
+              id: `doc-${j.id}`,
+              package_id: j.id,
+              document_type: 'ITINERARY',
+              title: `${j.name} Official Itinerary PDF`,
+              file_url: urlData.publicUrl,
+              page_count: 14,
+              size: latestFile.metadata?.size || 2450000,
+              version: 1,
+              is_active: true,
+              allow_download: true,
+              allow_print: true,
+              allow_copy: true,
+              watermark_enabled: true,
+              created_at: latestFile.created_at || new Date().toISOString(),
+              updated_at: latestFile.updated_at || new Date().toISOString(),
+              journeys: {
+                id: j.id,
+                name: j.name,
+                slug: j.slug
+              }
+            });
+            trackedDocIds.add(j.id);
+          }
+        }
+      }
+    }
+  } catch (err: any) {
+    console.warn("Storage scanning notice:", err.message);
+  }
+
+  return resultDocs;
 }
 
 // 4. Create or update document metadata
