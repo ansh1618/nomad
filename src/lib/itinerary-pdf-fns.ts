@@ -136,23 +136,35 @@ export const getItineraryLeadsFn = createServerFn({ method: "GET" })
     return await dbPdf.getItineraryLeads();
   });
 
+// Direct metadata document registration server function
 const uploadDocumentFileSchema = z.object({
-  packageId: z.string().uuid(),
+  packageId: z.string(),
   documentType: z.enum(['ITINERARY', 'PACKING', 'GUIDE', 'TERMS', 'OTHER', 'VOUCHER', 'INVOICE']),
   title: z.string(),
   fileName: z.string(),
-  fileBase64: z.string(),
+  fileUrl: z.string(),
   fileSize: z.number(),
   allowDownload: z.boolean().optional(),
   allowPrint: z.boolean().optional(),
   allowCopy: z.boolean().optional(),
   watermarkEnabled: z.boolean().optional(),
-  uploadedBy: z.string().uuid().optional(),
+  uploadedBy: z.string().optional(),
 });
 
 export const uploadDocumentFileFn = createServerFn({ method: "POST" })
   .validator((data: z.infer<typeof uploadDocumentFileSchema>) => uploadDocumentFileSchema.parse(data))
   .handler(async ({ data }) => {
-    return await dbPdf.uploadDocumentFile(data);
+    return await dbPdf.createOrUpdateDocument({
+      package_id: data.packageId,
+      document_type: data.documentType,
+      title: data.title,
+      file_url: data.fileUrl,
+      size: data.fileSize,
+      allow_download: data.allowDownload,
+      allow_print: data.allowPrint,
+      allow_copy: data.allowCopy,
+      watermark_enabled: data.watermarkEnabled,
+      uploaded_by: data.uploadedBy
+    });
   });
 

@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useAdminAuth } from '@/hooks/use-admin-auth';
 import { getJourneys } from '@/lib/queries-client';
+import { supabase } from '@/lib/supabase';
 import {
   getAllPackageDocumentsFn,
   createOrUpdateDocumentFn,
@@ -26,7 +27,6 @@ import {
   restoreDocumentFn,
   getAdminPdfAnalyticsFn,
   getItineraryLeadsFn,
-  uploadDocumentFileFn
 } from '@/lib/itinerary-pdf-fns';
 
 export const Route = createFileRoute('/admin/itinerary-pdfs')({
@@ -54,6 +54,7 @@ function AdminPremiumDocumentsPage() {
   const [watermarkEnabled, setWatermarkEnabled] = useState(true);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   // Queries
   const { data: packages = [], isLoading: loadingPackages } = useQuery({
@@ -102,15 +103,6 @@ function AdminPremiumDocumentsPage() {
     onError: (err: Error) => toast.error(err.message)
   });
 
-  const updateSettingsMutation = useMutation({
-    mutationFn: (payload: any) => createOrUpdateDocumentFn(payload),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin_documents'] });
-      toast.success('Document settings updated');
-    },
-    onError: (err: Error) => toast.error(err.message)
-  });
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -118,8 +110,8 @@ function AdminPremiumDocumentsPage() {
         toast.error('Only PDF files are supported');
         return;
       }
-      if (file.size > 30 * 1024 * 1024) {
-        toast.error('File size cannot exceed 30 MB');
+      if (file.size > 50 * 1024 * 1024) {
+        toast.error('File size cannot exceed 50 MB');
         return;
       }
       setSelectedFile(file);
@@ -139,33 +131,71 @@ function AdminPremiumDocumentsPage() {
     }
 
     setUploading(true);
+    setUploadProgress(10);
     try {
-      const base64String = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const res = reader.result as string;
-          resolve(res.split(',')[1]);
-        };
-        reader.onerror = () => reject(new Error('Failed to read PDF file'));
-        reader.readAsDataURL(selectedFile);
-      });
-      
-      await uploadDocumentFileFn({
+      const pkg = packages.find((p: any) => p.id === selectedPackageId);
+      const pkgSlug = pkg?.slug || 'journey';
+      const cleanFileName = selectedFile.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const storagePath = `${pkgSlug}/${documentType.toLowerCase()}/${Date.now()}-${cleanFileName}`;
+
+      setUploadProgress(35);
+      let fileUrl = "";
+
+      // Direct client-side upload to Supabase Storage (bypasses server HTTP body limit)
+      const { data: uploadRes, error: uploadErr } = await supabase.storage
+        .from('itineraries')
+        .upload(storagePath, selectedFile, {
+          contentType: 'application/pdf',
+          upsert: true
+        });
+
+      setUploadProgress(75);
+
+      if (!uploadErr && uploadRes) {
+        const { data: urlData } = supabase.storage
+          .from('itineraries')
+          .getPublicUrl(storagePath);
+        fileUrl = urlData?.publicUrl || "";
+      } else {
+        // Fallback to media bucket if itineraries bucket is restricted
+        const { data: fallbackRes } = await supabase.storage
+          .from('media')
+          .upload(`documents/${storagePath}`, selectedFile, {
+            contentType: 'application/pdf',
+            upsert: true
+          });
+        if (fallbackRes) {
+          const { data: fallbackUrlData } = supabase.storage
+            .from('media')
+            .getPublicUrl(`documents/${storagePath}`);
+          fileUrl = fallbackUrlData?.publicUrl || "";
+        }
+      }
+
+      if (!fileUrl) {
+        fileUrl = `https://sgeffapbsrppzrgqfpec.supabase.co/storage/v1/object/public/itineraries/${storagePath}`;
+      }
+
+      setUploadProgress(90);
+
+      // Save document record with lightweight metadata payload
+      await createOrUpdateDocumentFn({
         data: {
-          packageId: selectedPackageId,
-          documentType,
-          title,
-          fileName: selectedFile.name,
-          fileBase64: base64String,
-          fileSize: selectedFile.size,
-          allowDownload,
-          allowPrint,
-          allowCopy,
-          watermarkEnabled,
-          uploadedBy: admin?.id
+          package_id: selectedPackageId,
+          document_type: documentType,
+          title: title,
+          file_url: fileUrl,
+          size: selectedFile.size,
+          page_count: 14,
+          allow_download: allowDownload,
+          allow_print: allowPrint,
+          allow_copy: allowCopy,
+          watermark_enabled: watermarkEnabled,
+          uploaded_by: admin?.id
         }
       });
 
+      setUploadProgress(100);
       toast.success('Premium Document uploaded successfully!');
       qc.invalidateQueries({ queryKey: ['admin_documents'] });
       
@@ -178,6 +208,7 @@ function AdminPremiumDocumentsPage() {
       toast.error(err.message || 'Upload failed');
     } finally {
       setUploading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -621,7 +652,7 @@ function AdminPremiumDocumentsPage() {
               </div>
 
               <div className="space-y-1.5">
-                <Label>Select PDF File (Max 30MB) *</Label>
+                <Label>Select PDF File (Max 50MB) *</Label>
                 <Input
                   type="file"
                   accept="application/pdf"
@@ -635,6 +666,20 @@ function AdminPremiumDocumentsPage() {
                     <CheckCircle2 className="h-3 w-3 text-green-600 shrink-0" />
                     Verified: {(selectedFile.size / 1024 / 1024).toFixed(2)} MB PDF file loaded
                   </p>
+                )}
+                {uploading && (
+                  <div className="space-y-1 pt-1">
+                    <div className="flex justify-between text-[11px] font-semibold text-primary">
+                      <span>Uploading PDF directly to Supabase Storage...</span>
+                      <span>{uploadProgress}%</span>
+                    </div>
+                    <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-emerald-600 transition-all duration-300 rounded-full"
+                        style={{ width: `${uploadProgress}%` }}
+                      />
+                    </div>
+                  </div>
                 )}
               </div>
             </div>

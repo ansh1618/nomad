@@ -609,7 +609,7 @@ export async function uploadDocumentFile(params: {
   documentType: DocumentType;
   title: string;
   fileName: string;
-  fileBase64: string;
+  fileUrl: string;
   fileSize: number;
   allowDownload?: boolean;
   allowPrint?: boolean;
@@ -617,53 +617,11 @@ export async function uploadDocumentFile(params: {
   watermarkEnabled?: boolean;
   uploadedBy?: string;
 }) {
-  // 1. Query package slug
-  const { data: pkg } = await supabaseAdmin
-    .from("journeys")
-    .select("slug, name")
-    .eq("id", params.packageId)
-    .maybeSingle();
-
-  const slug = pkg?.slug || "journey";
-  const nextVersion = Date.now();
-
-  // Fast Buffer decoding in Node.js
-  const fileBuffer = Buffer.from(params.fileBase64, 'base64');
-  const ext = params.fileName.split('.').pop() || 'pdf';
-  const storagePath = `${slug}/${params.documentType.toLowerCase()}/v${nextVersion}.${ext}`;
-
-  let fileUrl = "";
-
-  // Attempt upload to private itineraries bucket or public bucket
-  try {
-    const { error: uploadError } = await supabaseAdmin.storage
-      .from("itineraries")
-      .upload(storagePath, fileBuffer, {
-        contentType: "application/pdf",
-        upsert: true,
-      });
-
-    if (!uploadError) {
-      const { data: urlData } = supabaseAdmin.storage
-        .from("itineraries")
-        .getPublicUrl(storagePath);
-      fileUrl = urlData?.publicUrl || "";
-    }
-  } catch (err: any) {
-    console.warn("Storage upload notice:", err.message);
-  }
-
-  // Fallback public URL if storage bucket fails
-  if (!fileUrl) {
-    fileUrl = `https://sgeffapbsrppzrgqfpec.supabase.co/storage/v1/object/public/itineraries/${storagePath}`;
-  }
-
-  // Create or update the document record in database
   return await createOrUpdateDocument({
     package_id: params.packageId,
     document_type: params.documentType,
-    title: params.title || `${pkg?.name || 'Nomadik'} PDF Document`,
-    file_url: fileUrl,
+    title: params.title,
+    file_url: params.fileUrl,
     page_count: 14,
     size: params.fileSize,
     version: 1,
