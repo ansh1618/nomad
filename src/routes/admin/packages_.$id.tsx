@@ -62,7 +62,7 @@ import {
   createOrUpdateDocumentFn,
   archiveDocumentFn,
   restoreDocumentFn,
-  uploadDocumentFileFn
+  getSignedUploadUrlFn
 } from '@/lib/itinerary-pdf-fns'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import {
@@ -2290,35 +2290,72 @@ function PackageDocumentsTab({ packageId, packageSlug, isNew, adminId }: Package
 
     setUploading(true);
     try {
-      const reader = new FileReader();
-      reader.readAsDataURL(selectedFile);
-      reader.onload = async () => {
-        const base64String = (reader.result as string).split(',')[1];
-        
-        await uploadDocumentFileFn({
-          data: {
-            packageId,
-            documentType,
-            title,
-            fileName: selectedFile.name,
-            fileBase64: base64String,
-            fileSize: selectedFile.size,
-            allowDownload,
-            allowPrint,
-            allowCopy,
-            watermarkEnabled,
-            uploadedBy: adminId
-          }
-        });
+      const pkgSlug = packageSlug || 'journey';
+      const cleanFileName = selectedFile.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const storagePath = `${pkgSlug}/${documentType.toLowerCase()}/${Date.now()}-${cleanFileName}`;
 
-        toast.success('Premium PDF uploaded successfully!');
-        qc.invalidateQueries({ queryKey: ['package_documents', packageId] });
-        
-        // Reset states
-        setTitle('');
-        setSelectedFile(null);
-        if (fileInputRef.current) fileInputRef.current.value = '';
-      };
+      // 1. Get signed upload URL from server (0 file bytes sent to backend!)
+      const uploadCredentials = await getSignedUploadUrlFn({
+        data: { storagePath }
+      });
+
+      // 2. Upload file directly from browser to Supabase Storage
+      let uploadSuccessful = false;
+      if (uploadCredentials?.signedUrl) {
+        const res = await fetch(uploadCredentials.signedUrl, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/pdf',
+          },
+          body: selectedFile,
+        });
+        uploadSuccessful = res.ok;
+      }
+
+      if (!uploadSuccessful && uploadCredentials?.token) {
+        const { error: tokenErr } = await supabase.storage
+          .from('itineraries')
+          .uploadToSignedUrl(storagePath, uploadCredentials.token, selectedFile);
+        uploadSuccessful = !tokenErr;
+      }
+
+      if (!uploadSuccessful) {
+        const { error: directErr } = await supabase.storage
+          .from('itineraries')
+          .upload(storagePath, selectedFile, {
+            contentType: 'application/pdf',
+            upsert: true
+          });
+        uploadSuccessful = !directErr;
+      }
+
+      if (!uploadSuccessful) {
+        throw new Error('Direct storage upload failed. Please check network connection.');
+      }
+
+      // 3. Insert metadata only into database
+      await createOrUpdateDocumentFn({
+        data: {
+          package_id: packageId,
+          document_type: documentType,
+          title: title,
+          file_url: storagePath,
+          size: selectedFile.size,
+          allow_download: allowDownload,
+          allow_print: allowPrint,
+          allow_copy: allowCopy,
+          watermark_enabled: watermarkEnabled,
+          uploaded_by: adminId
+        }
+      });
+
+      toast.success('Premium PDF uploaded successfully!');
+      qc.invalidateQueries({ queryKey: ['package_documents', packageId] });
+      
+      // Reset states
+      setTitle('');
+      setSelectedFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     } catch (err: any) {
       toast.error(err.message || 'Upload failed');
     } finally {

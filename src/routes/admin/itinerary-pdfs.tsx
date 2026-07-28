@@ -27,7 +27,7 @@ import {
   restoreDocumentFn,
   getAdminPdfAnalyticsFn,
   getItineraryLeadsFn,
-  uploadDocumentFileFn,
+  getSignedUploadUrlFn,
 } from '@/lib/itinerary-pdf-fns';
 
 export const Route = createFileRoute('/admin/itinerary-pdfs')({
@@ -135,39 +135,75 @@ function AdminPremiumDocumentsPage() {
     setUploadProgress(15);
 
     try {
-      // Read file as Base64 for Service Role backend upload (bypasses RLS)
-      const base64String = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const res = reader.result as string;
-          resolve(res.split(',')[1]);
-        };
-        reader.onerror = () => reject(new Error('Failed to read PDF file'));
-        reader.readAsDataURL(selectedFile);
+      const pkg = packages.find((p: any) => p.id === selectedPackageId);
+      const pkgSlug = pkg?.slug || 'journey';
+      const cleanFileName = selectedFile.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const storagePath = `${pkgSlug}/${documentType.toLowerCase()}/${Date.now()}-${cleanFileName}`;
+
+      setUploadProgress(30);
+
+      // 1. Get signed upload URL from server (0 file bytes sent to server endpoint!)
+      const uploadCredentials = await getSignedUploadUrlFn({
+        data: { storagePath }
       });
 
       setUploadProgress(50);
 
-      // Upload via Server Function (uses Service Role Key to bypass Storage & DB RLS)
-      await uploadDocumentFileFn({
+      // 2. Upload file directly from browser to Supabase Storage
+      let uploadSuccessful = false;
+      if (uploadCredentials?.signedUrl) {
+        const res = await fetch(uploadCredentials.signedUrl, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/pdf',
+          },
+          body: selectedFile,
+        });
+        uploadSuccessful = res.ok;
+      }
+
+      if (!uploadSuccessful && uploadCredentials?.token) {
+        const { error: tokenErr } = await supabase.storage
+          .from('itineraries')
+          .uploadToSignedUrl(storagePath, uploadCredentials.token, selectedFile);
+        uploadSuccessful = !tokenErr;
+      }
+
+      if (!uploadSuccessful) {
+        const { error: directErr } = await supabase.storage
+          .from('itineraries')
+          .upload(storagePath, selectedFile, {
+            contentType: 'application/pdf',
+            upsert: true
+          });
+        uploadSuccessful = !directErr;
+      }
+
+      if (!uploadSuccessful) {
+        throw new Error('Direct storage upload failed. Please check network connectivity.');
+      }
+
+      setUploadProgress(85);
+
+      // 3. Send ONLY metadata payload to server database insert
+      await createOrUpdateDocumentFn({
         data: {
-          packageId: selectedPackageId,
-          documentType,
-          title,
-          fileName: selectedFile.name,
-          fileBase64: base64String,
-          fileSize: selectedFile.size,
-          allowDownload,
-          allowPrint,
-          allowCopy,
-          watermarkEnabled,
-          uploadedBy: admin?.id
+          package_id: selectedPackageId,
+          document_type: documentType,
+          title: title,
+          file_url: storagePath, // Relative storage object path ONLY
+          size: selectedFile.size,
+          page_count: 14,
+          allow_download: allowDownload,
+          allow_print: allowPrint,
+          allow_copy: allowCopy,
+          watermark_enabled: watermarkEnabled,
+          uploaded_by: admin?.id
         }
       });
 
       setUploadProgress(100);
 
-      // Display success toast ONLY after BOTH storage and database succeed
       toast.success('Premium Document uploaded successfully!');
       qc.invalidateQueries({ queryKey: ['admin_documents'] });
       

@@ -136,24 +136,10 @@ export const getItineraryLeadsFn = createServerFn({ method: "GET" })
     return await dbPdf.getItineraryLeads();
   });
 
-// Service Role Document Upload Server Function (Bypasses Storage & DB RLS)
-const uploadDocumentFileSchema = z.object({
-  packageId: z.string(),
-  documentType: z.enum(['ITINERARY', 'PACKING', 'GUIDE', 'TERMS', 'OTHER', 'VOUCHER', 'INVOICE']),
-  title: z.string(),
-  fileName: z.string(),
-  fileBase64: z.string(),
-  fileSize: z.number(),
-  allowDownload: z.boolean().optional(),
-  allowPrint: z.boolean().optional(),
-  allowCopy: z.boolean().optional(),
-  watermarkEnabled: z.boolean().optional(),
-  uploadedBy: z.string().optional(),
-});
-
-export const uploadDocumentFileFn = createServerFn({ method: "POST" })
-  .validator((data: z.infer<typeof uploadDocumentFileSchema>) => uploadDocumentFileSchema.parse(data))
+// Signed Upload URL server function for zero-byte backend file transfers
+export const getSignedUploadUrlFn = createServerFn({ method: "POST" })
+  .validator((data: { storagePath: string }) => data)
   .handler(async ({ data }) => {
-    return await dbPdf.uploadDocumentFile(data);
+    return await dbPdf.createSignedUploadUrl(data.storagePath);
   });
 

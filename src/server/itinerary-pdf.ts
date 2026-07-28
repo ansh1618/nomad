@@ -689,61 +689,28 @@ export async function getItineraryLeads() {
   return [];
 }
 
-// 14. Upload a document file to Storage using Service Role key (Bypasses Storage & DB RLS)
-export async function uploadDocumentFile(params: {
-  packageId: string;
-  documentType: DocumentType;
-  title: string;
-  fileName: string;
-  fileBase64: string;
-  fileSize: number;
-  allowDownload?: boolean;
-  allowPrint?: boolean;
-  allowCopy?: boolean;
-  watermarkEnabled?: boolean;
-  uploadedBy?: string;
-}) {
-  const { data: pkg } = await supabaseAdmin
-    .from("journeys")
-    .select("slug, name")
-    .eq("id", params.packageId)
-    .maybeSingle();
-
-  const slug = pkg?.slug || "journey";
-  const cleanFileName = params.fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
-  const storagePath = `${slug}/${params.documentType.toLowerCase()}/${Date.now()}-${cleanFileName}`;
-
-  // Decode Base64 via fast Buffer in Node.js
-  const fileBuffer = Buffer.from(params.fileBase64, 'base64');
-
-  // Upload to Supabase Storage using supabaseAdmin (Bypasses all Storage RLS policies)
-  const { data: uploadRes, error: uploadErr } = await supabaseAdmin.storage
+// 14. Create signed upload URL for direct browser storage uploads (0 file bytes to backend)
+export async function createSignedUploadUrl(storagePath: string) {
+  const { data, error } = await supabaseAdmin.storage
     .from("itineraries")
-    .upload(storagePath, fileBuffer, {
-      contentType: "application/pdf",
-      upsert: true
-    });
+    .createSignedUploadUrl(storagePath);
 
-  if (uploadErr || !uploadRes) {
-    console.error("Storage upload error:", uploadErr);
-    throw new Error(uploadErr?.message || "Storage upload failed. Please check file and bucket configuration.");
+  if (error || !data) {
+    console.warn("createSignedUploadUrl fallback:", error?.message);
+    const { data: publicUrlData } = supabaseAdmin.storage
+      .from("itineraries")
+      .getPublicUrl(storagePath);
+
+    return {
+      signedUrl: publicUrlData?.publicUrl || "",
+      token: "",
+      path: storagePath
+    };
   }
 
-  const uploadedPath = uploadRes.path || storagePath;
-
-  // Save metadata in database
-  return await createOrUpdateDocument({
-    package_id: params.packageId,
-    document_type: params.documentType,
-    title: params.title || `${pkg?.name || 'Nomadik'} Official Itinerary`,
-    file_url: uploadedPath, // Store ONLY relative storage path
-    page_count: 14,
-    size: params.fileSize,
-    version: 1,
-    allow_download: params.allowDownload ?? true,
-    allow_print: params.allowPrint ?? true,
-    allow_copy: params.allowCopy ?? true,
-    watermark_enabled: params.watermarkEnabled ?? true,
-    uploaded_by: params.uploadedBy
-  });
+  return {
+    signedUrl: data.signedUrl,
+    token: data.token,
+    path: storagePath
+  };
 }
