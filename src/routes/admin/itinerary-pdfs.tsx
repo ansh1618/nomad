@@ -140,40 +140,40 @@ function AdminPremiumDocumentsPage() {
 
     setUploading(true);
     try {
-      // Read file as base64
-      const reader = new FileReader();
-      reader.readAsDataURL(selectedFile);
-      reader.onload = async () => {
-        const base64String = (reader.result as string).split(',')[1];
-        
-        await uploadDocumentFileFn({
-          data: {
-            packageId: selectedPackageId,
-            documentType,
-            title,
-            fileName: selectedFile.name,
-            fileBase64: base64String,
-            fileSize: selectedFile.size,
-            allowDownload,
-            allowPrint,
-            allowCopy,
-            watermarkEnabled,
-            uploadedBy: admin?.id
-          }
-        });
+      const base64String = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const res = reader.result as string;
+          resolve(res.split(',')[1]);
+        };
+        reader.onerror = () => reject(new Error('Failed to read PDF file'));
+        reader.readAsDataURL(selectedFile);
+      });
+      
+      await uploadDocumentFileFn({
+        data: {
+          packageId: selectedPackageId,
+          documentType,
+          title,
+          fileName: selectedFile.name,
+          fileBase64: base64String,
+          fileSize: selectedFile.size,
+          allowDownload,
+          allowPrint,
+          allowCopy,
+          watermarkEnabled,
+          uploadedBy: admin?.id
+        }
+      });
 
-        toast.success('Premium Document uploaded successfully!');
-        qc.invalidateQueries({ queryKey: ['admin_documents'] });
-        
-        // Reset states
-        setSelectedPackageId('');
-        setTitle('');
-        setSelectedFile(null);
-        setUploadOpen(false);
-      };
-      reader.onerror = () => {
-        toast.error('Failed to read file');
-      };
+      toast.success('Premium Document uploaded successfully!');
+      qc.invalidateQueries({ queryKey: ['admin_documents'] });
+      
+      // Reset states
+      setSelectedPackageId('');
+      setTitle('');
+      setSelectedFile(null);
+      setUploadOpen(false);
     } catch (err: any) {
       toast.error(err.message || 'Upload failed');
     } finally {
