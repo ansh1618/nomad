@@ -74,21 +74,23 @@ function SettingsPage() {
   } = useForm<SettingsFormValues>({
     resolver: zodResolver(settingsSchema),
     defaultValues: {
-      company_name: 'Nomadik Travels',
-      support_phone: '+91 99999 88888',
-      support_email: 'bookings@nomadik.com',
+      company_name: 'The Nomadik Traveller',
+      support_phone: '+91 79828 50767',
+      support_phone_2: '+91 76785 96453',
+      support_email: 'support.nomadik@gmail.com',
+      whatsapp_number: '917982850767',
     },
   })
 
   useEffect(() => {
     if (settings) {
       reset({
-        company_name: settings.company_name || 'Nomadik Travels',
+        company_name: settings.company_name || 'The Nomadik Traveller',
         gst_number: settings.gst_number || '',
-        support_phone: settings.support_phone || '+91 99999 88888',
-        support_phone_2: settings.support_phone_2 || '',
-        support_email: settings.support_email || 'bookings@nomadik.com',
-        whatsapp_number: settings.whatsapp_number || '',
+        support_phone: settings.support_phone || '+91 79828 50767',
+        support_phone_2: settings.support_phone_2 || '+91 76785 96453',
+        support_email: settings.support_email || 'support.nomadik@gmail.com',
+        whatsapp_number: settings.whatsapp_number || '917982850767',
         instagram_url: settings.instagram_url || '',
         youtube_url: settings.youtube_url || '',
         reddit_url: settings.reddit_url || '',

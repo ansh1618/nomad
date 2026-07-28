@@ -663,7 +663,7 @@ export function BookingWizard({
                   <CircleHelp className="w-4 h-4 text-accent shrink-0 mt-0.5" />
                   <div>
                     <p className="font-bold text-primary">Need immediate booking help?</p>
-                    <p className="mt-0.5">Please WhatsApp support at <strong>+91 9999999999</strong> for fast confirmations.</p>
+                    <p className="mt-0.5">Please WhatsApp support at <strong><a href="https://wa.me/917982850767" target="_blank" rel="noreferrer" className="underline hover:text-accent">+91 79828 50767</a></strong> for fast confirmations.</p>
                   </div>
                 </div>
               </div>

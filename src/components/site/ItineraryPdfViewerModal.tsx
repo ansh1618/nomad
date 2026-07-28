@@ -375,7 +375,7 @@ export function ItineraryPdfViewerModal({
                 const text = encodeURIComponent(
                   `Hi Nomadik! I am reading the ${destinationName} itinerary guide and want to inquire about upcoming trips.`
                 );
-                window.open(`https://wa.me/919999999999?text=${text}`, "_blank");
+                window.open(`https://wa.me/917982850767?text=${text}`, "_blank");
               }}
               className="flex-1 sm:flex-initial h-10 px-4 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/40 rounded-xl text-xs font-poppins font-semibold flex items-center justify-center gap-1.5 cursor-pointer"
             >

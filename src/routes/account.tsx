@@ -511,7 +511,7 @@ function AccountDashboard() {
                                   </a>
                                 )}
                                 <Button variant="outline" size="sm" asChild className="h-8 text-xs">
-                                  <a href="https://wa.me/917857037041" target="_blank" rel="noreferrer" className="flex items-center gap-1">
+                                  <a href="https://wa.me/917982850767" target="_blank" rel="noreferrer" className="flex items-center gap-1">
                                     <MessageCircle className="h-3.5 w-3.5 text-[#25D366]" /> Join Convoy Group
                                   </a>
                                 </Button>
@@ -867,7 +867,7 @@ function AccountDashboard() {
                     <h4 className="font-poppins font-bold text-sm text-primary">WhatsApp Support</h4>
                     <p className="text-xs text-muted-foreground leading-relaxed">Connect directly with our 24/7 emergency and bookings assistance team.</p>
                     <Button variant="hero" asChild className="w-full">
-                      <a href="https://wa.me/917857037041" target="_blank" rel="noreferrer">Chat on WhatsApp</a>
+                      <a href="https://wa.me/917982850767" target="_blank" rel="noreferrer">Chat on WhatsApp</a>
                     </Button>
                   </div>
 
@@ -876,7 +876,7 @@ function AccountDashboard() {
                     <h4 className="font-poppins font-bold text-sm text-primary">Phone Assistance</h4>
                     <p className="text-xs text-muted-foreground leading-relaxed">Give us a call directly for emergency convoy coordination or booking changes.</p>
                     <Button variant="outline" asChild className="w-full">
-                      <a href="tel:+917857037041">Call Assistance</a>
+                      <a href="tel:+917982850767">Call Assistance (+91 79828 50767)</a>
                     </Button>
                   </div>
                 </div>

@@ -314,7 +314,10 @@ function CancellationRoute() {
                       <div className="h-8 w-8 rounded-lg bg-gold/10 flex items-center justify-center text-gold"><Phone className="h-4 w-4" /></div>
                       <div>
                         <p className="text-[10px] text-muted-foreground">Phone</p>
-                        <a href="tel:+917857037041" className="font-semibold text-primary hover:underline">+91 78570 37041</a>
+                        <div className="flex flex-col gap-0.5">
+                          <a href="tel:+917982850767" className="font-semibold text-primary hover:underline">+91 79828 50767</a>
+                          <a href="tel:+917678596453" className="font-semibold text-primary hover:underline">+91 76785 96453</a>
+                        </div>
                       </div>
                     </div>
                   </div>
