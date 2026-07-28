@@ -40,9 +40,9 @@ const founders = [
     image: "/images/team/harsh-kumar-jha.jpg",
     bio: "The dreamer and the doer. Harsh handles the big picture, partnerships and everything that keeps Nomadik moving forward.",
     socials: {
-      instagram: "#",
-      linkedin: "#",
-      email: "mailto:harsh@nomadik.co.in"
+      instagram: "https://www.instagram.com/its.meharsh16/",
+      linkedin: "https://www.linkedin.com/in/harshkumarjhalinkdin/",
+      email: "mailto:harsh.nomadik@gmail.com"
     }
   },
   {
@@ -51,9 +51,9 @@ const founders = [
     image: "/images/team/ansh-goyal.jpg",
     bio: "The coder and the planner. Ansh builds the tech, designs the systems and turns ideas into smooth travel experiences.",
     socials: {
-      instagram: "#",
-      linkedin: "#",
-      email: "mailto:ansh@nomadik.co.in"
+      instagram: "https://www.instagram.com/anshgoyal._/",
+      linkedin: "https://www.linkedin.com/in/ansh-goyal-53702533b/",
+      email: "mailto:ansh.nomadik@gmail.com"
     }
   }
 ];
