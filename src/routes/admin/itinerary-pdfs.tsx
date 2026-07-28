@@ -27,6 +27,7 @@ import {
   restoreDocumentFn,
   getAdminPdfAnalyticsFn,
   getItineraryLeadsFn,
+  uploadDocumentFileFn,
 } from '@/lib/itinerary-pdf-fns';
 
 export const Route = createFileRoute('/admin/itinerary-pdfs')({
