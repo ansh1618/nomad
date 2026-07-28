@@ -132,6 +132,8 @@ function AdminPremiumDocumentsPage() {
 
     setUploading(true);
     setUploadProgress(10);
+    let uploadedObjectPath = "";
+
     try {
       const pkg = packages.find((p: any) => p.id === selectedPackageId);
       const pkgSlug = pkg?.slug || 'journey';
@@ -139,9 +141,8 @@ function AdminPremiumDocumentsPage() {
       const storagePath = `${pkgSlug}/${documentType.toLowerCase()}/${Date.now()}-${cleanFileName}`;
 
       setUploadProgress(35);
-      let fileUrl = "";
 
-      // 1. Direct client-side upload to Supabase Storage
+      // 1. Upload file directly to Supabase Storage bucket 'itineraries'
       const { data: uploadRes, error: uploadErr } = await supabase.storage
         .from('itineraries')
         .upload(storagePath, selectedFile, {
@@ -153,28 +154,19 @@ function AdminPremiumDocumentsPage() {
 
       if (uploadErr || !uploadRes) {
         console.error("Storage upload error:", uploadErr);
-        throw new Error(uploadErr?.message || 'Storage upload failed. Please check network and permissions.');
+        throw new Error(uploadErr?.message || 'Storage upload failed. Please check network connectivity.');
       }
 
-      const { data: urlData } = supabase.storage
-        .from('itineraries')
-        .getPublicUrl(storagePath);
-        
-      fileUrl = urlData?.publicUrl || "";
+      uploadedObjectPath = uploadRes.path || storagePath;
+      setUploadProgress(85);
 
-      if (!fileUrl) {
-        throw new Error("Failed to resolve public URL for uploaded file.");
-      }
-
-      setUploadProgress(90);
-
-      // Save document record with lightweight metadata payload
+      // 2. Save ONLY relative storage object path in Database metadata
       await createOrUpdateDocumentFn({
         data: {
           package_id: selectedPackageId,
           document_type: documentType,
           title: title,
-          file_url: fileUrl,
+          file_url: uploadedObjectPath, // Relative storage object path
           size: selectedFile.size,
           page_count: 14,
           allow_download: allowDownload,
@@ -186,6 +178,8 @@ function AdminPremiumDocumentsPage() {
       });
 
       setUploadProgress(100);
+
+      // 3. Display success toast ONLY after BOTH storage and database succeed
       toast.success('Premium Document uploaded successfully!');
       qc.invalidateQueries({ queryKey: ['admin_documents'] });
       
@@ -195,6 +189,10 @@ function AdminPremiumDocumentsPage() {
       setSelectedFile(null);
       setUploadOpen(false);
     } catch (err: any) {
+      // Rollback uploaded storage object if DB insert failed
+      if (uploadedObjectPath) {
+        await supabase.storage.from('itineraries').remove([uploadedObjectPath]).catch(() => {});
+      }
       toast.error(err.message || 'Upload failed');
     } finally {
       setUploading(false);

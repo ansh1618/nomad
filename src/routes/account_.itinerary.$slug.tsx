@@ -357,11 +357,11 @@ function ItineraryViewerPage() {
     );
   }
 
-  if (metaError || !documentMeta) {
+  if (metaError || !documentMeta || documentMeta.is_missing) {
     return (
       <div className="flex h-screen w-screen flex-col items-center justify-center bg-[#0F172A] text-white p-5 text-center">
         <AlertCircle className="h-12 w-12 text-amber-500 mb-4" />
-        <h2 className="text-xl font-display font-bold">PDF Missing</h2>
+        <h2 className="text-xl font-display font-bold">PDF not uploaded yet</h2>
         <p className="text-xs text-white/60 mt-1 max-w-sm">
           An official itinerary PDF has not been uploaded for this trip yet. Please check back soon or contact support.
         </p>

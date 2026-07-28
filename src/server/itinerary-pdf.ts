@@ -80,8 +80,32 @@ export async function getPackageDocumentBySlug(slug: string, documentType: Docum
       .maybeSingle();
 
     if (data && data.file_url) {
+      const storagePath = data.file_url.includes("/itineraries/") 
+        ? data.file_url.split("/itineraries/").pop() || data.file_url 
+        : data.file_url;
+
+      // Verify object exists in storage
+      const { data: files } = await supabaseAdmin.storage
+        .from("itineraries")
+        .list(storagePath.substring(0, storagePath.lastIndexOf('/')));
+
+      const fileName = storagePath.split('/').pop();
+      const objectExists = files?.some(f => f.name === fileName);
+
+      if (!objectExists) {
+        console.warn(`Storage object missing for document: ${storagePath}`);
+        return { is_missing: true, title: pkgData?.name || "Itinerary" };
+      }
+
+      // Generate dynamic public URL
+      const { data: urlData } = supabaseAdmin.storage
+        .from("itineraries")
+        .getPublicUrl(storagePath);
+
       return {
         ...data,
+        file_url: urlData.publicUrl,
+        storage_path: storagePath,
         journey_name: pkgData?.name || data.journeys?.name,
         cover_image: pkgData?.hero_banner || pkgData?.thumbnail || pkgData?.cover_image || pkgData?.image_url || data.journeys?.image_url,
       };
@@ -90,17 +114,17 @@ export async function getPackageDocumentBySlug(slug: string, documentType: Docum
     console.warn("Notice: package_documents query notice:", err.message);
   }
 
-  // B. Check Supabase Storage bucket for uploaded PDF files for this journey slug
+  // B. Scan Supabase Storage bucket for uploaded PDF files for this journey slug
   try {
     const targetSlug = pkgData?.slug || slug;
+    const folderPath = `${targetSlug}/${documentType.toLowerCase()}`;
     const { data: files } = await supabaseAdmin.storage
       .from("itineraries")
-      .list(`${targetSlug}/${documentType.toLowerCase()}`, { limit: 10 });
+      .list(folderPath, { limit: 10 });
 
     if (files && files.length > 0) {
-      // Pick the latest file
       const latestFile = files.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())[0];
-      const storagePath = `${targetSlug}/${documentType.toLowerCase()}/${latestFile.name}`;
+      const storagePath = `${folderPath}/${latestFile.name}`;
       const { data: urlData } = supabaseAdmin.storage
         .from("itineraries")
         .getPublicUrl(storagePath);
@@ -112,6 +136,7 @@ export async function getPackageDocumentBySlug(slug: string, documentType: Docum
           document_type: documentType,
           title: `${pkgData?.name || 'Nomadik'} Official Itinerary`,
           file_url: urlData.publicUrl,
+          storage_path: storagePath,
           page_count: 14,
           size: latestFile.metadata?.size || 2450000,
           version: 1,
@@ -132,7 +157,7 @@ export async function getPackageDocumentBySlug(slug: string, documentType: Docum
     console.warn("Storage list check notice:", err.message);
   }
 
-  return null;
+  return { is_missing: true, title: pkgData?.name || "Itinerary" };
 }
 
 // 3. Get all documents (active or archived) for admin list
@@ -156,7 +181,19 @@ export async function getAllPackageDocuments() {
 
     if (!error && data && data.length > 0) {
       data.forEach((d: any) => {
-        resultDocs.push(d);
+        const storagePath = d.file_url.includes("/itineraries/") 
+          ? d.file_url.split("/itineraries/").pop() || d.file_url 
+          : d.file_url;
+        
+        const { data: urlData } = supabaseAdmin.storage
+          .from("itineraries")
+          .getPublicUrl(storagePath);
+
+        resultDocs.push({
+          ...d,
+          file_url: urlData.publicUrl,
+          storage_path: storagePath
+        });
         trackedDocIds.add(d.package_id);
       });
     }
@@ -192,6 +229,7 @@ export async function getAllPackageDocuments() {
               document_type: 'ITINERARY',
               title: `${j.name} Official Itinerary PDF`,
               file_url: urlData.publicUrl,
+              storage_path: storagePath,
               page_count: 14,
               size: latestFile.metadata?.size || 2450000,
               version: 1,
@@ -222,6 +260,10 @@ export async function getAllPackageDocuments() {
 
 // 4. Create or update document metadata
 export async function createOrUpdateDocument(payload: PackageDocumentPayload) {
+  const storagePath = payload.file_url.includes("/itineraries/")
+    ? payload.file_url.split("/itineraries/").pop() || payload.file_url
+    : payload.file_url;
+
   try {
     // Also try updating the journey table directly if it has a pdf_url column
     await supabaseAdmin
@@ -243,11 +285,11 @@ export async function createOrUpdateDocument(payload: PackageDocumentPayload) {
     if (existing) {
       // If it exists, update it and increment the version (if file url changed)
       const newVersion = payload.version ?? (existing.version + 1);
-      const { data, error } = await supabaseAdmin
+      const { data } = await supabaseAdmin
         .from("package_documents")
         .update({
           title: payload.title,
-          file_url: payload.file_url,
+          file_url: storagePath, // Store ONLY relative storage path
           page_count: payload.page_count ?? 0,
           size: payload.size ?? 0,
           thumbnail_url: payload.thumbnail_url || null,
@@ -264,16 +306,16 @@ export async function createOrUpdateDocument(payload: PackageDocumentPayload) {
         .select("*")
         .single();
 
-      if (!error && data) return data;
+      if (data) return data;
     } else {
       // If new, insert record
-      const { data, error } = await supabaseAdmin
+      const { data } = await supabaseAdmin
         .from("package_documents")
         .insert({
           package_id: payload.package_id,
           document_type: payload.document_type,
           title: payload.title,
-          file_url: payload.file_url,
+          file_url: storagePath, // Store ONLY relative storage path
           page_count: payload.page_count ?? 0,
           size: payload.size ?? 0,
           thumbnail_url: payload.thumbnail_url || null,
@@ -288,7 +330,7 @@ export async function createOrUpdateDocument(payload: PackageDocumentPayload) {
         .select("*")
         .single();
 
-      if (!error && data) return data;
+      if (data) return data;
     }
   } catch (err: any) {
     console.warn("Notice: package_documents createOrUpdate notice:", err.message);
@@ -299,7 +341,7 @@ export async function createOrUpdateDocument(payload: PackageDocumentPayload) {
     package_id: payload.package_id,
     document_type: payload.document_type,
     title: payload.title,
-    file_url: payload.file_url,
+    file_url: storagePath,
     page_count: payload.page_count || 12,
     size: payload.size || 2450000,
     version: payload.version || 1,
@@ -351,10 +393,10 @@ export async function restoreDocument(id: string) {
   return data;
 }
 
-// 7. Get 60-second Signed URL for PDF files
+// 7. Get Signed/Public URL for PDF files dynamically
 export async function getItineraryPdfSignedUrl(fileUrl: string) {
   if (!fileUrl) {
-    throw new Error("Document URL is required");
+    throw new Error("Document path is required");
   }
 
   let storagePath = fileUrl;
@@ -364,26 +406,16 @@ export async function getItineraryPdfSignedUrl(fileUrl: string) {
   } else if (fileUrl.includes("/storage/v1/object/sign/itineraries/")) {
     const urlParts = fileUrl.split("/storage/v1/object/sign/itineraries/");
     storagePath = decodeURIComponent(urlParts[1].split("?")[0]);
-  } else if (fileUrl.startsWith("http")) {
-    // Attempt extracting path after /itineraries/
-    const match = fileUrl.match(/\/itineraries\/(.+)$/);
-    if (match) storagePath = decodeURIComponent(match[1]);
   }
 
   storagePath = storagePath.replace(/^itineraries\//, "");
 
-  // Create signed URL valid for 60 seconds
-  const { data, error } = await supabaseAdmin.storage
+  // Generate public URL dynamically
+  const { data } = supabaseAdmin.storage
     .from("itineraries")
-    .createSignedUrl(storagePath, 60);
+    .getPublicUrl(storagePath);
 
-  if (error) {
-    console.warn("Signed URL creation fallback:", error.message);
-    if (fileUrl.startsWith("http")) return fileUrl;
-    throw new Error(error.message);
-  }
-
-  return data.signedUrl;
+  return data.publicUrl;
 }
 
 // 8. Capture lead before email login
