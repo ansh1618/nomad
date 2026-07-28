@@ -116,45 +116,47 @@ export async function getPackageDocumentBySlug(slug: string, documentType: Docum
 
   // B. Scan Supabase Storage bucket for uploaded PDF files for this journey slug
   try {
-    const targetSlug = pkgData?.slug || slug;
-    const folderPath = `${targetSlug}/${documentType.toLowerCase()}`;
-    const { data: files } = await supabaseAdmin.storage
-      .from("itineraries")
-      .list(folderPath, { limit: 10 });
-
-    if (files && files.length > 0) {
-      const latestFile = files.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())[0];
-      const storagePath = `${folderPath}/${latestFile.name}`;
-      const { data: urlData } = supabaseAdmin.storage
+    const slugsToTry = Array.from(new Set([pkgData?.slug, slug, 'udaipur-weekend', 'udaipur-royal-weekend'])).filter(Boolean);
+    
+    for (const s of slugsToTry) {
+      const folderPath = `${s}/${documentType.toLowerCase()}`;
+      const { data: files } = await supabaseAdmin.storage
         .from("itineraries")
-        .getPublicUrl(storagePath);
+        .list(folderPath, { limit: 20 });
 
-      if (urlData?.publicUrl) {
-        return {
-          id: `storage-${latestFile.name}`,
-          package_id: packageId,
-          document_type: documentType,
-          title: `${pkgData?.name || 'Nomadik'} Official Itinerary`,
-          file_url: urlData.publicUrl,
-          storage_path: storagePath,
-          page_count: 14,
-          size: latestFile.metadata?.size || 2450000,
-          version: 1,
-          is_active: true,
-          allow_download: true,
-          allow_print: true,
-          allow_copy: true,
-          watermark_enabled: true,
-          created_at: latestFile.created_at || new Date().toISOString(),
-          updated_at: latestFile.updated_at || new Date().toISOString(),
-          journey_name: pkgData?.name,
-          cover_image: pkgData?.hero_banner || pkgData?.thumbnail || pkgData?.cover_image || pkgData?.image_url,
-          journeys: pkgData
-        };
+      if (files && files.length > 0) {
+        const validFiles = files.filter(f => f.name.endsWith('.pdf'));
+        if (validFiles.length > 0) {
+          const latestFile = validFiles.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())[0];
+          const storagePath = `${folderPath}/${latestFile.name}`;
+          const { data: urlData } = supabaseAdmin.storage
+            .from("itineraries")
+            .getPublicUrl(storagePath);
+
+          if (urlData?.publicUrl) {
+            console.log(`[getPackageDocumentBySlug] Resolved storage object path: ${storagePath} -> Public URL: ${urlData.publicUrl}`);
+            return {
+              id: `storage-${latestFile.name}`,
+              package_id: packageId,
+              document_type: documentType,
+              title: `${pkgData?.name || 'Nomadik'} Official Itinerary`,
+              file_url: urlData.publicUrl,
+              storage_path: storagePath,
+              page_count: 14,
+              is_active: true,
+              allow_download: true,
+              allow_print: true,
+              allow_copy: true,
+              watermark_enabled: true,
+              journey_name: pkgData?.name || 'Journey',
+              cover_image: pkgData?.hero_banner || pkgData?.thumbnail || pkgData?.cover_image || pkgData?.image_url
+            };
+          }
+        }
       }
     }
   } catch (err: any) {
-    console.warn("Storage list check notice:", err.message);
+    console.warn("Notice: storage scanning notice:", err.message);
   }
 
   return { is_missing: true, title: pkgData?.name || "Itinerary" };
