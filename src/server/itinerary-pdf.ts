@@ -689,13 +689,13 @@ export async function getItineraryLeads() {
   return [];
 }
 
-// 14. Upload a document file to Storage and create/update DB record
+// 14. Upload a document file to Storage using Service Role key (Bypasses Storage & DB RLS)
 export async function uploadDocumentFile(params: {
   packageId: string;
   documentType: DocumentType;
   title: string;
   fileName: string;
-  fileUrl: string;
+  fileBase64: string;
   fileSize: number;
   allowDownload?: boolean;
   allowPrint?: boolean;
@@ -703,11 +703,40 @@ export async function uploadDocumentFile(params: {
   watermarkEnabled?: boolean;
   uploadedBy?: string;
 }) {
+  const { data: pkg } = await supabaseAdmin
+    .from("journeys")
+    .select("slug, name")
+    .eq("id", params.packageId)
+    .maybeSingle();
+
+  const slug = pkg?.slug || "journey";
+  const cleanFileName = params.fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
+  const storagePath = `${slug}/${params.documentType.toLowerCase()}/${Date.now()}-${cleanFileName}`;
+
+  // Decode Base64 via fast Buffer in Node.js
+  const fileBuffer = Buffer.from(params.fileBase64, 'base64');
+
+  // Upload to Supabase Storage using supabaseAdmin (Bypasses all Storage RLS policies)
+  const { data: uploadRes, error: uploadErr } = await supabaseAdmin.storage
+    .from("itineraries")
+    .upload(storagePath, fileBuffer, {
+      contentType: "application/pdf",
+      upsert: true
+    });
+
+  if (uploadErr || !uploadRes) {
+    console.error("Storage upload error:", uploadErr);
+    throw new Error(uploadErr?.message || "Storage upload failed. Please check file and bucket configuration.");
+  }
+
+  const uploadedPath = uploadRes.path || storagePath;
+
+  // Save metadata in database
   return await createOrUpdateDocument({
     package_id: params.packageId,
     document_type: params.documentType,
-    title: params.title,
-    file_url: params.fileUrl,
+    title: params.title || `${pkg?.name || 'Nomadik'} Official Itinerary`,
+    file_url: uploadedPath, // Store ONLY relative storage path
     page_count: 14,
     size: params.fileSize,
     version: 1,

@@ -131,55 +131,42 @@ function AdminPremiumDocumentsPage() {
     }
 
     setUploading(true);
-    setUploadProgress(10);
-    let uploadedObjectPath = "";
+    setUploadProgress(15);
 
     try {
-      const pkg = packages.find((p: any) => p.id === selectedPackageId);
-      const pkgSlug = pkg?.slug || 'journey';
-      const cleanFileName = selectedFile.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-      const storagePath = `${pkgSlug}/${documentType.toLowerCase()}/${Date.now()}-${cleanFileName}`;
+      // Read file as Base64 for Service Role backend upload (bypasses RLS)
+      const base64String = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const res = reader.result as string;
+          resolve(res.split(',')[1]);
+        };
+        reader.onerror = () => reject(new Error('Failed to read PDF file'));
+        reader.readAsDataURL(selectedFile);
+      });
 
-      setUploadProgress(35);
+      setUploadProgress(50);
 
-      // 1. Upload file directly to Supabase Storage bucket 'itineraries'
-      const { data: uploadRes, error: uploadErr } = await supabase.storage
-        .from('itineraries')
-        .upload(storagePath, selectedFile, {
-          contentType: 'application/pdf',
-          upsert: true
-        });
-
-      setUploadProgress(75);
-
-      if (uploadErr || !uploadRes) {
-        console.error("Storage upload error:", uploadErr);
-        throw new Error(uploadErr?.message || 'Storage upload failed. Please check network connectivity.');
-      }
-
-      uploadedObjectPath = uploadRes.path || storagePath;
-      setUploadProgress(85);
-
-      // 2. Save ONLY relative storage object path in Database metadata
-      await createOrUpdateDocumentFn({
+      // Upload via Server Function (uses Service Role Key to bypass Storage & DB RLS)
+      await uploadDocumentFileFn({
         data: {
-          package_id: selectedPackageId,
-          document_type: documentType,
-          title: title,
-          file_url: uploadedObjectPath, // Relative storage object path
-          size: selectedFile.size,
-          page_count: 14,
-          allow_download: allowDownload,
-          allow_print: allowPrint,
-          allow_copy: allowCopy,
-          watermark_enabled: watermarkEnabled,
-          uploaded_by: admin?.id
+          packageId: selectedPackageId,
+          documentType,
+          title,
+          fileName: selectedFile.name,
+          fileBase64: base64String,
+          fileSize: selectedFile.size,
+          allowDownload,
+          allowPrint,
+          allowCopy,
+          watermarkEnabled,
+          uploadedBy: admin?.id
         }
       });
 
       setUploadProgress(100);
 
-      // 3. Display success toast ONLY after BOTH storage and database succeed
+      // Display success toast ONLY after BOTH storage and database succeed
       toast.success('Premium Document uploaded successfully!');
       qc.invalidateQueries({ queryKey: ['admin_documents'] });
       
@@ -189,10 +176,6 @@ function AdminPremiumDocumentsPage() {
       setSelectedFile(null);
       setUploadOpen(false);
     } catch (err: any) {
-      // Rollback uploaded storage object if DB insert failed
-      if (uploadedObjectPath) {
-        await supabase.storage.from('itineraries').remove([uploadedObjectPath]).catch(() => {});
-      }
       toast.error(err.message || 'Upload failed');
     } finally {
       setUploading(false);

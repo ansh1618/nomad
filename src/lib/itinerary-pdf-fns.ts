@@ -136,13 +136,13 @@ export const getItineraryLeadsFn = createServerFn({ method: "GET" })
     return await dbPdf.getItineraryLeads();
   });
 
-// Direct metadata document registration server function
+// Service Role Document Upload Server Function (Bypasses Storage & DB RLS)
 const uploadDocumentFileSchema = z.object({
   packageId: z.string(),
   documentType: z.enum(['ITINERARY', 'PACKING', 'GUIDE', 'TERMS', 'OTHER', 'VOUCHER', 'INVOICE']),
   title: z.string(),
   fileName: z.string(),
-  fileUrl: z.string(),
+  fileBase64: z.string(),
   fileSize: z.number(),
   allowDownload: z.boolean().optional(),
   allowPrint: z.boolean().optional(),
@@ -154,17 +154,6 @@ const uploadDocumentFileSchema = z.object({
 export const uploadDocumentFileFn = createServerFn({ method: "POST" })
   .validator((data: z.infer<typeof uploadDocumentFileSchema>) => uploadDocumentFileSchema.parse(data))
   .handler(async ({ data }) => {
-    return await dbPdf.createOrUpdateDocument({
-      package_id: data.packageId,
-      document_type: data.documentType,
-      title: data.title,
-      file_url: data.fileUrl,
-      size: data.fileSize,
-      allow_download: data.allowDownload,
-      allow_print: data.allowPrint,
-      allow_copy: data.allowCopy,
-      watermark_enabled: data.watermarkEnabled,
-      uploaded_by: data.uploadedBy
-    });
+    return await dbPdf.uploadDocumentFile(data);
   });
 
