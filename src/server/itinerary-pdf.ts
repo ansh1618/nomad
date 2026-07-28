@@ -78,7 +78,7 @@ export async function getPackageDocumentBySlug(slug: string, documentType: Docum
       .eq("is_active", true)
       .maybeSingle();
 
-    if (data) {
+    if (data && data.file_url) {
       return {
         ...data,
         journey_name: pkgData?.name || data.journeys?.name,
@@ -86,30 +86,11 @@ export async function getPackageDocumentBySlug(slug: string, documentType: Docum
       };
     }
   } catch (err: any) {
-    console.warn("Notice: package_documents query fallback:", err.message);
+    console.warn("Notice: package_documents query notice:", err.message);
   }
 
-  // Synthesis Fallback if no specific row exists
-  return {
-    id: `doc-${packageId}`,
-    package_id: packageId,
-    document_type: documentType,
-    title: `${pkgData?.name || 'Nomadik Trip'} Complete Travel Guide & Roadmap`,
-    file_url: "https://raw.githubusercontent.com/mozilla/pdf.js/ba2edeae/web/compressed.tracemonkey-pldi-09.pdf",
-    page_count: 14,
-    size: 2450000,
-    version: 1,
-    is_active: true,
-    allow_download: true,
-    allow_print: true,
-    allow_copy: true,
-    watermark_enabled: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    journey_name: pkgData?.name,
-    cover_image: pkgData?.hero_banner || pkgData?.thumbnail || pkgData?.cover_image || pkgData?.image_url,
-    journeys: pkgData
-  };
+  // Return null if no real PDF object is associated with this package
+  return null;
 }
 
 // 3. Get all documents (active or archived) for admin list
@@ -127,43 +108,14 @@ export async function getAllPackageDocuments() {
       `)
       .order("created_at", { ascending: false });
 
-    if (!error && data && data.length > 0) {
+    if (!error && data) {
       return data;
     }
   } catch (err: any) {
-    console.warn("Notice: package_documents list fetch fallback:", err.message);
+    console.warn("Notice: package_documents list fetch notice:", err.message);
   }
 
-  // Fallback: Synthesize active document entries for all journeys
-  const { data: journeys } = await supabaseAdmin
-    .from("journeys")
-    .select("id, name, slug")
-    .order("created_at", { ascending: false });
-
-  if (!journeys || journeys.length === 0) return [];
-
-  return journeys.map((j: any) => ({
-    id: `doc-${j.id}`,
-    package_id: j.id,
-    document_type: 'ITINERARY',
-    title: `${j.name} Complete Travel Guide & Roadmap`,
-    file_url: "https://raw.githubusercontent.com/mozilla/pdf.js/ba2edeae/web/compressed.tracemonkey-pldi-09.pdf",
-    page_count: 14,
-    size: 2450000,
-    version: 1,
-    is_active: true,
-    allow_download: true,
-    allow_print: true,
-    allow_copy: true,
-    watermark_enabled: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    journeys: {
-      id: j.id,
-      name: j.name,
-      slug: j.slug
-    }
-  }));
+  return [];
 }
 
 // 4. Create or update document metadata

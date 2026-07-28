@@ -360,10 +360,10 @@ function ItineraryViewerPage() {
   if (metaError || !documentMeta) {
     return (
       <div className="flex h-screen w-screen flex-col items-center justify-center bg-[#0F172A] text-white p-5 text-center">
-        <AlertCircle className="h-12 w-12 text-destructive mb-4" />
-        <h2 className="text-xl font-display font-bold">Access Restrained</h2>
+        <AlertCircle className="h-12 w-12 text-amber-500 mb-4" />
+        <h2 className="text-xl font-display font-bold">PDF Missing</h2>
         <p className="text-xs text-white/60 mt-1 max-w-sm">
-          No premium itinerary document has been configured for this route yet, or you lack read credentials.
+          An official itinerary PDF has not been uploaded for this trip yet. Please check back soon or contact support.
         </p>
         <Link to="/" className="mt-6 bg-accent text-white font-poppins text-xs font-semibold px-6 py-2.5 rounded-xl shadow-md">
           Go back Home

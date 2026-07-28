@@ -141,7 +141,7 @@ function AdminPremiumDocumentsPage() {
       setUploadProgress(35);
       let fileUrl = "";
 
-      // Direct client-side upload to Supabase Storage (bypasses server HTTP body limit)
+      // 1. Direct client-side upload to Supabase Storage
       const { data: uploadRes, error: uploadErr } = await supabase.storage
         .from('itineraries')
         .upload(storagePath, selectedFile, {
@@ -151,29 +151,19 @@ function AdminPremiumDocumentsPage() {
 
       setUploadProgress(75);
 
-      if (!uploadErr && uploadRes) {
-        const { data: urlData } = supabase.storage
-          .from('itineraries')
-          .getPublicUrl(storagePath);
-        fileUrl = urlData?.publicUrl || "";
-      } else {
-        // Fallback to media bucket if itineraries bucket is restricted
-        const { data: fallbackRes } = await supabase.storage
-          .from('media')
-          .upload(`documents/${storagePath}`, selectedFile, {
-            contentType: 'application/pdf',
-            upsert: true
-          });
-        if (fallbackRes) {
-          const { data: fallbackUrlData } = supabase.storage
-            .from('media')
-            .getPublicUrl(`documents/${storagePath}`);
-          fileUrl = fallbackUrlData?.publicUrl || "";
-        }
+      if (uploadErr || !uploadRes) {
+        console.error("Storage upload error:", uploadErr);
+        throw new Error(uploadErr?.message || 'Storage upload failed. Please check network and permissions.');
       }
 
+      const { data: urlData } = supabase.storage
+        .from('itineraries')
+        .getPublicUrl(storagePath);
+        
+      fileUrl = urlData?.publicUrl || "";
+
       if (!fileUrl) {
-        fileUrl = `https://sgeffapbsrppzrgqfpec.supabase.co/storage/v1/object/public/itineraries/${storagePath}`;
+        throw new Error("Failed to resolve public URL for uploaded file.");
       }
 
       setUploadProgress(90);
