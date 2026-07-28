@@ -27,7 +27,6 @@ import {
   restoreDocumentFn,
   getAdminPdfAnalyticsFn,
   getItineraryLeadsFn,
-  getSignedUploadUrlFn,
 } from '@/lib/itinerary-pdf-fns';
 
 export const Route = createFileRoute('/admin/itinerary-pdfs')({
@@ -133,7 +132,7 @@ function AdminPremiumDocumentsPage() {
     }
 
     setUploading(true);
-    setUploadProgress(15);
+    setUploadProgress(20);
 
     try {
       const pkg = packages.find((p: any) => p.id === selectedPackageId);
@@ -141,68 +140,36 @@ function AdminPremiumDocumentsPage() {
       const cleanFileName = selectedFile.name.replace(/[^a-zA-Z0-9.-]/g, '_');
       const storagePath = `${pkgSlug}/${documentType.toLowerCase()}/${Date.now()}-${cleanFileName}`;
 
-      console.log("STEP 2 Start Storage Upload", { storagePath, fileSize: selectedFile.size });
-      setUploadProgress(30);
-
-      // A. Get signed upload credentials from server (0 file bytes sent to server endpoint!)
-      const uploadCredentials = await getSignedUploadUrlFn({
-        data: { storagePath }
-      });
-
+      console.log("STEP 2 Start Storage Upload (Pure Client Browser Upload)", { storagePath, fileSize: selectedFile.size });
       setUploadProgress(50);
-      let uploadErrObj: any = null;
 
-      // B. Upload file directly from browser to Supabase Storage via uploadToSignedUrl or upload
-      if (uploadCredentials?.token) {
-        console.log("Attempting uploadToSignedUrl with token...");
-        const { data: uploadData, error: tokenErr } = await supabase.storage
-          .from('itineraries')
-          .uploadToSignedUrl(storagePath, uploadCredentials.token, selectedFile, {
-            contentType: 'application/pdf'
-          });
-
-        if (tokenErr) {
-          console.warn("uploadToSignedUrl failed, trying direct upload fallback:", tokenErr.message);
-          uploadErrObj = tokenErr;
-        } else {
-          console.log("STEP 3 Storage Upload Success", uploadData);
-          uploadErrObj = null;
-        }
-      }
-
-      if (uploadErrObj) {
-        const { data: directData, error: directErr } = await supabase.storage
-          .from('itineraries')
-          .upload(storagePath, selectedFile, {
-            contentType: 'application/pdf',
-            upsert: true
-          });
-
-        if (directErr) {
-          console.error("Direct upload failed:", directErr);
-          throw new Error(directErr.message || "Storage upload failed");
-        }
-        console.log("STEP 3 Storage Upload Success (Direct)", directData);
-      }
-
-      setUploadProgress(75);
-
-      // C. Get public URL for verification
-      const { data: urlData } = supabase.storage
+      // STEP 1: Upload File object DIRECTLY to Supabase Storage (No backend, No ServerFn, No API route)
+      const { data: uploadData, error: uploadErr } = await supabase.storage
         .from('itineraries')
-        .getPublicUrl(storagePath);
-      console.log("STEP 4 Get Public URL", urlData?.publicUrl);
+        .upload(storagePath, selectedFile, {
+          contentType: 'application/pdf',
+          upsert: true
+        });
 
+      if (uploadErr || !uploadData) {
+        console.error("Direct Supabase Storage Upload Error:", uploadErr);
+        throw new Error(uploadErr?.message || 'Storage upload failed. Please check network connectivity.');
+      }
+
+      console.log("STEP 3 Storage Upload Success", uploadData);
       setUploadProgress(85);
-      console.log("STEP 5 Insert Database Metadata", { package_id: selectedPackageId, storagePath });
 
-      // D. Send ONLY metadata payload to server database insert
+      const uploadedPath = uploadData.path || storagePath;
+      console.log("STEP 4 Received Storage Path:", uploadedPath);
+      console.log("STEP 5 Insert Database Metadata (Lightweight JSON Payload)");
+
+      // STEP 2: ONLY AFTER upload succeeds, call server function with metadata ONLY (few KB)
       const dbRes = await createOrUpdateDocumentFn({
         data: {
           package_id: selectedPackageId,
           document_type: documentType,
           title: title,
-          file_url: storagePath, // Relative storage object path ONLY
+          file_url: uploadedPath, // Relative storage object path ONLY
           size: selectedFile.size,
           page_count: 14,
           allow_download: allowDownload,

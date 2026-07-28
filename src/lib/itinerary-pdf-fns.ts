@@ -24,10 +24,10 @@ export const getAllPackageDocumentsFn = createServerFn({ method: "GET" })
 
 // Create or update document metadata schema validator
 const documentPayloadSchema = z.object({
-  package_id: z.string().uuid(),
+  package_id: z.string(),
   document_type: z.enum(['ITINERARY', 'PACKING', 'GUIDE', 'TERMS', 'OTHER', 'VOUCHER', 'INVOICE']),
   title: z.string(),
-  file_url: z.string().url(),
+  file_url: z.string(),
   page_count: z.number().optional(),
   size: z.number().optional(),
   thumbnail_url: z.string().optional(),
@@ -36,10 +36,10 @@ const documentPayloadSchema = z.object({
   allow_print: z.boolean().optional(),
   allow_copy: z.boolean().optional(),
   watermark_enabled: z.boolean().optional(),
-  uploaded_by: z.string().uuid().optional(),
+  uploaded_by: z.string().optional(),
 });
 
-// Create/Update document metadata
+// Create/Update document metadata (Metadata only payload - FEW KB max)
 export const createOrUpdateDocumentFn = createServerFn({ method: "POST" })
   .validator((data: z.infer<typeof documentPayloadSchema>) => documentPayloadSchema.parse(data))
   .handler(async ({ data }) => {
@@ -134,12 +134,5 @@ export const getAdminPdfAnalyticsFn = createServerFn({ method: "GET" })
 export const getItineraryLeadsFn = createServerFn({ method: "GET" })
   .handler(async () => {
     return await dbPdf.getItineraryLeads();
-  });
-
-// Signed Upload URL server function for zero-byte backend file transfers
-export const getSignedUploadUrlFn = createServerFn({ method: "POST" })
-  .validator((data: { storagePath: string }) => data)
-  .handler(async ({ data }) => {
-    return await dbPdf.createSignedUploadUrl(data.storagePath);
   });
 

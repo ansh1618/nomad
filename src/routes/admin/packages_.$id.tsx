@@ -2294,52 +2294,28 @@ function PackageDocumentsTab({ packageId, packageSlug, isNew, adminId }: Package
       const cleanFileName = selectedFile.name.replace(/[^a-zA-Z0-9.-]/g, '_');
       const storagePath = `${pkgSlug}/${documentType.toLowerCase()}/${Date.now()}-${cleanFileName}`;
 
-      // 1. Get signed upload URL from server (0 file bytes sent to backend!)
-      const uploadCredentials = await getSignedUploadUrlFn({
-        data: { storagePath }
-      });
-
-      // 2. Upload file directly from browser to Supabase Storage
-      let uploadSuccessful = false;
-      if (uploadCredentials?.signedUrl) {
-        const res = await fetch(uploadCredentials.signedUrl, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/pdf',
-          },
-          body: selectedFile,
+      // 1. Upload File object DIRECTLY to Supabase Storage (No backend, No ServerFn, No API route)
+      const { data: uploadData, error: uploadErr } = await supabase.storage
+        .from('itineraries')
+        .upload(storagePath, selectedFile, {
+          contentType: 'application/pdf',
+          upsert: true
         });
-        uploadSuccessful = res.ok;
+
+      if (uploadErr || !uploadData) {
+        console.error("Direct Supabase Storage Upload Error:", uploadErr);
+        throw new Error(uploadErr?.message || 'Storage upload failed. Please check network connectivity.');
       }
 
-      if (!uploadSuccessful && uploadCredentials?.token) {
-        const { error: tokenErr } = await supabase.storage
-          .from('itineraries')
-          .uploadToSignedUrl(storagePath, uploadCredentials.token, selectedFile);
-        uploadSuccessful = !tokenErr;
-      }
+      const uploadedPath = uploadData.path || storagePath;
 
-      if (!uploadSuccessful) {
-        const { error: directErr } = await supabase.storage
-          .from('itineraries')
-          .upload(storagePath, selectedFile, {
-            contentType: 'application/pdf',
-            upsert: true
-          });
-        uploadSuccessful = !directErr;
-      }
-
-      if (!uploadSuccessful) {
-        throw new Error('Direct storage upload failed. Please check network connection.');
-      }
-
-      // 3. Insert metadata only into database
+      // 2. Insert metadata ONLY into database
       await createOrUpdateDocumentFn({
         data: {
           package_id: packageId,
           document_type: documentType,
           title: title,
-          file_url: storagePath,
+          file_url: uploadedPath,
           size: selectedFile.size,
           allow_download: allowDownload,
           allow_print: allowPrint,
@@ -2356,6 +2332,7 @@ function PackageDocumentsTab({ packageId, packageSlug, isNew, adminId }: Package
       setTitle('');
       setSelectedFile(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
+      setUploadOpen(false);
     } catch (err: any) {
       toast.error(err.message || 'Upload failed');
     } finally {
