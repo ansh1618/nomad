@@ -260,7 +260,7 @@ export async function getPackageDocumentBySlug(slug: string, documentType: Docum
   try {
     const { data: exactJourney } = await supabaseAdmin
       .from("journeys")
-      .select("id, name, slug, hero_banner, destination")
+      .select("id, name, slug, hero_banner")
       .eq("slug", slug)
       .maybeSingle();
 
@@ -270,8 +270,8 @@ export async function getPackageDocumentBySlug(slug: string, documentType: Docum
     } else {
       const { data: matchedJourney } = await supabaseAdmin
         .from("journeys")
-        .select("id, name, slug, hero_banner, destination")
-        .or(`slug.ilike.%${slug}%,destination.ilike.%${slug}%,name.ilike.%${slug}%`)
+        .select("id, name, slug, hero_banner")
+        .or(`slug.ilike.%${slug}%,name.ilike.%${slug}%`)
         .limit(1)
         .maybeSingle();
 
