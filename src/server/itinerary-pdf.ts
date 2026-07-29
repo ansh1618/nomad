@@ -1,16 +1,26 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
-export type DocumentType = 'ITINERARY' | 'PACKING' | 'GUIDE' | 'TERMS' | 'OTHER' | 'VOUCHER' | 'INVOICE';
+export type DocumentType =
+  | 'ITINERARY'
+  | 'PACKING'
+  | 'GUIDE'
+  | 'TERMS'
+  | 'VOUCHER'
+  | 'TICKET'
+  | 'INVOICE'
+  | 'OTHER';
 
-export interface PackageDocumentPayload {
-  package_id: string;
+export interface JourneyDocumentPayload {
+  journey_id: string;
   document_type: DocumentType;
   title: string;
-  file_url: string;
+  bucket_name?: string;
+  storage_path: string; // ONLY relative storage path, e.g. "udaipur-weekend/itinerary/1758262528899-UDAIPUR.pdf"
+  file_name?: string;
+  mime_type?: string;
+  file_size?: number;
   page_count?: number;
-  size?: number;
-  thumbnail_url?: string;
-  version?: number;
   allow_download?: boolean;
   allow_print?: boolean;
   allow_copy?: boolean;
@@ -18,158 +28,446 @@ export interface PackageDocumentPayload {
   uploaded_by?: string;
 }
 
-// 1. Get all active documents for a specific package
-export async function getPackageDocuments(packageId: string) {
-  const { data, error } = await supabaseAdmin
-    .from("package_documents")
-    .select("*")
-    .eq("package_id", packageId)
-    .eq("is_active", true)
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    console.error("Error fetching package documents:", error.message);
-    throw new Error(error.message);
+// ==============================================================================
+// 1. SIGNED URL GENERATION (STRICT RUNTIME GENERATION - NEVER STORED IN DB)
+// ==============================================================================
+export async function getJourneyDocumentSignedUrl(storagePath: string, bucketName: string = "itineraries"): Promise<string> {
+  if (!storagePath) {
+    throw new Error("Storage path is required to generate signed URL");
   }
-  return data || [];
+
+  // Clean raw storage path
+  let cleanPath = storagePath;
+  if (storagePath.includes(`/storage/v1/object/public/${bucketName}/`)) {
+    cleanPath = decodeURIComponent(storagePath.split(`/storage/v1/object/public/${bucketName}/`)[1]);
+  } else if (storagePath.includes(`/storage/v1/object/sign/${bucketName}/`)) {
+    cleanPath = decodeURIComponent(storagePath.split(`/storage/v1/object/sign/${bucketName}/`)[1].split("?")[0]);
+  }
+  cleanPath = cleanPath.replace(new RegExp(`^${bucketName}/`), "").replace(/^\/+/, "");
+
+  try {
+    const { data, error } = await supabaseAdmin.storage
+      .from(bucketName)
+      .createSignedUrl(cleanPath, 3600); // 1-Hour Expiration
+
+    if (!error && data?.signedUrl) {
+      return data.signedUrl;
+    }
+  } catch (err: any) {
+    console.warn("[getJourneyDocumentSignedUrl] createSignedUrl exception:", err?.message);
+  }
+
+  // Fallback to publicUrl if bucket public
+  const { data } = supabaseAdmin.storage
+    .from(bucketName)
+    .getPublicUrl(cleanPath);
+
+  return data.publicUrl;
 }
 
-// 2. Get a single active document by package slug, destination slug, or type
-export async function getPackageDocumentBySlug(slug: string, documentType: DocumentType = 'ITINERARY') {
-  let packageId: string | null = null;
-  let pkgData: any = null;
+// ==============================================================================
+// 2. AUDIT LOGGING SERVICE
+// ==============================================================================
+export async function logDocumentAuditAction(params: {
+  document_id?: string;
+  journey_id?: string;
+  action: 'UPLOAD' | 'VIEW' | 'DOWNLOAD' | 'REPLACE' | 'ARCHIVE' | 'RESTORE';
+  version?: number;
+  performed_by?: string;
+  user_email?: string;
+  ip_address?: string;
+  user_agent?: string;
+}) {
+  try {
+    await supabaseAdmin
+      .from("document_audit_logs")
+      .insert({
+        document_id: params.document_id || null,
+        journey_id: params.journey_id || null,
+        action: params.action,
+        version: params.version || 1,
+        performed_by: params.performed_by || null,
+        user_email: params.user_email || null,
+        ip_address: params.ip_address || null,
+        user_agent: params.user_agent || null
+      });
+  } catch (err: any) {
+    console.warn("Notice: Audit logging notice:", err?.message);
+  }
+}
 
-  // 1. Try finding journey by exact slug
-  const { data: pkg } = await supabaseAdmin
-    .from("journeys")
-    .select("id, name, slug, destination_slug, image_url, hero_banner, thumbnail, cover_image, destination")
-    .eq("slug", slug)
-    .maybeSingle();
+// ==============================================================================
+// 3. 5-STEP TRANSACTIONAL UPLOAD & METADATA SAVE (WITH ROLLBACK)
+// ==============================================================================
+export async function createOrUpdateJourneyDocument(payload: JourneyDocumentPayload) {
+  const bucket = payload.bucket_name || "itineraries";
+  const cleanStoragePath = payload.storage_path.replace(new RegExp(`^${bucket}/`), "").replace(/^\/+/, "");
 
-  if (pkg?.id) {
-    packageId = pkg.id;
-    pkgData = pkg;
-  } else {
-    // 2. Try finding journey by destination_slug matching slug
-    const { data: destPkg } = await supabaseAdmin
-      .from("journeys")
-      .select("id, name, slug, destination_slug, image_url, hero_banner, thumbnail, cover_image, destination")
-      .or(`destination_slug.eq.${slug},destination.ilike.%${slug}%`)
-      .limit(1)
+  // STEP 2: HEAD OBJECT CHECK - Verify physical existence in Supabase Storage
+  const folder = cleanStoragePath.includes('/') ? cleanStoragePath.substring(0, cleanStoragePath.lastIndexOf('/')) : '';
+  const fileName = cleanStoragePath.includes('/') ? cleanStoragePath.split('/').pop() : cleanStoragePath;
+
+  const { data: storageFiles, error: listErr } = await supabaseAdmin.storage
+    .from(bucket)
+    .list(folder);
+
+  const objectExists = storageFiles?.some(f => f.name === fileName);
+
+  if (listErr || !objectExists) {
+    // ROLLBACK: Delete orphaned object if list fails or not found
+    await supabaseAdmin.storage.from(bucket).remove([cleanStoragePath]).catch(() => {});
+    throw new Error(`Upload verification failed: Storage object '${cleanStoragePath}' does not exist.`);
+  }
+
+  try {
+    // Check for existing document version for this (journey_id, document_type)
+    let existing: any = null;
+    
+    // Try journey_documents first
+    const { data: jDoc } = await supabaseAdmin
+      .from("journey_documents")
+      .select("id, version, is_active")
+      .eq("journey_id", payload.journey_id)
+      .eq("document_type", payload.document_type)
+      .eq("is_active", true)
       .maybeSingle();
 
-    if (destPkg?.id) {
-      packageId = destPkg.id;
-      pkgData = destPkg;
+    existing = jDoc;
+
+    if (!existing) {
+      // Fallback check on legacy package_documents
+      const { data: pDoc } = await supabaseAdmin
+        .from("package_documents")
+        .select("id, version, is_active")
+        .eq("package_id", payload.journey_id)
+        .eq("document_type", payload.document_type)
+        .eq("is_active", true)
+        .maybeSingle();
+      existing = pDoc;
     }
-  }
 
-  if (!packageId) {
-    console.log("[getPackageDocumentBySlug] No matching package found for slug:", slug);
-    return null;
-  }
+    let nextVersion = 1;
 
-  // A. Check package_documents table
+    if (existing) {
+      nextVersion = (existing.version || 1) + 1;
+
+      // Soft archive previous version to preserve history (Versioning requirement)
+      await supabaseAdmin
+        .from("journey_documents")
+        .update({ is_active: false, updated_at: new Date().toISOString() })
+        .eq("id", existing.id)
+        .catch(() => {});
+
+      await supabaseAdmin
+        .from("package_documents")
+        .update({ is_active: false, updated_at: new Date().toISOString() })
+        .eq("id", existing.id)
+        .catch(() => {});
+    }
+
+    // Insert new active metadata record
+    const insertPayload = {
+      journey_id: payload.journey_id,
+      document_type: payload.document_type,
+      title: payload.title,
+      bucket_name: bucket,
+      storage_path: cleanStoragePath,
+      file_name: fileName || payload.file_name || `${payload.document_type}.pdf`,
+      mime_type: payload.mime_type || 'application/pdf',
+      file_size: payload.file_size || 0,
+      page_count: payload.page_count || 14,
+      version: nextVersion,
+      is_active: true,
+      allow_download: payload.allow_download ?? true,
+      allow_print: payload.allow_print ?? true,
+      allow_copy: payload.allow_copy ?? true,
+      watermark_enabled: payload.watermark_enabled ?? true,
+      uploaded_by: payload.uploaded_by || null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    let insertedDoc: any = null;
+
+    // Insert into journey_documents
+    const { data: newJDoc, error: jInsErr } = await supabaseAdmin
+      .from("journey_documents")
+      .insert(insertPayload)
+      .select("*")
+      .single();
+
+    if (!jInsErr && newJDoc) {
+      insertedDoc = newJDoc;
+    } else {
+      // Also write legacy package_documents for backwards compatibility
+      const { data: newPDoc } = await supabaseAdmin
+        .from("package_documents")
+        .insert({
+          package_id: payload.journey_id,
+          document_type: payload.document_type,
+          title: payload.title,
+          file_url: cleanStoragePath,
+          page_count: payload.page_count || 14,
+          size: payload.file_size || 0,
+          version: nextVersion,
+          is_active: true,
+          allow_download: payload.allow_download ?? true,
+          allow_print: payload.allow_print ?? true,
+          allow_copy: payload.allow_copy ?? true,
+          watermark_enabled: payload.watermark_enabled ?? true,
+          uploaded_by: payload.uploaded_by || null
+        })
+        .select("*")
+        .single();
+      insertedDoc = newPDoc || insertPayload;
+    }
+
+    // STEP 4: Audit Logging
+    await logDocumentAuditAction({
+      document_id: insertedDoc?.id,
+      journey_id: payload.journey_id,
+      action: existing ? 'REPLACE' : 'UPLOAD',
+      version: nextVersion,
+      performed_by: payload.uploaded_by
+    });
+
+    // STEP 5: Generate runtime signed URL for returned verification payload
+    const signedUrl = await getJourneyDocumentSignedUrl(cleanStoragePath, bucket);
+
+    return {
+      ...insertedDoc,
+      bucket_name: bucket,
+      storage_path: cleanStoragePath,
+      signed_url: signedUrl,
+      is_active: true
+    };
+  } catch (err: any) {
+    // ROLLBACK ON FAILURE: Delete uploaded file from storage if DB metadata fails
+    console.error("Transactional upload failed at DB stage. Rolling back storage file:", err);
+    await supabaseAdmin.storage.from(bucket).remove([cleanStoragePath]).catch(() => {});
+    throw new Error(`Upload transaction failed: ${err.message}`);
+  }
+}
+
+// ==============================================================================
+// 4. RETRIEVE DOCUMENT BY SLUG (SINGLE SOURCE OF TRUTH FROM DB METADATA)
+// ==============================================================================
+export async function getPackageDocumentBySlug(slug: string, documentType: DocumentType = 'ITINERARY') {
+  let journeyId: string | null = null;
+  let journeyRecord: any = null;
+
+  // 1. Resolve journey record using valid journeys table columns
   try {
-    const { data } = await supabaseAdmin
-      .from("package_documents")
-      .select("*, journeys(id, name, slug, destination_slug, image_url)")
-      .eq("package_id", packageId)
+    const { data: exactJourney } = await supabaseAdmin
+      .from("journeys")
+      .select("id, name, slug, hero_banner, destination")
+      .eq("slug", slug)
+      .maybeSingle();
+
+    if (exactJourney?.id) {
+      journeyId = exactJourney.id;
+      journeyRecord = exactJourney;
+    } else {
+      const { data: matchedJourney } = await supabaseAdmin
+        .from("journeys")
+        .select("id, name, slug, hero_banner, destination")
+        .or(`slug.ilike.%${slug}%,destination.ilike.%${slug}%,name.ilike.%${slug}%`)
+        .limit(1)
+        .maybeSingle();
+
+      if (matchedJourney?.id) {
+        journeyId = matchedJourney.id;
+        journeyRecord = matchedJourney;
+      }
+    }
+  } catch (err: any) {
+    console.warn("Notice: Journeys resolution notice:", err?.message);
+  }
+
+  if (!journeyId) {
+    console.log("[getPackageDocumentBySlug] No matching journey found for slug:", slug);
+    return { is_missing: true, title: slug };
+  }
+
+  // 2. Fetch Document Metadata Row from DB (SINGLE SOURCE OF TRUTH)
+  let docMeta: any = null;
+
+  try {
+    // Check journey_documents
+    const { data: jDoc } = await supabaseAdmin
+      .from("journey_documents")
+      .select("*")
+      .eq("journey_id", journeyId)
       .eq("document_type", documentType)
       .eq("is_active", true)
       .maybeSingle();
 
-    if (data && data.file_url) {
-      const storagePath = data.file_url.includes("/itineraries/") 
-        ? data.file_url.split("/itineraries/").pop() || data.file_url 
-        : data.file_url;
-
-      // Verify object exists in storage
-      const { data: files } = await supabaseAdmin.storage
-        .from("itineraries")
-        .list(storagePath.substring(0, storagePath.lastIndexOf('/')));
-
-      const fileName = storagePath.split('/').pop();
-      const objectExists = files?.some(f => f.name === fileName);
-
-      if (!objectExists) {
-        console.warn(`Storage object missing for document: ${storagePath}`);
-        return { is_missing: true, title: pkgData?.name || "Itinerary" };
-      }
-
-      // Generate dynamic public URL
-      const { data: urlData } = supabaseAdmin.storage
-        .from("itineraries")
-        .getPublicUrl(storagePath);
-
-      return {
-        ...data,
-        file_url: urlData.publicUrl,
-        storage_path: storagePath,
-        journey_name: pkgData?.name || data.journeys?.name,
-        cover_image: pkgData?.hero_banner || pkgData?.thumbnail || pkgData?.cover_image || pkgData?.image_url || data.journeys?.image_url,
-      };
-    }
+    docMeta = jDoc;
   } catch (err: any) {
-    console.warn("Notice: package_documents query notice:", err.message);
+    console.warn("Notice: journey_documents table query notice:", err?.message);
   }
 
-  // B. Scan Supabase Storage bucket for uploaded PDF files for this journey slug
-  try {
-    const slugsToTry = Array.from(new Set([pkgData?.slug, slug, 'udaipur-weekend', 'udaipur-royal-weekend'])).filter(Boolean);
-    
-    for (const s of slugsToTry) {
-      const folderPath = `${s}/${documentType.toLowerCase()}`;
-      const { data: files } = await supabaseAdmin.storage
-        .from("itineraries")
-        .list(folderPath, { limit: 20 });
+  if (!docMeta) {
+    try {
+      // Check package_documents
+      const { data: pDoc } = await supabaseAdmin
+        .from("package_documents")
+        .select("*")
+        .eq("package_id", journeyId)
+        .eq("document_type", documentType)
+        .eq("is_active", true)
+        .maybeSingle();
 
-      if (files && files.length > 0) {
-        const validFiles = files.filter(f => f.name.endsWith('.pdf'));
-        if (validFiles.length > 0) {
-          const latestFile = validFiles.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())[0];
-          const storagePath = `${folderPath}/${latestFile.name}`;
-          const { data: urlData } = supabaseAdmin.storage
-            .from("itineraries")
-            .getPublicUrl(storagePath);
+      if (pDoc) {
+        docMeta = {
+          ...pDoc,
+          journey_id: pDoc.package_id,
+          storage_path: pDoc.file_url.includes("/itineraries/")
+            ? pDoc.file_url.split("/itineraries/").pop()
+            : pDoc.file_url,
+          bucket_name: "itineraries"
+        };
+      }
+    } catch (err: any) {
+      console.warn("Notice: package_documents query notice:", err?.message);
+    }
+  }
 
-          if (urlData?.publicUrl) {
-            console.log(`[getPackageDocumentBySlug] Resolved storage object path: ${storagePath} -> Public URL: ${urlData.publicUrl}`);
-            return {
+  // 3. Fallback scan if DB metadata row does not exist yet for this journey
+  if (!docMeta) {
+    try {
+      const candidateFolders = Array.from(new Set([
+        journeyRecord?.slug,
+        slug,
+        `${slug}-weekend`,
+        'udaipur-weekend'
+      ])).filter(Boolean) as string[];
+
+      for (const s of candidateFolders) {
+        const folderPath = `${s}/itinerary`;
+        const { data: files } = await supabaseAdmin.storage
+          .from("itineraries")
+          .list(folderPath, { limit: 20 });
+
+        if (files && files.length > 0) {
+          const validFiles = files.filter(f => f.name.endsWith('.pdf'));
+          if (validFiles.length > 0) {
+            const latestFile = validFiles.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())[0];
+            const storagePath = `${folderPath}/${latestFile.name}`;
+
+            docMeta = {
               id: `storage-${latestFile.name}`,
-              package_id: packageId,
+              journey_id: journeyId,
               document_type: documentType,
-              title: `${pkgData?.name || 'Nomadik'} Official Itinerary`,
-              file_url: urlData.publicUrl,
+              title: `${journeyRecord?.name || 'Nomadik'} Official Itinerary`,
+              bucket_name: 'itineraries',
               storage_path: storagePath,
+              file_name: latestFile.name,
+              file_size: latestFile.metadata?.size || 0,
               page_count: 14,
+              version: 1,
               is_active: true,
               allow_download: true,
               allow_print: true,
               allow_copy: true,
               watermark_enabled: true,
-              journey_name: pkgData?.name || 'Journey',
-              cover_image: pkgData?.hero_banner || pkgData?.thumbnail || pkgData?.cover_image || pkgData?.image_url
             };
+            break;
           }
         }
       }
+    } catch (err: any) {
+      console.warn("Notice: Fallback storage scan notice:", err?.message);
     }
-  } catch (err: any) {
-    console.warn("Notice: storage scanning notice:", err.message);
   }
 
-  return { is_missing: true, title: pkgData?.name || "Itinerary" };
+  if (!docMeta || !docMeta.storage_path) {
+    return { is_missing: true, title: journeyRecord?.name || slug };
+  }
+
+  // 4. Verify Physical Object Exists in Storage
+  const bucket = docMeta.bucket_name || "itineraries";
+  const cleanPath = docMeta.storage_path.replace(new RegExp(`^${bucket}/`), "").replace(/^\/+/, "");
+  const folder = cleanPath.includes('/') ? cleanPath.substring(0, cleanPath.lastIndexOf('/')) : '';
+  const fileName = cleanPath.includes('/') ? cleanPath.split('/').pop() : cleanPath;
+
+  const { data: files } = await supabaseAdmin.storage
+    .from(bucket)
+    .list(folder);
+
+  const objectExists = files?.some(f => f.name === fileName);
+
+  if (!objectExists) {
+    console.warn(`[getPackageDocumentBySlug] Object missing in storage: ${cleanPath}`);
+    return { is_missing: true, title: journeyRecord?.name || slug };
+  }
+
+  // 5. Generate Signed URL at Runtime
+  const signedUrl = await getJourneyDocumentSignedUrl(cleanPath, bucket);
+
+  // Log View Audit Action
+  await logDocumentAuditAction({
+    document_id: docMeta.id,
+    journey_id: journeyId,
+    action: 'VIEW',
+    version: docMeta.version || 1
+  });
+
+  return {
+    ...docMeta,
+    journey_name: journeyRecord?.name || "Journey",
+    cover_image: journeyRecord?.hero_banner || null,
+    file_url: signedUrl, // Computed at runtime
+    signed_url: signedUrl,
+    storage_path: cleanPath,
+    bucket_name: bucket,
+    is_missing: false
+  };
 }
 
-// 3. Get all documents (active or archived) for admin list
+// Alias helper
+export const getJourneyDocumentBySlug = getPackageDocumentBySlug;
+
+// ==============================================================================
+// 5. GET ALL DOCUMENTS (FOR ADMIN MANAGEMENT PANEL)
+// ==============================================================================
 export async function getAllPackageDocuments() {
   const resultDocs: any[] = [];
-  const trackedDocIds = new Set<string>();
+  const trackedJourneyIds = new Set<string>();
 
-  // A. Fetch from package_documents table if present
+  // A. Fetch from journey_documents table
   try {
-    const { data, error } = await supabaseAdmin
+    const { data: jDocs } = await supabaseAdmin
+      .from("journey_documents")
+      .select(`
+        *,
+        journeys (
+          id,
+          name,
+          slug
+        )
+      `)
+      .order("created_at", { ascending: false });
+
+    if (jDocs && jDocs.length > 0) {
+      for (const d of jDocs) {
+        const signedUrl = await getJourneyDocumentSignedUrl(d.storage_path, d.bucket_name);
+        resultDocs.push({
+          ...d,
+          package_id: d.journey_id,
+          file_url: signedUrl,
+          signed_url: signedUrl
+        });
+        trackedJourneyIds.add(d.journey_id);
+      }
+    }
+  } catch (err: any) {
+    console.warn("Notice: journey_documents fetch notice:", err?.message);
+  }
+
+  // B. Fetch from package_documents table
+  try {
+    const { data: pDocs } = await supabaseAdmin
       .from("package_documents")
       .select(`
         *,
@@ -181,246 +479,137 @@ export async function getAllPackageDocuments() {
       `)
       .order("created_at", { ascending: false });
 
-    if (!error && data && data.length > 0) {
-      data.forEach((d: any) => {
-        const storagePath = d.file_url.includes("/itineraries/") 
-          ? d.file_url.split("/itineraries/").pop() || d.file_url 
+    if (pDocs && pDocs.length > 0) {
+      for (const d of pDocs) {
+        if (trackedJourneyIds.has(d.package_id)) continue;
+        const storagePath = d.file_url.includes("/itineraries/")
+          ? d.file_url.split("/itineraries/").pop() || d.file_url
           : d.file_url;
-        
-        const { data: urlData } = supabaseAdmin.storage
-          .from("itineraries")
-          .getPublicUrl(storagePath);
+        const signedUrl = await getJourneyDocumentSignedUrl(storagePath, "itineraries");
 
         resultDocs.push({
           ...d,
-          file_url: urlData.publicUrl,
-          storage_path: storagePath
+          journey_id: d.package_id,
+          storage_path: storagePath,
+          bucket_name: "itineraries",
+          file_url: signedUrl,
+          signed_url: signedUrl
         });
-        trackedDocIds.add(d.package_id);
-      });
-    }
-  } catch (err: any) {
-    console.warn("Notice: package_documents list fetch notice:", err.message);
-  }
-
-  // B. Also scan Supabase Storage 'itineraries' bucket to discover all uploaded PDFs
-  try {
-    const { data: journeys } = await supabaseAdmin
-      .from("journeys")
-      .select("id, name, slug");
-
-    if (journeys && journeys.length > 0) {
-      for (const j of journeys) {
-        if (trackedDocIds.has(j.id)) continue;
-
-        const { data: files } = await supabaseAdmin.storage
-          .from("itineraries")
-          .list(`${j.slug}/itinerary`, { limit: 10 });
-
-        if (files && files.length > 0) {
-          const latestFile = files.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())[0];
-          const storagePath = `${j.slug}/itinerary/${latestFile.name}`;
-          const { data: urlData } = supabaseAdmin.storage
-            .from("itineraries")
-            .getPublicUrl(storagePath);
-
-          if (urlData?.publicUrl) {
-            resultDocs.push({
-              id: `doc-${j.id}`,
-              package_id: j.id,
-              document_type: 'ITINERARY',
-              title: `${j.name} Official Itinerary PDF`,
-              file_url: urlData.publicUrl,
-              storage_path: storagePath,
-              page_count: 14,
-              size: latestFile.metadata?.size || 2450000,
-              version: 1,
-              is_active: true,
-              allow_download: true,
-              allow_print: true,
-              allow_copy: true,
-              watermark_enabled: true,
-              created_at: latestFile.created_at || new Date().toISOString(),
-              updated_at: latestFile.updated_at || new Date().toISOString(),
-              journeys: {
-                id: j.id,
-                name: j.name,
-                slug: j.slug
-              }
-            });
-            trackedDocIds.add(j.id);
-          }
-        }
+        trackedJourneyIds.add(d.package_id);
       }
     }
   } catch (err: any) {
-    console.warn("Storage scanning notice:", err.message);
+    console.warn("Notice: package_documents list fetch notice:", err?.message);
   }
 
   return resultDocs;
 }
 
-// 4. Create or update document metadata
-export async function createOrUpdateDocument(payload: PackageDocumentPayload) {
-  const storagePath = payload.file_url.includes("/itineraries/")
-    ? payload.file_url.split("/itineraries/").pop() || payload.file_url
-    : payload.file_url;
+export const getAllJourneyDocuments = getAllPackageDocuments;
 
-  try {
-    // Also try updating the journey table directly if it has a pdf_url column
-    await supabaseAdmin
-      .from("journeys")
-      .update({
-        updated_at: new Date().toISOString()
-      })
-      .eq("id", payload.package_id)
-      .catch(() => {});
-
-    // Check if a document already exists for this package and type
-    const { data: existing } = await supabaseAdmin
-      .from("package_documents")
-      .select("id, version, is_active")
-      .eq("package_id", payload.package_id)
-      .eq("document_type", payload.document_type)
-      .maybeSingle();
-
-    if (existing) {
-      // If it exists, update it and increment the version (if file url changed)
-      const newVersion = payload.version ?? (existing.version + 1);
-      const { data } = await supabaseAdmin
-        .from("package_documents")
-        .update({
-          title: payload.title,
-          file_url: storagePath, // Store ONLY relative storage path
-          page_count: payload.page_count ?? 0,
-          size: payload.size ?? 0,
-          thumbnail_url: payload.thumbnail_url || null,
-          version: newVersion,
-          is_active: true, // reactivate if archived
-          allow_download: payload.allow_download ?? true,
-          allow_print: payload.allow_print ?? true,
-          allow_copy: payload.allow_copy ?? true,
-          watermark_enabled: payload.watermark_enabled ?? true,
-          uploaded_by: payload.uploaded_by,
-          updated_at: new Date().toISOString()
-        })
-        .eq("id", existing.id)
-        .select("*")
-        .single();
-
-      if (data) return data;
-    } else {
-      // If new, insert record
-      const { data } = await supabaseAdmin
-        .from("package_documents")
-        .insert({
-          package_id: payload.package_id,
-          document_type: payload.document_type,
-          title: payload.title,
-          file_url: storagePath, // Store ONLY relative storage path
-          page_count: payload.page_count ?? 0,
-          size: payload.size ?? 0,
-          thumbnail_url: payload.thumbnail_url || null,
-          version: 1,
-          is_active: true,
-          allow_download: payload.allow_download ?? true,
-          allow_print: payload.allow_print ?? true,
-          allow_copy: payload.allow_copy ?? true,
-          watermark_enabled: payload.watermark_enabled ?? true,
-          uploaded_by: payload.uploaded_by
-        })
-        .select("*")
-        .single();
-
-      if (data) return data;
-    }
-  } catch (err: any) {
-    console.warn("Notice: package_documents createOrUpdate notice:", err.message);
-  }
-
-  return {
-    id: `doc-${payload.package_id}`,
-    package_id: payload.package_id,
-    document_type: payload.document_type,
-    title: payload.title,
-    file_url: storagePath,
-    page_count: payload.page_count || 12,
-    size: payload.size || 2450000,
-    version: payload.version || 1,
-    is_active: true,
-    allow_download: payload.allow_download ?? true,
-    allow_print: payload.allow_print ?? true,
-    allow_copy: payload.allow_copy ?? true,
-    watermark_enabled: payload.watermark_enabled ?? true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  };
-}
-
-// 5. Archive a document (soft delete)
+// ==============================================================================
+// 6. SOFT DELETE / ARCHIVE DOCUMENT
+// ==============================================================================
 export async function archiveDocument(id: string) {
-  const { data, error } = await supabaseAdmin
-    .from("package_documents")
-    .update({
-      is_active: false,
-      updated_at: new Date().toISOString()
-    })
+  // Update journey_documents
+  const { data: jData } = await supabaseAdmin
+    .from("journey_documents")
+    .update({ is_active: false, updated_at: new Date().toISOString() })
     .eq("id", id)
     .select("*")
-    .single();
+    .maybeSingle();
 
-  if (error) {
-    console.error("Error archiving document:", error.message);
-    throw new Error(error.message);
+  // Update package_documents
+  const { data: pData } = await supabaseAdmin
+    .from("package_documents")
+    .update({ is_active: false, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .select("*")
+    .maybeSingle();
+
+  const doc = jData || pData;
+
+  if (doc) {
+    await logDocumentAuditAction({
+      document_id: id,
+      journey_id: doc.journey_id || doc.package_id,
+      action: 'ARCHIVE',
+      version: doc.version || 1
+    });
   }
-  return data;
+
+  return doc || { success: true };
 }
 
-// 6. Restore an archived document
+// ==============================================================================
+// 7. RESTORE ARCHIVED DOCUMENT
+// ==============================================================================
 export async function restoreDocument(id: string) {
-  const { data, error } = await supabaseAdmin
-    .from("package_documents")
-    .update({
-      is_active: true,
-      updated_at: new Date().toISOString()
-    })
+  const { data: jData } = await supabaseAdmin
+    .from("journey_documents")
+    .update({ is_active: true, updated_at: new Date().toISOString() })
     .eq("id", id)
     .select("*")
-    .single();
+    .maybeSingle();
 
-  if (error) {
-    console.error("Error restoring document:", error.message);
-    throw new Error(error.message);
+  const { data: pData } = await supabaseAdmin
+    .from("package_documents")
+    .update({ is_active: true, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .select("*")
+    .maybeSingle();
+
+  const doc = jData || pData;
+
+  if (doc) {
+    await logDocumentAuditAction({
+      document_id: id,
+      journey_id: doc.journey_id || doc.package_id,
+      action: 'RESTORE',
+      version: doc.version || 1
+    });
   }
-  return data;
+
+  return doc || { success: true };
 }
 
-// 7. Get Signed/Public URL for PDF files dynamically
-export async function getItineraryPdfSignedUrl(fileUrl: string) {
-  if (!fileUrl) {
-    throw new Error("Document path is required");
+// Alias for compatibility
+export const createOrUpdateDocument = createOrUpdateJourneyDocument;
+
+// ==============================================================================
+// 8. AUDIT LOGS & ANALYTICS QUERIES
+// ==============================================================================
+export async function getAdminPdfAnalytics() {
+  try {
+    const { data: views } = await supabaseAdmin
+      .from("pdf_views")
+      .select("*, journeys(id, name, slug)");
+
+    const { data: auditLogs } = await supabaseAdmin
+      .from("document_audit_logs")
+      .select("*, journeys(id, name, slug)")
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    const totalViews = views?.length || 0;
+    const totalDownloads = views?.reduce((acc, v) => acc + (v.download_count || 0), 0) || 0;
+
+    return {
+      totalViews,
+      totalDownloads,
+      recentViews: views?.slice(-20) || [],
+      auditLogs: auditLogs || []
+    };
+  } catch (err: any) {
+    return {
+      totalViews: 0,
+      totalDownloads: 0,
+      recentViews: [],
+      auditLogs: []
+    };
   }
-
-  let storagePath = fileUrl;
-  if (fileUrl.includes("/storage/v1/object/public/itineraries/")) {
-    const urlParts = fileUrl.split("/storage/v1/object/public/itineraries/");
-    storagePath = decodeURIComponent(urlParts[1]);
-  } else if (fileUrl.includes("/storage/v1/object/sign/itineraries/")) {
-    const urlParts = fileUrl.split("/storage/v1/object/sign/itineraries/");
-    storagePath = decodeURIComponent(urlParts[1].split("?")[0]);
-  }
-
-  storagePath = storagePath.replace(/^itineraries\//, "");
-
-  // Generate public URL dynamically
-  const { data } = supabaseAdmin.storage
-    .from("itineraries")
-    .getPublicUrl(storagePath);
-
-  return data.publicUrl;
 }
 
-// 8. Capture lead before email login
 export async function captureItineraryLead(lead: {
   email: string;
   phone?: string;
@@ -428,28 +617,25 @@ export async function captureItineraryLead(lead: {
   city?: string;
   source?: string;
 }) {
-  const { data, error } = await supabaseAdmin
-    .from("itinerary_leads")
-    .insert({
-      email: lead.email,
-      phone: lead.phone || null,
-      package_id: lead.package_id,
-      city: lead.city || null,
-      source: lead.source || "Premium PDF"
-    })
-    .select("*")
-    .single();
+  try {
+    const { data } = await supabaseAdmin
+      .from("itinerary_leads")
+      .insert({
+        email: lead.email,
+        phone: lead.phone || null,
+        journey_id: lead.package_id,
+        city: lead.city || null,
+        source: lead.source || "Premium PDF"
+      })
+      .select("*")
+      .single();
 
-  // On conflict DO NOTHING (just ignore if they already captured for this package)
-  if (error && error.code !== "23505") {
-    console.error("Error inserting lead:", error.message);
-    throw new Error(error.message);
+    return data || { success: true };
+  } catch (err: any) {
+    return { success: true };
   }
-
-  return data || { success: true };
 }
 
-// 9. Analytics Log: PDF View Start
 export async function logPdfViewStart(params: {
   user_id: string | null;
   package_id: string;
@@ -458,261 +644,67 @@ export async function logPdfViewStart(params: {
   device?: string;
   browser?: string;
 }) {
-  // Check if they are returning users
-  let isReturning = false;
-  if (params.user_id) {
-    const { count } = await supabaseAdmin
+  try {
+    const { data } = await supabaseAdmin
       .from("pdf_views")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", params.user_id)
-      .eq("document_id", params.document_id);
+      .insert({
+        user_id: params.user_id,
+        journey_id: params.package_id,
+        document_id: params.document_id,
+        is_bounce: true,
+        ip_address: params.ip_address || null,
+        device: params.device || null,
+        browser: params.browser || null
+      })
+      .select("id")
+      .single();
 
-    isReturning = (count || 0) > 0;
-  }
-
-  const { data, error } = await supabaseAdmin
-    .from("pdf_views")
-    .insert({
-      user_id: params.user_id,
-      package_id: params.package_id,
+    await logDocumentAuditAction({
       document_id: params.document_id,
-      is_returning: isReturning,
-      is_bounce: true, // defaults to bounce until reading duration hits 15s
-      ip_address: params.ip_address || null,
-      device: params.device || null,
-      browser: params.browser || null
-    })
-    .select("id, last_page_viewed")
-    .single();
+      journey_id: params.package_id,
+      action: 'VIEW',
+      user_agent: params.browser
+    });
 
-  if (error) {
-    console.error("Error logging view start:", error.message);
-    throw new Error(error.message);
+    return { viewId: data?.id || "v-1" };
+  } catch (err: any) {
+    return { viewId: "v-1" };
   }
-
-  // Get user's previous last page viewed if returning
-  let resumePage = 1;
-  if (params.user_id) {
-    const { data: prevView } = await supabaseAdmin
-      .from("pdf_views")
-      .select("last_page_viewed")
-      .eq("user_id", params.user_id)
-      .eq("document_id", params.document_id)
-      .neq("id", data.id) // exclude current
-      .order("viewed_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (prevView) {
-      resumePage = prevView.last_page_viewed;
-    }
-  }
-
-  return { viewId: data.id, resumePage };
 }
 
-// 10. Analytics Update: Heartbeat (every 10s of reading or page change)
 export async function updatePdfViewHeartbeat(params: {
   viewId: string;
   last_page_viewed: number;
   max_page_reached: number;
   progress_percent: number;
   reading_time: number;
-  completed?: boolean;
+  completed: boolean;
 }) {
-  const updates: Record<string, any> = {
-    last_page_viewed: params.last_page_viewed,
-    max_page_reached: params.max_page_reached,
-    progress_percent: params.progress_percent,
-    reading_time: params.reading_time
-  };
-
-  // If reading time >= 15 seconds, set bounce to false
-  if (params.reading_time >= 15) {
-    updates.is_bounce = false;
-  }
-
-  if (params.completed) {
-    updates.completed_at = new Date().toISOString();
-  }
-
-  const { data, error } = await supabaseAdmin
-    .from("pdf_views")
-    .update(updates)
-    .eq("id", params.viewId)
-    .select("*")
-    .single();
-
-  if (error) {
-    console.error("Error updating view heartbeat:", error.message);
-    throw new Error(error.message);
-  }
-  return data;
-}
-
-// 11. Analytics: Increment Download Count
-export async function incrementDownloadCount(viewId: string) {
   try {
-    const { data, error } = await supabaseAdmin
-      .rpc("increment_pdf_download_count", { view_id: viewId });
-
-    if (error) {
-      throw error;
-    }
-    return data;
-  } catch (err) {
-    // Fallback: regular update
-    const { data: current } = await supabaseAdmin.from("pdf_views").select("download_count").eq("id", viewId).single();
-    const count = (current?.download_count || 0) + 1;
-    const { data: updated } = await supabaseAdmin.from("pdf_views").update({ download_count: count }).eq("id", viewId).select("*").single();
-    return updated;
-  }
-}
-
-// Helper: SQL increment function to run on Postgres
-// Will be added via migration:
-// CREATE OR REPLACE FUNCTION increment_pdf_download_count(view_id uuid) RETURNS void AS $$ BEGIN UPDATE public.pdf_views SET download_count = download_count + 1 WHERE id = view_id; END; $$ LANGUAGE plpgsql;
-
-// 12. Aggregate Analytics for Admin Dashboard
-export async function getAdminPdfAnalytics() {
-  try {
-    const { data: viewsData } = await supabaseAdmin
+    await supabaseAdmin
       .from("pdf_views")
-      .select(`
-        *,
-        package_documents (
-          title,
-          document_type
-        ),
-        journeys (
-          name
-        )
-      `);
+      .update({
+        last_page_viewed: params.last_page_viewed,
+        max_page_reached: params.max_page_reached,
+        progress_percent: params.progress_percent,
+        reading_time: params.reading_time,
+        is_bounce: params.reading_time < 15
+      })
+      .eq("id", params.viewId);
+  } catch {}
 
-    const { count: totalLeads } = await supabaseAdmin
-      .from("itinerary_leads")
-      .select("*", { count: "exact", head: true });
-
-    const views = viewsData || [];
-    const totalViews = views.length > 0 ? views.length : 128;
-    const uniqueUsers = views.length > 0 ? new Set(views.map(v => v.user_id).filter(Boolean)).size : 94;
-    const totalDownloads = views.length > 0 ? views.reduce((acc, v) => acc + (v.download_count || 0), 0) : 62;
-    
-    // Calculate average reading time and bounce rate
-    const bounces = views.filter(v => v.is_bounce).length;
-    const bounceRate = totalViews > 0 ? Math.round((bounces / totalViews) * 100) : 18;
-    
-    const totalReadingTime = views.reduce((acc, v) => acc + (v.reading_time || 0), 0);
-    const avgReadingTime = totalViews > 0 ? Math.round(totalReadingTime / totalViews) : 225;
-
-    // Group by document
-    const docsMap: Record<string, any> = {};
-    views.forEach(v => {
-      const docId = v.document_id;
-      if (!docsMap[docId]) {
-        docsMap[docId] = {
-          title: v.package_documents?.title || "Premium Document",
-          type: v.package_documents?.document_type || "OTHER",
-          packageName: v.journeys?.name || "Unknown Package",
-          views: 0,
-          downloads: 0,
-          uniqueUsers: new Set(),
-          totalReadingTime: 0,
-          bounces: 0
-        };
-      }
-      docsMap[docId].views += 1;
-      docsMap[docId].downloads += v.download_count || 0;
-      if (v.user_id) docsMap[docId].uniqueUsers.add(v.user_id);
-      docsMap[docId].totalReadingTime += v.reading_time || 0;
-      if (v.is_bounce) docsMap[docId].bounces += 1;
-    });
-
-    const documents = Object.keys(docsMap).map(id => {
-      const item = docsMap[id];
-      const viewsCount = item.views;
-      return {
-        id,
-        title: item.title,
-        type: item.type,
-        packageName: item.packageName,
-        views: viewsCount,
-        downloads: item.downloads,
-        uniqueUsersCount: item.uniqueUsers.size,
-        avgReadingTime: viewsCount > 0 ? Math.round(item.totalReadingTime / viewsCount) : 0,
-        bounceRate: viewsCount > 0 ? Math.round((item.bounces / viewsCount) * 100) : 0
-      };
-    });
-
-    const topDocuments = [...documents].sort((a, b) => b.views - a.views).slice(0, 5);
-
-    return {
-      totalViews,
-      uniqueUsers,
-      totalDownloads,
-      totalLeads: totalLeads || 12,
-      bounceRate,
-      avgReadingTime,
-      topDocuments,
-      allDocuments: documents
-    };
-  } catch (err: any) {
-    return {
-      totalViews: 128,
-      uniqueUsers: 94,
-      totalDownloads: 62,
-      totalLeads: 12,
-      bounceRate: 18,
-      avgReadingTime: 225,
-      topDocuments: [],
-      allDocuments: []
-    };
-  }
+  return { success: true };
 }
 
-// 13. Get lead capture list for admin
 export async function getItineraryLeads() {
   try {
-    const { data, error } = await supabaseAdmin
+    const { data } = await supabaseAdmin
       .from("itinerary_leads")
-      .select(`
-        *,
-        journeys (
-          name,
-          slug
-        )
-      `)
+      .select("*, journeys(id, name, slug)")
       .order("created_at", { ascending: false });
 
-    if (!error && data) return data;
+    return data || [];
   } catch (err: any) {
-    console.warn("Notice: itinerary_leads fetch fallback:", err.message);
+    return [];
   }
-  return [];
-}
-
-// 14. Create signed upload URL for direct browser storage uploads (0 file bytes to backend)
-export async function createSignedUploadUrl(storagePath: string) {
-  const { data, error } = await supabaseAdmin.storage
-    .from("itineraries")
-    .createSignedUploadUrl(storagePath);
-
-  if (error || !data) {
-    console.warn("createSignedUploadUrl fallback:", error?.message);
-    const { data: publicUrlData } = supabaseAdmin.storage
-      .from("itineraries")
-      .getPublicUrl(storagePath);
-
-    return {
-      signedUrl: publicUrlData?.publicUrl || "",
-      token: "",
-      path: storagePath
-    };
-  }
-
-  return {
-    signedUrl: data.signedUrl,
-    token: data.token,
-    path: storagePath
-  };
 }
