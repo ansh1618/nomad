@@ -48,6 +48,7 @@ import { validateCoupon } from "@/lib/booking-api";
 import { createGuestBookingFn } from "@/lib/booking-fns";
 import { useAuth } from "./AuthContext";
 import { getPackageDocumentBySlugFn } from "@/lib/itinerary-pdf-fns";
+import { getRealDestinationImage } from "@/lib/queries-client";
 import { resolveBookingPricing } from "@/lib/pricing-fns";
 
 const getFallbackTransport = (slug: string) => {
