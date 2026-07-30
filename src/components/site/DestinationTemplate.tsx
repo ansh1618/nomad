@@ -10,6 +10,7 @@ import { useAuth } from "./AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { getCmsSection } from "@/lib/queries/cms";
 import { getRealDestinationImage } from "@/lib/queries-client";
+import { resolveDestinationHero, resolveGallery } from "@/lib/media-resolver";
 import { getPackageDocumentBySlugFn } from "@/lib/itinerary-pdf-fns";
 import { ItineraryPreviewCard } from "./ItineraryPreviewCard";
 import { ItineraryLoginModal } from "./ItineraryLoginModal";
@@ -84,9 +85,9 @@ export function DestinationTemplate({ slug }: DestinationTemplateProps) {
     const content = bannerCms?.content as any;
     const key = `${slug.replace(/-/g, '_')}_hero`;
     if (content?.[key] && typeof content[key] === 'string' && content[key].trim().length > 5) {
-      return getRealDestinationImage(slug, content[key]);
+      return resolveDestinationHero(slug, content[key]);
     }
-    return getRealDestinationImage(slug, dest?.image);
+    return resolveDestinationHero(slug, dest?.hero_image || dest?.image);
   };
 
   return (
@@ -102,7 +103,7 @@ export function DestinationTemplate({ slug }: DestinationTemplateProps) {
             onError={(e) => {
               const target = e.currentTarget;
               target.onerror = null;
-              target.src = '/images/manali/manali-snow-valley.jpg';
+              target.src = resolveDestinationHero(slug, null);
             }}
           />
           <div className="absolute inset-0 bg-gradient-to-b from-primary/60 via-primary/30 to-background" />

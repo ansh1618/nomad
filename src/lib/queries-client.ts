@@ -2,18 +2,7 @@ import { supabase } from "@/lib/supabase";
 import { getPublishedDestinations, getDestinationBySlug as sharedGetDestinationBySlug } from "./queries/destinations";
 import { getPublishedPackages, getPackageBySlug } from "./queries/packages";
 import { getApprovedReviews as sharedGetApprovedReviews } from "./queries/admin";
-
-const REAL_DEST_IMAGE_MAP: Record<string, string> = {
-  "manali": "/images/manali/manali-snow-valley.jpg",
-  "jibhi": "/images/jibhi/jibhi-raghupur-fort-temple.jpg",
-  "udaipur": "/images/udaipur-palace.png",
-  "mcleodganj": "/images/mcleodganj/mcleodganj-town-view.jpg",
-  "chopta-tungnath": "https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800&q=80",
-  "kasol": "https://images.unsplash.com/photo-1596895111956-bf1cf0599ce5?w=800&q=80",
-  "spiti": "https://images.unsplash.com/photo-1581793745862-99fde7fa73d2?w=800&q=80",
-};
-
-const NOMADIK_PLACEHOLDER = "/images/manali/manali-snow-valley.jpg";
+import { resolveDestinationHero, resolveJourneyHero, isValidMediaUrl } from "./media-resolver";
 
 export function formatPriceDisplay(price: any): string {
   if (price === null || price === undefined) return "₹6,499";
@@ -47,89 +36,8 @@ export function getRealDestinationImage(
   coverImage?: string | null,
   galleryImage?: string | null
 ): string {
-  const s = (slug || '').toLowerCase().trim();
-
-  const isInvalidOrScreenshot = (url?: string | null): boolean => {
-    if (!url || typeof url !== "string") return true;
-    const lower = url.toLowerCase();
-
-    // Reject any Supabase storage media bucket test asset unless explicitly clean/unsplash or local /images/
-    const isSupabaseStorage = lower.includes("supabase.co/storage") || lower.includes("/storage/v1/object/public/");
-    const isKnownClean = lower.includes("unsplash.com") || lower.startsWith("/images/");
-
-    if (isSupabaseStorage && !isKnownClean) {
-      return true;
-    }
-
-    return (
-      lower.includes("blob:") ||
-      lower.includes("localhost") ||
-      lower.includes("127.0.0.1") ||
-      lower.includes("chrome-extension") ||
-      lower.includes("data:image") ||
-      lower.includes("payment") ||
-      lower.includes("debug") ||
-      lower.includes("console") ||
-      lower.includes("178") ||
-      lower.includes("media_") ||
-      lower.includes("/media/") ||
-      lower.includes("assets/dest-") ||
-      lower.includes("assets/pkg-") ||
-      lower.includes("screenshot") ||
-      lower.includes("devtools") ||
-      lower.includes("traveller") ||
-      lower.includes("booking") ||
-      lower.includes("schema") ||
-      lower.includes("cache") ||
-      lower.includes("elements") ||
-      lower.includes("network")
-    );
-  };
-
-  // 1. Hero Image Priority
-  if (heroImage && !isInvalidOrScreenshot(heroImage) && (heroImage.startsWith("/") || heroImage.startsWith("http"))) {
-    return heroImage;
-  }
-
-  // 2. Thumbnail Priority
-  if (thumbnail && !isInvalidOrScreenshot(thumbnail) && (thumbnail.startsWith("/") || thumbnail.startsWith("http"))) {
-    return thumbnail;
-  }
-
-  // 3. Cover Image Priority
-  if (coverImage && !isInvalidOrScreenshot(coverImage) && (coverImage.startsWith("/") || coverImage.startsWith("http"))) {
-    return coverImage;
-  }
-
-  // 4. First Gallery Image Priority
-  if (galleryImage && !isInvalidOrScreenshot(galleryImage) && (galleryImage.startsWith("/") || galleryImage.startsWith("http"))) {
-    return galleryImage;
-  }
-
-  // 5. Fallback to authentic destination photography map by slug
-  if (s.includes("udaipur")) {
-    return "https://images.unsplash.com/photo-1615836245337-f5b9b2303f1c?auto=format&fit=crop&w=2000&q=90";
-  }
-  if (s.includes("manali")) {
-    return "https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?auto=format&fit=crop&w=2000&q=90";
-  }
-  if (s.includes("jibhi") || s.includes("tirthan")) {
-    return "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=2000&q=90";
-  }
-  if (s.includes("mcleod") || s.includes("dharamshala") || s.includes("triund")) {
-    return "https://images.unsplash.com/photo-1596895111956-bf1cf0599ce5?auto=format&fit=crop&w=2000&q=90";
-  }
-  if (s.includes("chopta") || s.includes("tungnath") || s.includes("chandrashila")) {
-    return "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=2000&q=90";
-  }
-  if (s.includes("spiti")) {
-    return "https://images.unsplash.com/photo-1581793745862-99fde7fa73d2?auto=format&fit=crop&w=2000&q=90";
-  }
-  if (s.includes("kasol")) {
-    return "https://images.unsplash.com/photo-1596895111956-bf1cf0599ce5?auto=format&fit=crop&w=2000&q=90";
-  }
-
-  return "https://images.unsplash.com/photo-1615836245337-f5b9b2303f1c?auto=format&fit=crop&w=2000&q=90";
+  const candidate = [heroImage, thumbnail, coverImage, galleryImage].find(isValidMediaUrl);
+  return resolveDestinationHero(slug, candidate);
 }
 
 export async function getDestinations() {

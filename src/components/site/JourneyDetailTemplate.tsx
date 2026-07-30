@@ -49,6 +49,7 @@ import { createGuestBookingFn } from "@/lib/booking-fns";
 import { useAuth } from "./AuthContext";
 import { getPackageDocumentBySlugFn } from "@/lib/itinerary-pdf-fns";
 import { getRealDestinationImage } from "@/lib/queries-client";
+import { resolveJourneyHero } from "@/lib/media-resolver";
 import { resolveBookingPricing } from "@/lib/pricing-fns";
 
 const getFallbackTransport = (slug: string) => {
@@ -412,14 +413,14 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
       ? journey.gallery
       : [journey.hero_banner || "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b"];
 
-  const currentHeroImage = getRealDestinationImage(
+  const currentHeroImage = resolveJourneyHero(
     slug,
-    journey.hero_banner,
-    (journey as any).thumbnail,
-    (journey as any).cover_image,
-    (journey.gallery as any[])?.[heroImageIndex]?.url ||
+    journey.hero_banner ||
+      (journey.gallery as any[])?.[heroImageIndex]?.url ||
       (journey.gallery as any[])?.[heroImageIndex] ||
-      (journey.destinations as any)?.hero_image
+      (journey as any).thumbnail ||
+      (journey as any).cover_image,
+    (journey.destinations as any)?.slug
   );
 
   const formatDepartureDateRange = (startStr: string, endStr: string) => {
