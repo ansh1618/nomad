@@ -54,11 +54,24 @@ export function DestinationTemplate({ slug }: DestinationTemplateProps) {
     );
   }
 
-  // Find journeys matching this destination
-  const matchedJourneys = journeys.filter((j) => j.destinationSlug === slug);
+  // Find journeys matching this destination dynamically
+  const matchedJourneys = (journeys || []).filter((j: any) => {
+    const destSlug = j.destinationSlug || j.destinations?.slug || j.destination_slug;
+    const destId = j.destination_id || j.destinationId || j.destinations?.id;
+    return (
+      (destSlug && destSlug === slug) ||
+      (destId && destId === dest?.id) ||
+      (j.slug && j.slug.includes(slug)) ||
+      (j.name && j.name.toLowerCase().includes(slug.toLowerCase()))
+    );
+  });
   
   // Find related journeys (other destinations) for recommendation
-  const relatedJourneys = journeys.filter((j) => j.destinationSlug !== slug).slice(0, 3);
+  const relatedJourneys = (journeys || []).filter((j: any) => {
+    const destSlug = j.destinationSlug || j.destinations?.slug || j.destination_slug;
+    const destId = j.destination_id || j.destinationId || j.destinations?.id;
+    return destSlug !== slug && destId !== dest?.id;
+  }).slice(0, 3);
 
   // Fetch CMS destination banners override
   const { data: bannerCms } = useQuery({
