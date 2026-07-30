@@ -42,11 +42,12 @@ function ReviewSkeleton() {
 }
 
 // Fallback avatar — initials based
-function Avatar({ name }: { name: string }) {
-  const initials = name
+function Avatar({ name }: { name?: string }) {
+  const safeName = name || "Nomadik Traveler";
+  const initials = safeName
     .split(' ')
     .slice(0, 2)
-    .map((n) => n[0])
+    .map((n) => n[0] || "")
     .join('')
     .toUpperCase()
 
@@ -54,7 +55,7 @@ function Avatar({ name }: { name: string }) {
     'bg-blue-500', 'bg-purple-500', 'bg-emerald-500',
     'bg-amber-500', 'bg-rose-500', 'bg-indigo-500',
   ]
-  const color = colors[name.charCodeAt(0) % colors.length]
+  const color = colors[safeName.charCodeAt(0) % colors.length]
 
   return (
     <div className={`h-10 w-10 rounded-full ${color} flex items-center justify-center border-2 border-gold/20 flex-shrink-0`}>

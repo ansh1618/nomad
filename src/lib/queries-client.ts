@@ -161,11 +161,11 @@ export async function getDestinationBySlug(slug: string) {
   if (!data) return null;
 
   const dbReviews = await sharedGetApprovedReviews(data.id, 6).catch(() => []);
-  const reviewsList = dbReviews.map((r: any) => ({
-    name: r.author_name,
-    avatar: r.author_name.slice(0, 2).toUpperCase(),
-    rating: r.rating,
-    text: r.content,
+  const reviewsList = (dbReviews || []).map((r: any) => ({
+    name: r.author_name || "Verified Traveler",
+    avatar: (r.author_name || "Verified Traveler").slice(0, 2).toUpperCase(),
+    rating: r.rating || 5,
+    text: r.content || "",
     date: r.trip_date || "Recent"
   }));
 
@@ -226,8 +226,8 @@ export async function getJourneys() {
       dropPoint: j.drop_point,
       itinerary: it,
       overview: j.description || j.overview || j.name,
-      highlights: it.length > 0 
-        ? it.map((day: any) => day.title).slice(0, 3)
+      highlights: Array.isArray(it) && it.length > 0 
+        ? it.map((day: any) => day?.title || "").filter(Boolean).slice(0, 3)
         : (j.highlights || []),
       hotel: j.hotel,
       food: j.food,
@@ -275,8 +275,8 @@ export async function getJourneyBySlug(slug: string) {
     dropPoint: data.drop_point,
     itinerary: it,
     overview: data.description || data.overview || data.name,
-    highlights: it.length > 0 
-      ? it.map((day: any) => day.title).slice(0, 3)
+    highlights: Array.isArray(it) && it.length > 0 
+      ? it.map((day: any) => day?.title || "").filter(Boolean).slice(0, 3)
       : (data.highlights || []),
     hotel: data.hotels || null,
     food: data.food,

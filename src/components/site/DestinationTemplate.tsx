@@ -267,15 +267,28 @@ export function DestinationTemplate({ slug }: DestinationTemplateProps) {
                       </div>
                       <div>
                         <span className="block text-[10px] uppercase tracking-wider text-white/50">Transport</span>
-                        <span className="font-semibold text-foreground flex items-center gap-1 mt-0.5"><Car className="h-3.5 w-3.5 text-accent" /> {typeof j.transport === 'string' ? j.transport.split(" ")[0] : (j.transport?.vehicle_name || "AC Drive")}</span>
+                        <span className="font-semibold text-foreground flex items-center gap-1 mt-0.5"><Car className="h-3.5 w-3.5 text-accent" /> {(() => {
+                          const val = j.transport;
+                          if (!val) return "AC Drive";
+                          if (typeof val === 'string') {
+                            if (val.trim().startsWith('{')) {
+                              try {
+                                const parsed = JSON.parse(val);
+                                return parsed.name || parsed.vehicle_name || "AC Drive";
+                              } catch { return "AC Drive"; }
+                            }
+                            return val.split(" ")[0] || "AC Drive";
+                          }
+                          return val.name || val.vehicle_name || "AC Drive";
+                        })()}</span>
                       </div>
                       <div>
                         <span className="block text-[10px] uppercase tracking-wider text-white/50">Difficulty</span>
-                        <span className="font-semibold text-foreground flex items-center gap-1 mt-0.5"><Compass className="h-3.5 w-3.5 text-accent" /> {j.difficulty}</span>
+                        <span className="font-semibold text-foreground flex items-center gap-1 mt-0.5"><Compass className="h-3.5 w-3.5 text-accent" /> {j.difficulty || "Moderate"}</span>
                       </div>
                       <div>
                         <span className="block text-[10px] uppercase tracking-wider text-white/50">Group Size</span>
-                        <span className="font-semibold text-foreground flex items-center gap-1 mt-0.5"><Users className="h-3.5 w-3.5 text-accent" /> {typeof j.groupSize === 'string' ? j.groupSize.split(" ")[0] : (j.group_size_max || "12-18")} Explorers</span>
+                        <span className="font-semibold text-foreground flex items-center gap-1 mt-0.5"><Users className="h-3.5 w-3.5 text-accent" /> {typeof j.groupSize === 'string' ? (j.groupSize.split(" ")[0] || "12-18") : (j.group_size_max || "12-18")} Explorers</span>
                       </div>
                     </div>
 
