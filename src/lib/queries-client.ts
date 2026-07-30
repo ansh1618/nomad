@@ -107,29 +107,29 @@ export function getRealDestinationImage(
   }
 
   // 5. Fallback to authentic destination photography map by slug
+  if (s.includes("udaipur")) {
+    return "https://images.unsplash.com/photo-1615836245337-f5b9b2303f1c?auto=format&fit=crop&w=2000&q=90";
+  }
   if (s.includes("manali")) {
-    return "/images/manali/manali-snow-valley.jpg";
+    return "https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?auto=format&fit=crop&w=2000&q=90";
   }
   if (s.includes("jibhi") || s.includes("tirthan")) {
-    return "/images/jibhi/jibhi-raghupur-fort-temple.jpg";
-  }
-  if (s.includes("udaipur")) {
-    return "/images/udaipur-palace.png";
+    return "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=2000&q=90";
   }
   if (s.includes("mcleod") || s.includes("dharamshala") || s.includes("triund")) {
-    return "/images/mcleodganj/mcleodganj-town-view.jpg";
+    return "https://images.unsplash.com/photo-1596895111956-bf1cf0599ce5?auto=format&fit=crop&w=2000&q=90";
   }
   if (s.includes("chopta") || s.includes("tungnath") || s.includes("chandrashila")) {
-    return "https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800&q=80";
+    return "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=2000&q=90";
   }
   if (s.includes("spiti")) {
-    return "https://images.unsplash.com/photo-1581793745862-99fde7fa73d2?w=800&q=80";
+    return "https://images.unsplash.com/photo-1581793745862-99fde7fa73d2?auto=format&fit=crop&w=2000&q=90";
   }
   if (s.includes("kasol")) {
-    return "https://images.unsplash.com/photo-1596895111956-bf1cf0599ce5?w=800&q=80";
+    return "https://images.unsplash.com/photo-1596895111956-bf1cf0599ce5?auto=format&fit=crop&w=2000&q=90";
   }
 
-  return "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80";
+  return "https://images.unsplash.com/photo-1615836245337-f5b9b2303f1c?auto=format&fit=crop&w=2000&q=90";
 }
 
 export async function getDestinations() {

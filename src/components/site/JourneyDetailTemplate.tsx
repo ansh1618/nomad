@@ -411,11 +411,15 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
       ? journey.gallery
       : [journey.hero_banner || "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b"];
 
-  const currentHeroImage = (
-    typeof (galleryImages[heroImageIndex] || journey.hero_banner) === "string"
-      ? galleryImages[heroImageIndex] || journey.hero_banner
-      : (galleryImages[heroImageIndex] as any)?.url || journey.hero_banner || ""
-  ) as string;
+  const currentHeroImage = getRealDestinationImage(
+    slug,
+    journey.hero_banner,
+    (journey as any).thumbnail,
+    (journey as any).cover_image,
+    (journey.gallery as any[])?.[heroImageIndex]?.url ||
+      (journey.gallery as any[])?.[heroImageIndex] ||
+      (journey.destinations as any)?.hero_image
+  );
 
   const formatDepartureDateRange = (startStr: string, endStr: string) => {
     if (!startStr) return "";
@@ -698,9 +702,9 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
           <img
             src={currentHeroImage}
             alt={journey.name}
-            className="w-full h-full object-cover transition-all duration-700"
+            className="w-full h-full object-cover scale-105 animate-[zoom-slow_25s_ease-out_infinite] transition-all duration-700"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
         </div>
 
         <div className="relative z-10 w-full max-w-7xl mx-auto px-5 pb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">

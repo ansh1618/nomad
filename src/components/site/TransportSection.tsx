@@ -435,29 +435,29 @@ export function TransportSection({
       </AnimatePresence>
     </section>
   );
-}
-
-// Fallbacks per destination slug
+}// Fallbacks per destination slug
 function getFallbackTransport(slug: string): TransportSpec {
   const s = slug.toLowerCase();
-  if (s.includes("jibhi") || s.includes("spiti") || s.includes("kasol")) {
+  const REAL_VEHICLE_IMAGES = [
+    "/images/transport/force-traveller-front.jpg",
+    "/images/transport/force-traveller-side.jpg",
+    "/images/transport/force-traveller-interior-seats.jpg",
+    "/images/transport/force-traveller-interior-cabin.jpg",
+  ];
+
+  if (s.includes("jibhi") || s.includes("tirthan") || s.includes("chopta") || s.includes("spiti")) {
     return {
-      name: "Super Deluxe Force Traveller (17 Seater)",
-      capacity: "17-Seater Luxury Recliner",
-      vehicleType: "Mountain Cruiser Deluxe",
+      name: "Force Traveller 17 Seater (Mountain Edition)",
+      capacity: "12-18 Explorers",
+      vehicleType: "Super Deluxe AC Mountain Cruiser",
       isAc: true,
       pushbackSeats: true,
-      chargingPorts: "Personal USB & Socket Ports on Every Row",
-      musicSystem: "JBL Surround Audio & LED Cabin Lights",
-      luggageSpace: "Ample Roof Carrier & Rear Luggage Racks",
+      chargingPorts: "Personal USB & AC Socket Ports on Every Row",
+      musicSystem: "JBL Surround Audio & LED Ambient Cabin Lighting",
+      luggageSpace: "Under-deck & Overhead Luggage Storage Bays",
       driverExperience: "Hill-Certified Captains with 12+ Yrs Mountain Exp",
-      washroomStops: "Clean Restroom Breaks every 3-4 Hours",
-      images: [
-        "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=1200&q=80",
-        "https://images.unsplash.com/photo-1570125909232-eb263c188f7e?auto=format&fit=crop&w=1200&q=80",
-        "https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&w=1200&q=80",
-        "https://images.unsplash.com/photo-1494905998402-395d579af36f?auto=format&fit=crop&w=1200&q=80",
-      ],
+      washroomStops: "Scheduled Clean Restroom Breaks Every 3-4 Hours",
+      images: REAL_VEHICLE_IMAGES,
       features: [
         "Pushback Recliners",
         "Personal USB Ports",
@@ -473,38 +473,33 @@ function getFallbackTransport(slug: string): TransportSpec {
 
   if (s.includes("manali") || s.includes("shimla")) {
     return {
-      name: "Volvo B11R Multi-Axle Sleeper / Seater Coach",
-      capacity: "40-Seater Premium Volvo Coach",
-      vehicleType: "Multi-Axle Air-Suspension Volvo",
+      name: "Luxury AC Force Traveller (Mountain Cruiser)",
+      capacity: "12-18 Explorers",
+      vehicleType: "Super Deluxe AC Coach",
       isAc: true,
       pushbackSeats: true,
       chargingPorts: "Individual Mobile Charging Sockets",
-      musicSystem: "High-Fidelity Audio & Movie Entertainment",
-      luggageSpace: "Under-deck Spacious Luggage Bays",
-      driverExperience: "Volvo Certified Commercial Highway Captains",
-      washroomStops: "Scheduled Stop at Verified Highway Food Courts",
-      images: [
-        "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=1200&q=80",
-        "https://images.unsplash.com/photo-1570125909232-eb263c188f7e?auto=format&fit=crop&w=1200&q=80",
-        "https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&w=1200&q=80",
-        "https://images.unsplash.com/photo-1494905998402-395d579af36f?auto=format&fit=crop&w=1200&q=80",
-      ],
+      musicSystem: "JBL Surround Sound & LED Ambient Lighting",
+      luggageSpace: "Under-deck & Overhead Luggage Bays",
+      driverExperience: "Certified Highway Captains (12+ Yrs Mountain Exp)",
+      washroomStops: "Scheduled Clean Restroom Breaks Every 3-4 Hours",
+      images: REAL_VEHICLE_IMAGES,
       features: [
-        "Volvo Air Suspension",
-        "160° Pushback Seats",
-        "Individual AC Control",
-        "USB Charging",
-        "Audio Entertainment",
+        "Pushback Seats",
+        "Personal USB Charging",
+        "Climate AC Vents",
+        "JBL Sound System",
+        "Ambient LED Cabin Lights",
         "Under-deck Luggage",
-        "Verified Food Stops",
+        "Verified Restroom Stops",
       ],
     };
   }
 
-  // Default Udaipur / General
+  // Default General
   return {
-    name: "Luxury AC Tempo Traveller / Recliner Bus",
-    capacity: "17-26 Seater Recliner Coach",
+    name: "Luxury AC Force Traveller",
+    capacity: "12-18 Explorers",
     vehicleType: "Deluxe Highway Cruiser",
     isAc: true,
     pushbackSeats: true,
@@ -513,12 +508,7 @@ function getFallbackTransport(slug: string): TransportSpec {
     luggageSpace: "Overhead & Under-deck Luggage Bays",
     driverExperience: "Certified Highway Captains (10+ Yrs Highway Exp)",
     washroomStops: "Scheduled Clean Restroom Stops every 3-4 Hours",
-    images: [
-      "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1570125909232-eb263c188f7e?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1494905998402-395d579af36f?auto=format&fit=crop&w=1200&q=80",
-    ],
+    images: REAL_VEHICLE_IMAGES,
     features: [
       "Pushback Seats",
       "Personal USB Charging",
