@@ -267,7 +267,7 @@ export function DestinationTemplate({ slug }: DestinationTemplateProps) {
                       </div>
                       <div>
                         <span className="block text-[10px] uppercase tracking-wider text-white/50">Transport</span>
-                        <span className="font-semibold text-foreground flex items-center gap-1 mt-0.5"><Car className="h-3.5 w-3.5 text-accent" /> {j.transport.split(" ")[0]} Drive</span>
+                        <span className="font-semibold text-foreground flex items-center gap-1 mt-0.5"><Car className="h-3.5 w-3.5 text-accent" /> {typeof j.transport === 'string' ? j.transport.split(" ")[0] : (j.transport?.vehicle_name || "AC Drive")}</span>
                       </div>
                       <div>
                         <span className="block text-[10px] uppercase tracking-wider text-white/50">Difficulty</span>
@@ -275,7 +275,7 @@ export function DestinationTemplate({ slug }: DestinationTemplateProps) {
                       </div>
                       <div>
                         <span className="block text-[10px] uppercase tracking-wider text-white/50">Group Size</span>
-                        <span className="font-semibold text-foreground flex items-center gap-1 mt-0.5"><Users className="h-3.5 w-3.5 text-accent" /> {j.groupSize.split(" ")[0]} Explorers</span>
+                        <span className="font-semibold text-foreground flex items-center gap-1 mt-0.5"><Users className="h-3.5 w-3.5 text-accent" /> {typeof j.groupSize === 'string' ? j.groupSize.split(" ")[0] : (j.group_size_max || "12-18")} Explorers</span>
                       </div>
                     </div>
 

@@ -2231,7 +2231,7 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
               onClick={handleBookNowClick}
               className="w-full sm:w-auto h-12 px-8 bg-accent text-white font-poppins font-bold text-sm tracking-wider rounded-2xl hover:bg-[#D97706] transition-all shadow-lg hover:shadow-xl"
             >
-              Book {journey.name.split(" ")[0]} Seat
+              Book {(journey?.name || "Trip").split(" ")[0]} Seat
             </Button>
           </div>
         </div>

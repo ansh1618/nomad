@@ -45,15 +45,10 @@ export function RouteErrorState({ error, reset }: RouteErrorStateProps) {
         </div>
 
         <div className="space-y-2">
-          <h2 className="font-display text-2xl font-bold text-primary">Connection Lost</h2>
+          <h2 className="font-display text-2xl font-bold text-primary">Connection Interrupted</h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            We couldn't reach the mountains. Please check your internet connection and try again.
+            This route is taking a scenic detour. Please refresh or return to our signature destinations.
           </p>
-          {error.message && (
-            <div className="text-[10px] bg-muted p-2 rounded-lg text-left text-muted-foreground/80 break-all font-mono">
-              Error details: {error.message}
-            </div>
-          )}
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">

@@ -18,7 +18,8 @@ export const Route = createFileRoute("/$slug")({
   pendingComponent: RouteLoadingState,
   errorComponent: RouteErrorState,
   head: ({ params }) => {
-    const titleFriendly = params.slug.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+    const slug = params?.slug || "";
+    const titleFriendly = slug ? slug.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ") : "Explore";
     return {
       meta: [
         { title: `${titleFriendly} | Nomadik Journeys` },

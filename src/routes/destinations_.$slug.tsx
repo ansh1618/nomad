@@ -15,13 +15,14 @@ export const Route = createFileRoute("/destinations_/$slug")({
   pendingComponent: RouteLoadingState,
   errorComponent: RouteErrorState,
   head: ({ params }) => {
-    const titleFriendly = params.slug.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+    const slug = params?.slug || "";
+    const titleFriendly = slug ? slug.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ") : "Destination";
     return {
       meta: [
-        { title: `${titleFriendly} Road Trip | Nomadik Journeys` },
+        { title: `${titleFriendly} | Nomadik Destinations` },
         {
           name: "description",
-          content: `Travel and explore ${titleFriendly} with Nomadik. Guided hikes, vetted stays, and co-traveler connections.`,
+          content: `Travel and explore ${titleFriendly} with Nomadik. Slow road travel, handpicked stays, and signature convoy vibes.`,
         },
       ],
     };

@@ -62,12 +62,16 @@ export const Route = createFileRoute("/journeys/$journeyId")({
   },
   pendingComponent: RouteLoadingState,
   errorComponent: RouteErrorState,
-  head: ({ params }) => ({
-    meta: [
-      { title: `Nomadik Journey - ${params.journeyId.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")}` },
-      { name: "description", content: "Explore the day-wise itinerary, inclusions, stay, food, and transport specifics for this Nomadik road journey." }
-    ]
-  }),
+  head: ({ params }) => {
+    const id = params?.journeyId || "";
+    const titleFriendly = id ? id.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ") : "Trip Package";
+    return {
+      meta: [
+        { title: `Nomadik Journey - ${titleFriendly}` },
+        { name: "description", content: "Explore the day-wise itinerary, inclusions, stay, food, and transport specifics for this Nomadik road journey." }
+      ]
+    };
+  },
   component: JourneyRoute,
 });
 
