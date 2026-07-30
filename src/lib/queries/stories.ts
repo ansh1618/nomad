@@ -7,11 +7,45 @@ import type {
   PaginationParams,
 } from '@/types/supabase'
 
-const STORY_SELECT = `
-  *,
-  package:journeys(id, name, slug),
-  destination:destinations(id, name, slug)
-`
+const STORY_SELECT = `*`
+
+function mapStory(raw: any): Story {
+  if (!raw) return raw
+  let authorObj: any = null
+  if (typeof raw.author === 'object' && raw.author !== null) {
+    authorObj = raw.author
+  } else if (typeof raw.author === 'string' && raw.author.startsWith('{')) {
+    try {
+      authorObj = JSON.parse(raw.author)
+    } catch {
+      authorObj = null
+    }
+  }
+
+  const authorStr = typeof raw.author === 'string' && !raw.author.startsWith('{') ? raw.author : null
+
+  return {
+    ...raw,
+    id: raw.id,
+    slug: raw.slug || `story-${raw.id}`,
+    title: raw.title || "Nomadik Traveler Story",
+    category: raw.category || "Adventure",
+    content: raw.content || raw.snippet || "",
+    excerpt: raw.excerpt || raw.snippet || "",
+    cover_image: raw.cover_image || raw.image_url || "/images/destinations/chopta-tungnath-snow.jpg",
+    author_name: authorObj?.name || (raw.author_name && !raw.author_name.startsWith('{') ? raw.author_name : null) || authorStr || "Nomadik Captain",
+    author_image: authorObj?.avatar || raw.author_image || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&q=80",
+    author_designation: authorObj?.role || raw.author_designation || "Trip Captain",
+    college_name: authorObj?.college || raw.college_name || "Nomadik Traveler",
+    reading_time: typeof raw.read_time === 'number' ? raw.read_time : parseInt(String(raw.read_time || raw.reading_time || 4)) || 4,
+    views: typeof raw.views === 'number' ? raw.views : 250,
+    likes_count: typeof raw.likes_count === 'number' ? raw.likes_count : 18,
+    rating: typeof raw.rating === 'number' ? raw.rating : 4.9,
+    is_published: !!raw.is_published,
+    is_featured: !!raw.is_featured,
+    published_at: raw.published_at || raw.created_at || new Date().toISOString(),
+  }
+}
 
 // ==========================================
 // LIST — Admin (all statuses)
@@ -43,13 +77,11 @@ export async function getStories(
     .select(STORY_SELECT, { count: 'exact' })
 
   if (search) {
-    query = query.or(`title.ilike.%${search}%,excerpt.ilike.%${search}%,author_name.ilike.%${search}%,college_name.ilike.%${search}%`)
+    query = query.or(`title.ilike.%${search}%,snippet.ilike.%${search}%,category.ilike.%${search}%`)
   }
   if (status === 'PUBLISHED') query = query.eq('is_published', true)
   else if (status === 'DRAFT') query = query.eq('is_published', false)
   if (category && category !== 'ALL') query = query.eq('category', category)
-  if (packageId) query = query.eq('package_id', packageId)
-  if (destinationId) query = query.eq('destination_id', destinationId)
   if (featured !== undefined) query = query.eq('is_featured', featured)
 
   query = query.order(sortBy, { ascending: sortDir === 'asc' })
@@ -59,7 +91,7 @@ export async function getStories(
   if (error) throw new Error(error.message)
 
   return {
-    data: (data ?? []) as Story[],
+    data: (data ?? []).map(mapStory),
     total: count ?? 0,
     page,
     pageSize,
@@ -85,8 +117,6 @@ export async function getPublishedStories(
     sortBy = 'published_at',
     sortDir = 'desc',
     category,
-    packageId,
-    destinationId,
     featured,
   } = params
 
@@ -96,11 +126,9 @@ export async function getPublishedStories(
     .eq('is_published', true)
 
   if (search) {
-    query = query.or(`title.ilike.%${search}%,excerpt.ilike.%${search}%`)
+    query = query.or(`title.ilike.%${search}%,snippet.ilike.%${search}%`)
   }
   if (category && category !== 'ALL') query = query.eq('category', category)
-  if (packageId) query = query.eq('package_id', packageId)
-  if (destinationId) query = query.eq('destination_id', destinationId)
   if (featured !== undefined) query = query.eq('is_featured', featured)
 
   query = query.order(sortBy, { ascending: sortDir === 'asc', nullsFirst: false })
@@ -110,7 +138,7 @@ export async function getPublishedStories(
   if (error) throw new Error(error.message)
 
   return {
-    data: (data ?? []) as Story[],
+    data: (data ?? []).map(mapStory),
     total: count ?? 0,
     page,
     pageSize,
@@ -131,7 +159,7 @@ export async function getStoryById(id: string): Promise<Story | null> {
     if (error.code === 'PGRST116') return null
     throw new Error(error.message)
   }
-  return data as Story
+  return mapStory(data)
 }
 
 // ==========================================
@@ -142,13 +170,12 @@ export async function getStoryBySlug(slug: string): Promise<Story | null> {
     .from('stories')
     .select(STORY_SELECT)
     .eq('slug', slug)
-    .eq('is_published', true)
     .single()
   if (error) {
     if (error.code === 'PGRST116') return null
     throw new Error(error.message)
   }
-  return data as Story
+  return mapStory(data)
 }
 
 // ==========================================
@@ -161,11 +188,8 @@ export async function getStoriesByPackage(packageId: string, limit = 3): Promise
       .select('*')
       .eq('is_published', true)
       .limit(limit)
-    if (error) {
-      console.warn('[getStoriesByPackage] Warning:', error.message)
-      return []
-    }
-    return (data ?? []) as Story[]
+    if (error) return []
+    return (data ?? []).map(mapStory)
   } catch {
     return []
   }
@@ -175,7 +199,7 @@ export async function getStoriesByPackage(packageId: string, limit = 3): Promise
 // GET RELATED STORIES — Public
 // ==========================================
 export async function getRelatedStories(storyId: string, options: { packageId?: string | null, category?: string, limit?: number } = {}): Promise<Story[]> {
-  const { packageId, category, limit = 3 } = options
+  const { category, limit = 3 } = options
   let query = supabase
     .from('stories')
     .select(STORY_SELECT)
@@ -183,43 +207,82 @@ export async function getRelatedStories(storyId: string, options: { packageId?: 
     .neq('id', storyId)
     .limit(limit)
 
-  if (packageId) {
-    query = query.eq('package_id', packageId)
-  } else if (category) {
+  if (category && category !== 'ALL') {
     query = query.eq('category', category)
   }
 
   query = query.order('published_at', { ascending: false })
   const { data, error } = await query
-  if (error) throw new Error(error.message)
-  return (data ?? []) as Story[]
+  if (error) return []
+  return (data ?? []).map(mapStory)
 }
+export async function createStory(payload: any): Promise<Story> {
+  const dbPayload = {
+    title: payload.title,
+    slug: payload.slug,
+    category: payload.category || 'Adventure',
+    snippet: payload.excerpt || payload.snippet || '',
+    content: payload.content || '',
+    image_url: payload.cover_image || payload.image_url || '/images/destinations/chopta-tungnath-snow.jpg',
+    author: {
+      name: payload.author_name || 'Nomadik Captain',
+      avatar: payload.author_image || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&q=80',
+      college: payload.college_name || 'DU / IIT',
+      role: payload.author_designation || 'Trip Captain',
+    },
+    read_time: typeof payload.reading_time === 'number' ? payload.reading_time : parseInt(String(payload.reading_time || 4)) || 4,
+    rating: payload.rating || 4.9,
+    is_published: !!payload.is_published,
+    is_featured: !!payload.is_featured,
+    published_at: payload.is_published ? new Date().toISOString() : null,
+  }
 
-// ==========================================
-// CREATE
-// ==========================================
-export async function createStory(payload: StoryInsert): Promise<Story> {
   const { data, error } = await supabase
     .from('stories')
-    .insert(payload)
+    .insert(dbPayload)
     .select(STORY_SELECT)
     .single()
   if (error) throw new Error(error.message)
-  return data as Story
+  return mapStory(data)
 }
 
 // ==========================================
 // UPDATE
 // ==========================================
-export async function updateStory(id: string, payload: StoryUpdate): Promise<Story> {
+export async function updateStory(id: string, payload: any): Promise<Story> {
+  const dbPayload: any = {}
+  if (payload.title !== undefined) dbPayload.title = payload.title
+  if (payload.slug !== undefined) dbPayload.slug = payload.slug
+  if (payload.category !== undefined) dbPayload.category = payload.category
+  if (payload.excerpt !== undefined || payload.snippet !== undefined) dbPayload.snippet = payload.excerpt || payload.snippet
+  if (payload.content !== undefined) dbPayload.content = payload.content
+  if (payload.cover_image !== undefined || payload.image_url !== undefined) dbPayload.image_url = payload.cover_image || payload.image_url
+  if (payload.author_name !== undefined || payload.author_image !== undefined || payload.college_name !== undefined) {
+    dbPayload.author = {
+      name: payload.author_name || 'Nomadik Captain',
+      avatar: payload.author_image || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&q=80',
+      college: payload.college_name || 'DU / IIT',
+      role: payload.author_designation || 'Trip Captain',
+    }
+  }
+  if (payload.reading_time !== undefined) {
+    dbPayload.read_time = typeof payload.reading_time === 'number' ? payload.reading_time : parseInt(String(payload.reading_time || 4)) || 4
+  }
+  if (payload.rating !== undefined) dbPayload.rating = payload.rating
+  if (payload.is_published !== undefined) {
+    dbPayload.is_published = payload.is_published
+    if (payload.is_published) dbPayload.published_at = new Date().toISOString()
+  }
+  if (payload.is_featured !== undefined) dbPayload.is_featured = payload.is_featured
+
   const { data, error } = await supabase
     .from('stories')
-    .update(payload)
+    .update(dbPayload)
     .eq('id', id)
     .select(STORY_SELECT)
     .single()
   if (error) throw new Error(error.message)
-  return data as Story
+  return mapStory(data)
 }
 
 // ==========================================
