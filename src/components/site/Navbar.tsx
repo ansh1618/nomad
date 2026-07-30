@@ -41,10 +41,10 @@ export function Navbar() {
     staleTime: 1000,
   });
 
-  // Default hardcoded links if DB is empty
+  // Default navigation links
   const defaultNavLinks = [
-    { label: "Destinations", href: "/#destinations", is_external: false },
-    { label: "Journeys", href: "/#packages", is_external: false },
+    { label: "Destinations", href: "/destinations", is_external: false },
+    { label: "Journeys", href: "/journeys", is_external: false },
     { label: "Community", href: "/stories", is_external: false },
     { label: "About", href: "/about", is_external: false },
     { label: "Contact", href: "/contact", is_external: false },

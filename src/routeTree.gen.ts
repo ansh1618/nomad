@@ -27,6 +27,7 @@ import { Route as AccountRouteImport } from './routes/account'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as SlugRouteImport } from './routes/$slug'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as JourneysIndexRouteImport } from './routes/journeys/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as StoriesSlugRouteImport } from './routes/stories_.$slug'
 import { Route as JourneysJourneyIdRouteImport } from './routes/journeys/$journeyId'
@@ -165,6 +166,11 @@ const SlugRoute = SlugRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JourneysIndexRoute = JourneysIndexRouteImport.update({
+  id: '/journeys/',
+  path: '/journeys/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
@@ -471,6 +477,7 @@ export interface FileRoutesByFullPath {
   '/journeys/$journeyId': typeof JourneysJourneyIdRoute
   '/stories/$slug': typeof StoriesSlugRoute
   '/admin/': typeof AdminIndexRoute
+  '/journeys/': typeof JourneysIndexRoute
   '/account/itinerary/$slug': typeof AccountItinerarySlugRoute
   '/admin/blog/$id': typeof AdminBlogIdRoute
   '/admin/bookings/$id': typeof AdminBookingsIdRoute
@@ -539,6 +546,7 @@ export interface FileRoutesByTo {
   '/journeys/$journeyId': typeof JourneysJourneyIdRoute
   '/stories/$slug': typeof StoriesSlugRoute
   '/admin': typeof AdminIndexRoute
+  '/journeys': typeof JourneysIndexRoute
   '/account/itinerary/$slug': typeof AccountItinerarySlugRoute
   '/admin/blog/$id': typeof AdminBlogIdRoute
   '/admin/bookings/$id': typeof AdminBookingsIdRoute
@@ -609,6 +617,7 @@ export interface FileRoutesById {
   '/journeys/$journeyId': typeof JourneysJourneyIdRoute
   '/stories_/$slug': typeof StoriesSlugRoute
   '/admin/': typeof AdminIndexRoute
+  '/journeys/': typeof JourneysIndexRoute
   '/account_/itinerary/$slug': typeof AccountItinerarySlugRoute
   '/admin/blog_/$id': typeof AdminBlogIdRoute
   '/admin/bookings_/$id': typeof AdminBookingsIdRoute
@@ -680,6 +689,7 @@ export interface FileRouteTypes {
     | '/journeys/$journeyId'
     | '/stories/$slug'
     | '/admin/'
+    | '/journeys/'
     | '/account/itinerary/$slug'
     | '/admin/blog/$id'
     | '/admin/bookings/$id'
@@ -748,6 +758,7 @@ export interface FileRouteTypes {
     | '/journeys/$journeyId'
     | '/stories/$slug'
     | '/admin'
+    | '/journeys'
     | '/account/itinerary/$slug'
     | '/admin/blog/$id'
     | '/admin/bookings/$id'
@@ -817,6 +828,7 @@ export interface FileRouteTypes {
     | '/journeys/$journeyId'
     | '/stories_/$slug'
     | '/admin/'
+    | '/journeys/'
     | '/account_/itinerary/$slug'
     | '/admin/blog_/$id'
     | '/admin/bookings_/$id'
@@ -854,6 +866,7 @@ export interface RootRouteChildren {
   InvoiceIdRoute: typeof InvoiceIdRoute
   JourneysJourneyIdRoute: typeof JourneysJourneyIdRoute
   StoriesSlugRoute: typeof StoriesSlugRoute
+  JourneysIndexRoute: typeof JourneysIndexRoute
   AccountItinerarySlugRoute: typeof AccountItinerarySlugRoute
 }
 
@@ -983,6 +996,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/journeys/': {
+      id: '/journeys/'
+      path: '/journeys'
+      fullPath: '/journeys/'
+      preLoaderRoute: typeof JourneysIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/': {
@@ -1448,6 +1468,7 @@ const rootRouteChildren: RootRouteChildren = {
   InvoiceIdRoute: InvoiceIdRoute,
   JourneysJourneyIdRoute: JourneysJourneyIdRoute,
   StoriesSlugRoute: StoriesSlugRoute,
+  JourneysIndexRoute: JourneysIndexRoute,
   AccountItinerarySlugRoute: AccountItinerarySlugRoute,
 }
 export const routeTree = rootRouteImport

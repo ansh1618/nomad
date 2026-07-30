@@ -112,9 +112,9 @@ export function Footer() {
               ))
             ) : (
               <>
-                <li><Link to="/$slug" params={{ slug: 'manali' }} className="text-sm text-white/60 hover:text-gold transition-colors">Manali</Link></li>
-                <li><Link to="/$slug" params={{ slug: 'jibhi' }} className="text-sm text-white/60 hover:text-gold transition-colors">Jibhi</Link></li>
-                <li><Link to="/$slug" params={{ slug: 'chopta-tungnath' }} className="text-sm text-white/60 hover:text-gold transition-colors">Chopta</Link></li>
+                <li><Link to="/destinations/manali" className="text-sm text-white/60 hover:text-gold transition-colors">Manali</Link></li>
+                <li><Link to="/destinations/jibhi" className="text-sm text-white/60 hover:text-gold transition-colors">Jibhi</Link></li>
+                <li><Link to="/destinations/chopta-tungnath" className="text-sm text-white/60 hover:text-gold transition-colors">Chopta</Link></li>
               </>
             )}
           </ul>
