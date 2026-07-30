@@ -526,8 +526,39 @@ function PackageFormPage() {
       const mappedIds = (pkg as any).package_faqs?.map((pf: any) => pf.faq_id).filter(Boolean) || []
       setMappedFaqIds(mappedIds)
       setCustomFaqs((pkg as any).custom_package_faqs || [])
-      if ((pkg as any).transport && (pkg as any).transport.length > 0) {
-        setTransport((pkg as any).transport[0])
+      if ((pkg as any).transport) {
+        const raw = (pkg as any).transport;
+        let t = typeof raw === 'string' ? null : raw;
+        if (!t && typeof raw === 'string') {
+          try { t = JSON.parse(raw); } catch { t = { vehicle_name: raw }; }
+        }
+        if (Array.isArray(t)) t = t[0];
+        if (t && typeof t === 'object') {
+          setTransport({
+            vehicle_name: t.vehicle_name || t.name || '',
+            vehicle_type: t.vehicle_type || t.vehicleType || '',
+            capacity: t.capacity || '',
+            seat_capacity: t.seat_capacity || 17,
+            available_seats: t.available_seats || 17,
+            departure_time: t.departure_time || '',
+            arrival_time: t.arrival_time || '',
+            ac: t.ac ?? t.isAc ?? true,
+            music: t.music ?? true,
+            charging_ports: t.charging_ports ?? true,
+            trip_captain: t.trip_captain ?? true,
+            pushback_seats: t.pushback_seats ?? t.pushbackSeats ?? true,
+            charging_ports_text: t.charging_ports_text || t.chargingPorts || '',
+            music_system_text: t.music_system_text || t.musicSystem || '',
+            luggage_space: t.luggage_space || t.luggageSpace || '',
+            driver_experience: t.driver_experience || t.driverExperience || '',
+            washroom_stops: t.washroom_stops || t.washroomStops || '',
+            cover_image: Array.isArray(t.images) && t.images.length > 0 ? t.images[0] : (t.cover_image || ''),
+            gallery: Array.isArray(t.images) ? t.images : (Array.isArray(t.gallery) ? t.gallery : []),
+            features: Array.isArray(t.features) ? t.features : [],
+            pickup_points: Array.isArray(t.pickup_points) ? t.pickup_points : [],
+            drop_points: Array.isArray(t.drop_points) ? t.drop_points : []
+          });
+        }
       }
       if ((pkg as any).accommodation && (pkg as any).accommodation.length > 0) {
         setAccommodation((pkg as any).accommodation[0])
@@ -608,6 +639,39 @@ function PackageFormPage() {
         created_by: admin?.id ?? null,
         updated_by: admin?.id ?? null,
         hotel_id: rest.hotel_id === 'NONE' || !rest.hotel_id ? null : rest.hotel_id,
+        transport: {
+          name: transport.vehicle_name || 'Luxury AC Tempo Traveller',
+          vehicle_name: transport.vehicle_name || 'Luxury AC Tempo Traveller',
+          vehicle_type: transport.vehicle_type || 'Super Deluxe AC Coach',
+          vehicleType: transport.vehicle_type || 'Super Deluxe AC Coach',
+          capacity: transport.capacity || `${transport.seat_capacity || 17}-Seater Recliner Coach`,
+          seat_capacity: Number(transport.seat_capacity || 17),
+          available_seats: Number(transport.available_seats || 17),
+          departure_time: transport.departure_time || '',
+          arrival_time: transport.arrival_time || '',
+          isAc: !!transport.ac,
+          ac: !!transport.ac,
+          pushbackSeats: !!transport.pushback_seats,
+          pushback_seats: !!transport.pushback_seats,
+          chargingPorts: transport.charging_ports_text || "Individual USB & Socket Ports",
+          charging_ports_text: transport.charging_ports_text || "Individual USB & Socket Ports",
+          musicSystem: transport.music_system_text || "JBL Sound System & Ambient Lighting",
+          music_system_text: transport.music_system_text || "JBL Sound System & Ambient Lighting",
+          luggageSpace: transport.luggage_space || "Under-deck & Overhead Luggage Racks",
+          luggage_space: transport.luggage_space || "Under-deck & Overhead Luggage Racks",
+          driverExperience: transport.driver_experience || "Certified Highway Captains (10+ Yrs Exp)",
+          driver_experience: transport.driver_experience || "Certified Highway Captains (10+ Yrs Exp)",
+          washroomStops: transport.washroom_stops || "Scheduled Clean Restroom Breaks Every 3-4 Hours",
+          washroom_stops: transport.washroom_stops || "Scheduled Clean Restroom Breaks Every 3-4 Hours",
+          images: Array.from(new Set([transport.cover_image, ...(transport.gallery || [])].filter(Boolean))),
+          gallery: Array.from(new Set([transport.cover_image, ...(transport.gallery || [])].filter(Boolean))),
+          cover_image: transport.cover_image || '',
+          features: Array.isArray(transport.features) && transport.features.length > 0 ? transport.features : [
+            "Pushback Seats", "Personal USB Charging", "Climate AC Vents", "JBL Sound System", "Luggage Storage", "Clean Restroom Breaks", "Safety GPS Tracking"
+          ],
+          pickup_points: transport.pickup_points || [],
+          drop_points: transport.drop_points || []
+        }
       }
 
       let savedPkg
@@ -1205,64 +1269,80 @@ function PackageFormPage() {
             <CardHeader className="pb-3 border-b">
               <CardTitle className="text-base font-bold flex items-center gap-2">
                 <CircleHelp className="h-5 w-5 text-indigo-500 shrink-0" />
-                Transport Vehicle Configuration
+                Transport Experience & "Your Ride" Configuration
               </CardTitle>
-              <p className="text-xs text-muted-foreground mt-0.5">Configure transport specifications, timings, features, and galleries.</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Configure luxury transport specifications, gallery images, features, and driver assurances.</p>
             </CardHeader>
             <CardContent className="pt-6 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
                   <Label>Vehicle Name *</Label>
                   <Input
                     value={transport.vehicle_name || ''}
                     onChange={(e) => setTransport({ ...transport, vehicle_name: e.target.value })}
-                    placeholder="e.g., Tempo Traveller 17 Seater"
+                    placeholder="e.g., Force Traveller 17 Seater / Volvo Sleeper Coach"
                   />
-                  <p className="text-[10px] text-muted-foreground">Clear this field to disable/delete transport details for this package.</p>
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Vehicle Type</Label>
+                  <Label>Vehicle Subtitle / Type</Label>
                   <Input
                     value={transport.vehicle_type || ''}
                     onChange={(e) => setTransport({ ...transport, vehicle_type: e.target.value })}
-                    placeholder="e.g., Luxury Force Traveller or Sleeper Volvo Bus"
+                    placeholder="e.g., Super Deluxe AC Mountain Cruiser"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Seating Capacity Display</Label>
+                  <Input
+                    value={transport.capacity || ''}
+                    onChange={(e) => setTransport({ ...transport, capacity: e.target.value })}
+                    placeholder="e.g., 17-26 Seater Recliner Coach"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
-                  <Label>Total Seats</Label>
+                  <Label>Charging Ports Specification</Label>
                   <Input
-                    type="number"
-                    value={transport.seat_capacity ?? 17}
-                    onChange={(e) => setTransport({ ...transport, seat_capacity: Number(e.target.value) })}
-                    min={0}
+                    value={transport.charging_ports_text || ''}
+                    onChange={(e) => setTransport({ ...transport, charging_ports_text: e.target.value })}
+                    placeholder="e.g., Personal USB & AC Socket Ports on Every Row"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Available Seats</Label>
+                  <Label>Music & Audio System Spec</Label>
                   <Input
-                    type="number"
-                    value={transport.available_seats ?? 17}
-                    onChange={(e) => setTransport({ ...transport, available_seats: Number(e.target.value) })}
-                    min={0}
+                    value={transport.music_system_text || ''}
+                    onChange={(e) => setTransport({ ...transport, music_system_text: e.target.value })}
+                    placeholder="e.g., JBL Surround Sound & LED Cabin Lights"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Departure Time</Label>
+                  <Label>Luggage Space Spec</Label>
                   <Input
-                    value={transport.departure_time || ''}
-                    onChange={(e) => setTransport({ ...transport, departure_time: e.target.value })}
-                    placeholder="e.g., 06:30 PM"
+                    value={transport.luggage_space || ''}
+                    onChange={(e) => setTransport({ ...transport, luggage_space: e.target.value })}
+                    placeholder="e.g., Ample Under-deck & Overhead Storage Racks"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label>Driver Experience & Safety Assurance</Label>
+                  <Input
+                    value={transport.driver_experience || ''}
+                    onChange={(e) => setTransport({ ...transport, driver_experience: e.target.value })}
+                    placeholder="e.g., Certified Commercial Captains with 10+ Yrs Highway Experience"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Return Time</Label>
+                  <Label>Restroom & Washroom Stops Policy</Label>
                   <Input
-                    value={transport.arrival_time || ''}
-                    onChange={(e) => setTransport({ ...transport, arrival_time: e.target.value })}
-                    placeholder="e.g., 08:30 AM (Next Day)"
+                    value={transport.washroom_stops || ''}
+                    onChange={(e) => setTransport({ ...transport, washroom_stops: e.target.value })}
+                    placeholder="e.g., Scheduled Clean Restroom Breaks Every 3-4 Hours"
                   />
                 </div>
               </div>
@@ -1273,78 +1353,80 @@ function PackageFormPage() {
                   <input
                     type="checkbox"
                     id="ac-toggle"
-                    checked={!!transport.ac}
+                    checked={transport.ac !== false}
                     onChange={(e) => setTransport({ ...transport, ac: e.target.checked })}
                     className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded cursor-pointer"
                   />
-                  <Label htmlFor="ac-toggle" className="cursor-pointer">AC Vehicle</Label>
+                  <Label htmlFor="ac-toggle" className="cursor-pointer font-medium">Climate AC Vehicle</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="pushback-toggle"
+                    checked={transport.pushback_seats !== false}
+                    onChange={(e) => setTransport({ ...transport, pushback_seats: e.target.checked })}
+                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded cursor-pointer"
+                  />
+                  <Label htmlFor="pushback-toggle" className="cursor-pointer font-medium">160° Pushback Seats</Label>
                 </div>
                 <div className="flex items-center gap-2">
                   <input
                     type="checkbox"
                     id="music-toggle"
-                    checked={!!transport.music}
+                    checked={transport.music !== false}
                     onChange={(e) => setTransport({ ...transport, music: e.target.checked })}
                     className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded cursor-pointer"
                   />
-                  <Label htmlFor="music-toggle" className="cursor-pointer">Audio/Music System</Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="ports-toggle"
-                    checked={!!transport.charging_ports}
-                    onChange={(e) => setTransport({ ...transport, charging_ports: e.target.checked })}
-                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded cursor-pointer"
-                  />
-                  <Label htmlFor="ports-toggle" className="cursor-pointer">Charging Ports</Label>
+                  <Label htmlFor="music-toggle" className="cursor-pointer font-medium">Audio/Music System</Label>
                 </div>
                 <div className="flex items-center gap-2">
                   <input
                     type="checkbox"
                     id="captain-toggle"
-                    checked={!!transport.trip_captain}
+                    checked={transport.trip_captain !== false}
                     onChange={(e) => setTransport({ ...transport, trip_captain: e.target.checked })}
                     className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded cursor-pointer"
                   />
-                  <Label htmlFor="captain-toggle" className="cursor-pointer">Trip Captain Included</Label>
+                  <Label htmlFor="captain-toggle" className="cursor-pointer font-medium">Trip Captain Included</Label>
                 </div>
               </div>
 
-              {/* Cover Image & Gallery */}
+              {/* Cover Image & Multi-Image Gallery */}
               <div className="space-y-4">
                 <ImageField
-                  label="Vehicle Cover Image"
+                  label="Vehicle Cover / Hero Image"
                   value={transport.cover_image ?? ''}
                   onChange={(url) => setTransport({ ...transport, cover_image: url })}
                   folder="/transport"
                 />
 
                 <div className="space-y-2">
-                  <Label>Vehicle Slider Gallery Images</Label>
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                  <Label className="font-semibold">"View Interior" Gallery Photos ({transport.gallery?.length || 0})</Label>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                     {(transport.gallery || []).map((url: string, idx: number) => (
-                      <div key={idx} className="relative h-20 rounded-lg overflow-hidden border">
-                        <img src={url} alt="" className="h-full w-full object-cover" />
+                      <div key={idx} className="relative aspect-[4/3] rounded-xl overflow-hidden border border-slate-300 shadow-sm group">
+                        <img src={url} alt={`Transport ${idx + 1}`} className="h-full w-full object-cover" />
                         <button
                           type="button"
                           onClick={() => {
                             const updated = (transport.gallery || []).filter((_: any, i: number) => i !== idx)
                             setTransport({ ...transport, gallery: updated })
                           }}
-                          className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1 shadow hover:bg-red-700"
+                          className="absolute top-1.5 right-1.5 bg-red-600/90 text-white rounded-full p-1.5 shadow hover:bg-red-700 transition-colors"
+                          title="Delete photo"
                         >
-                          <Trash2 className="h-3 w-3" />
+                          <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       </div>
                     ))}
-                    <div className="h-20 rounded-lg border-2 border-dashed flex items-center justify-center bg-slate-50 hover:bg-slate-100 cursor-pointer">
+
+                    <div className="aspect-[4/3] rounded-xl border-2 border-dashed border-slate-300 flex items-center justify-center bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer p-2">
                       <ImageField
                         label=""
                         value=""
                         onChange={(url) => {
                           if (url) {
-                            const updated = [...(transport.gallery || []), url]
+                            const updated = Array.from(new Set([...(transport.gallery || []), url]))
                             setTransport({ ...transport, gallery: updated })
                           }
                         }}
@@ -1355,25 +1437,13 @@ function PackageFormPage() {
                 </div>
               </div>
 
-              {/* Dynamic Lists */}
+              {/* Vehicle Feature Pill Badges Editor */}
               <div className="space-y-4">
                 <StringListEditor
-                  label="Vehicle Features"
+                  label="Vehicle Features & Amenities Badges"
                   list={transport.features || []}
                   setList={(items) => setTransport({ ...transport, features: items })}
-                  placeholder="e.g., Pushback Seats"
-                />
-                <StringListEditor
-                  label="Pickup Points"
-                  list={transport.pickup_points || []}
-                  setList={(items) => setTransport({ ...transport, pickup_points: items })}
-                  placeholder="e.g., Delhi Kashmere Gate ISBT"
-                />
-                <StringListEditor
-                  label="Drop Points"
-                  list={transport.drop_points || []}
-                  setList={(items) => setTransport({ ...transport, drop_points: items })}
-                  placeholder="e.g., Gurgaon IFFCO Chowk Metro"
+                  placeholder="e.g., Pushback Seats, USB Ports, AC Vents"
                 />
               </div>
             </CardContent>

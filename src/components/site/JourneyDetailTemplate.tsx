@@ -145,6 +145,7 @@ const getFallbackTransport = (slug: string) => {
 import { ItineraryPreviewCard } from "./ItineraryPreviewCard";
 import { ItineraryLoginModal } from "./ItineraryLoginModal";
 import { ItineraryPdfViewerModal } from "./ItineraryPdfViewerModal";
+import { TransportSection } from "./TransportSection";
 
 interface JourneyDetailTemplateProps {
   slug: string;
@@ -1570,6 +1571,13 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
           </div>
         </div>
       </div>
+
+      {/* 🚍 Your Ride / Premium Transport Experience Section */}
+      <TransportSection
+        transportData={journey.transport}
+        journeyName={journey.name}
+        slug={slug}
+      />
 
       {/* 📸 Trip Gallery (Real Photos) */}
       {(() => {
