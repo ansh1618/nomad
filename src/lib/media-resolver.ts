@@ -10,20 +10,20 @@
 
 export const AUTHENTIC_DESTINATION_MEDIA: Record<string, { hero: string; gallery: { url: string; caption: string }[] }> = {
   udaipur: {
-    hero: "https://images.unsplash.com/photo-1615836245337-f5b9b2303f1c?auto=format&fit=crop&w=2000&q=90",
+    hero: "/images/destinations/udaipur-lake-pichola.jpg",
     gallery: [
+      { url: "/images/destinations/udaipur-lake-pichola.jpg", caption: "Amet Haveli & Lake Pichola Pavilion at Sunset" },
       { url: "https://images.unsplash.com/photo-1615836245337-f5b9b2303f1c?auto=format&fit=crop&w=1200&q=80", caption: "Lake Pichola & City Palace at Golden Hour" },
       { url: "https://images.unsplash.com/photo-1599661046289-e31897846e41?auto=format&fit=crop&w=1200&q=80", caption: "Jag Mandir Island Palace" },
       { url: "https://images.unsplash.com/photo-1589308078059-be1415eab4c3?auto=format&fit=crop&w=1200&q=80", caption: "Fateh Sagar Lake Sunset" },
-      { url: "https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?auto=format&fit=crop&w=1200&q=80", caption: "Gangaur Ghat Evening Aarti" },
-      { url: "https://images.unsplash.com/photo-1609828913642-c55f765c03c5?auto=format&fit=crop&w=1200&q=80", caption: "Sajjangarh Monsoon Palace Viewpoint" }
+      { url: "https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?auto=format&fit=crop&w=1200&q=80", caption: "Gangaur Ghat Evening Aarti" }
     ]
   },
   manali: {
-    hero: "https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?auto=format&fit=crop&w=2000&q=90",
+    hero: "/images/destinations/manali-atal-tunnel.jpg",
     gallery: [
-      { url: "https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?auto=format&fit=crop&w=1200&q=80", caption: "Rohtang Pass & Solang Valley Snow Peaks" },
-      { url: "https://images.unsplash.com/photo-1570125909232-eb263c188f7e?auto=format&fit=crop&w=1200&q=80", caption: "Atal Tunnel Highway Convoy" },
+      { url: "/images/destinations/manali-atal-tunnel.jpg", caption: "Atal Tunnel, Rohtang Gate & Snow Peaks" },
+      { url: "https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?auto=format&fit=crop&w=1200&q=80", caption: "Solang Valley Snow Peaks" },
       { url: "https://images.unsplash.com/photo-1589308078059-be1415eab4c3?auto=format&fit=crop&w=1200&q=80", caption: "Old Manali Wooden Cafes & Pine Trails" }
     ]
   },
@@ -35,16 +35,17 @@ export const AUTHENTIC_DESTINATION_MEDIA: Record<string, { hero: string; gallery
     ]
   },
   mcleodganj: {
-    hero: "https://images.unsplash.com/photo-1596895111956-bf1cf0599ce5?auto=format&fit=crop&w=2000&q=90",
+    hero: "/images/destinations/mcleodganj-town-view.jpg",
     gallery: [
-      { url: "https://images.unsplash.com/photo-1596895111956-bf1cf0599ce5?auto=format&fit=crop&w=1200&q=80", caption: "Dhauladhar Snow Ranges from McLeod Ganj" },
-      { url: "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=1200&q=80", caption: "Triund Trek Ridge Camp" }
+      { url: "/images/destinations/mcleodganj-town-view.jpg", caption: "Colorful McLeod Ganj Town & Dhauladhar Ranges" },
+      { url: "https://images.unsplash.com/photo-1596895111956-bf1cf0599ce5?auto=format&fit=crop&w=1200&q=80", caption: "Dhauladhar Snow Ranges from McLeod Ganj" }
     ]
   },
   "chopta-tungnath": {
-    hero: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=2000&q=90",
+    hero: "/images/destinations/chopta-tungnath-snow.jpg",
     gallery: [
-      { url: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=1200&q=80", caption: "Tungnath Temple & Chandrashila Peak" }
+      { url: "/images/destinations/chopta-tungnath-snow.jpg", caption: "Snow Trek & World's Highest Shiva Temple Summit" },
+      { url: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=1200&q=80", caption: "Chopta Meadows & Himalayan Peaks" }
     ]
   }
 };

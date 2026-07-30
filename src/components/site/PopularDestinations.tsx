@@ -1,153 +1,173 @@
 import { Link } from "@tanstack/react-router";
-import { Star, Clock, MapPin, Compass } from "lucide-react";
+import { MapPin, BookOpen, ShieldCheck, Heart, Headphones, Compass } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "./Reveal";
 import { Route } from "@/routes/index";
-import { useQuery } from "@tanstack/react-query";
-import { getCmsSection } from "@/lib/queries/cms";
-
-import { getDestinations, getJourneys, getRealDestinationImage, formatPriceDisplay } from '@/lib/queries-client';
+import { resolveDestinationHero } from "@/lib/media-resolver";
 
 export function PopularDestinations() {
   const { destinations, journeys } = Route.useLoaderData();
 
-  const { data: section } = useQuery({
-    queryKey: ["cms", "popular_destinations"],
-    queryFn: () => getCmsSection("popular_destinations"),
-    staleTime: 1000,
-  });
-
-  const sectionLabel = (section?.content as any)?.badge || "ACTIVE CONVOYS";
-  const sectionTitle = section?.title || "Popular Destinations";
-  const sectionDesc = section?.subtitle || "Explore India's most breathtaking roads. Handpicked getaways vetted by Nomadik Trip Captains.";
-
   if (!destinations || destinations.length === 0) {
-    return (
-      <section id="destinations" className="mx-auto max-w-7xl px-5 py-24">
-        <Reveal className="mx-auto max-w-2xl text-center">
-          <span className="text-xs font-poppins font-bold uppercase tracking-[0.25em] text-gold">{sectionLabel}</span>
-          <h2 className="mt-3 font-display text-4xl font-bold text-primary sm:text-5xl">
-            {sectionTitle}
-          </h2>
-          <div className="mt-12 rounded-3xl border border-dashed border-border bg-card p-12 text-center shadow-soft">
-            <Compass className="mx-auto h-12 w-12 text-muted-foreground/60 animate-pulse" />
-            <h3 className="mt-4 font-display text-xl font-bold text-primary">No Active Convoys Found</h3>
-            <p className="mt-2 text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
-              We are currently mapping new scenic roads. Check back soon or join our community to request a custom convoy!
-            </p>
-          </div>
-        </Reveal>
-      </section>
-    );
+    return null;
   }
 
-  // Get starting price and details from journeys mapping
-  const getDestMeta = (slug: string) => {
-    const matched = journeys.filter((j) => j.destinationSlug === slug);
-    const startPrice = matched.length > 0 ? matched[0].price : "₹7,999";
-    const duration = matched.length > 0 ? matched[0].duration : "3 Days";
-    const tag = slug === "chopta-tungnath" || slug === "mcleodganj" ? "Expedition" : "Signature Journey";
-    return { startPrice, duration, tag };
+  // Count available packages per destination
+  const getPackageCount = (slug: string) => {
+    const matched = journeys.filter((j) => {
+      const destSlug = j.destinationSlug || (j.destinations as any)?.slug || j.destination_slug;
+      return destSlug === slug || j.slug.includes(slug);
+    });
+    return matched.length > 0 ? matched.length : 2;
+  };
+
+  // State mapping for authentic destination labels
+  const getStateName = (slug: string) => {
+    if (slug.includes("udaipur")) return "Rajasthan";
+    if (slug.includes("chopta") || slug.includes("tungnath")) return "Uttarakhand";
+    return "Himachal Pradesh";
   };
 
   return (
-    <section id="destinations" className="mx-auto max-w-7xl px-5 py-24">
-      <Reveal className="mx-auto max-w-2xl text-center">
-        <span className="text-xs font-poppins font-bold uppercase tracking-[0.25em] text-gold">{sectionLabel}</span>
-        <h2 className="mt-3 font-display text-4xl font-bold text-primary sm:text-5xl">
-          {sectionTitle}
-        </h2>
-        <p className="mt-4 text-muted-foreground text-sm leading-relaxed">
-          {sectionDesc}
-        </p>
-      </Reveal>
+    <section id="destinations" className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 sm:py-24 bg-[#FAF9F6]">
+      {/* Section Header with Title & Top-Right Button */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-10">
+        <div className="flex items-center gap-3">
+          <span className="w-1.5 h-8 bg-amber-700/80 rounded-full" />
+          <h2 className="font-display text-3xl sm:text-4xl font-bold text-[#1C2A3A]">
+            Popular Destinations
+          </h2>
+        </div>
+        <Button
+          variant="outline"
+          className="self-start sm:self-auto rounded-full border-border text-foreground hover:bg-muted font-sans font-medium text-xs px-5 py-2"
+          asChild
+        >
+          <Link to="/destinations">
+            View All Destinations →
+          </Link>
+        </Button>
+      </div>
 
-      <div className="mt-14 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 items-stretch">
-        {destinations.map((d, i) => {
-          const meta = getDestMeta(d.slug);
-          const linkPath = `/destinations/${d.slug}`;
-          const s = (d.slug || '').toLowerCase();
-          
-          // Fail-safe image resolver
-          const getSafeCardImg = () => {
-            const raw = (d as any).thumbnail || (d as any).cover_image || (d as any).hero_image || d.image;
-            const resolved = getRealDestinationImage(d.slug, raw);
-            if (!resolved || resolved.includes('media') || resolved.includes('178') || resolved.includes('schema') || resolved.includes('booking')) {
-              if (s.includes('manali')) return '/images/manali/manali-snow-valley.jpg';
-              if (s.includes('jibhi') || s.includes('tirthan')) return '/images/jibhi/jibhi-raghupur-fort-temple.jpg';
-              if (s.includes('udaipur')) return '/images/udaipur-palace.png';
-              if (s.includes('mcleod') || s.includes('dharamshala')) return '/images/mcleodganj/mcleodganj-town-view.jpg';
-              return 'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800&q=80';
-            }
-            return resolved;
-          };
-
-          const cardImgSrc = getSafeCardImg();
+      {/* Grid of Destination Cards + Why Travel Card */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {destinations.slice(0, 5).map((d, i) => {
+          const pkgCount = getPackageCount(d.slug);
+          const stateName = getStateName(d.slug);
+          const heroSrc = resolveDestinationHero(d.slug, d.hero_image || d.image);
 
           return (
-            <Reveal key={d.slug} delay={i} className="group">
-              <article className="flex flex-col h-[500px] w-full max-w-[360px] mx-auto rounded-3xl overflow-hidden border border-border bg-white shadow-soft hover:shadow-elegant transition-all duration-300 hover:-translate-y-1">
-                {/* Top Image — Fixed 230px height with object-cover and gradient overlay */}
-                <div className="relative h-[230px] w-full overflow-hidden bg-muted">
+            <Reveal key={d.slug} delay={i}>
+              <div className="group bg-white rounded-3xl overflow-hidden border border-slate-200/80 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between h-full">
+                {/* Top Image Section */}
+                <div className="relative h-[230px] w-full overflow-hidden bg-slate-100">
                   <img
-                    src={cardImgSrc}
-                    alt={`${d.name} road trip destination`}
+                    src={heroSrc}
+                    alt={d.name}
                     loading="lazy"
                     className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                     onError={(e) => {
                       const target = e.currentTarget;
                       target.onerror = null;
-                      if (s.includes('manali')) target.src = '/images/manali/manali-snow-valley.jpg';
-                      else if (s.includes('jibhi') || s.includes('tirthan')) target.src = '/images/jibhi/jibhi-raghupur-fort-temple.jpg';
-                      else if (s.includes('udaipur')) target.src = '/images/udaipur-palace.png';
-                      else if (s.includes('mcleod') || s.includes('dharamshala')) target.src = '/images/mcleodganj/mcleodganj-town-view.jpg';
-                      else target.src = 'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800&q=80';
+                      target.src = resolveDestinationHero(d.slug, null);
                     }}
                   />
-                  {/* Dark gradient overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
                   
-                  {/* Badge Top-Left */}
-                  <span className="absolute left-4 top-4 bg-[#0F2942]/90 backdrop-blur-md text-white font-poppins font-bold text-[9px] uppercase tracking-wider px-3 py-1.5 rounded-full shadow">
-                    {meta.tag}
-                  </span>
+                  {/* Top-Left Badge */}
+                  <div className="absolute top-4 left-4 glass-dark rounded-full px-3.5 py-1.5 text-[10px] font-poppins font-bold text-white tracking-wider uppercase flex items-center gap-1.5 shadow-md">
+                    <span className="text-amber-400">💼</span> {pkgCount} PACKAGES AVAILABLE
+                  </div>
                 </div>
 
-                {/* Bottom White Section */}
-                <div className="p-6 flex flex-col justify-between flex-1 bg-white space-y-4">
+                {/* Card Content Section */}
+                <div className="p-6 flex flex-col justify-between flex-1 space-y-4">
                   <div className="space-y-2">
-                    <p className="text-[11px] text-gold font-poppins font-bold uppercase tracking-wider flex items-center gap-1">
-                      <MapPin className="h-3.5 w-3.5 text-gold shrink-0" /> {d.name}
-                    </p>
-                    <h3 className="font-display text-xl font-bold leading-tight text-[#0F2942] group-hover:text-gold transition-colors line-clamp-1">
-                      {d.name} Journey
+                    <h3 className="font-display text-2xl font-bold text-[#1A2E40]">
+                      {d.name}
                     </h3>
-                    <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-                      {d.overview}
+                    <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                      <MapPin className="h-3.5 w-3.5 text-amber-700/80 shrink-0" /> {stateName}
+                    </p>
+                    <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed pt-1">
+                      {d.overview || d.subtitle || d.description}
                     </p>
                   </div>
 
-                  {/* Footer Price & CTA */}
-                  <div className="pt-4 border-t border-border flex items-center justify-between mt-auto">
-                    <div>
-                      <span className="text-[9px] text-muted-foreground uppercase font-poppins font-bold block tracking-wider">Starts at</span>
-                      <p className="font-display text-lg font-bold text-gold">{formatPriceDisplay(meta.startPrice)}</p>
-                    </div>
+                  {/* Card Actions */}
+                  <div className="pt-4 flex items-center justify-between border-t border-slate-100">
+                    <Link
+                      to="/destinations/$slug"
+                      params={{ slug: d.slug }}
+                      className="text-xs font-semibold text-slate-700 hover:text-amber-700 flex items-center gap-1.5 transition-colors"
+                    >
+                      <BookOpen className="h-4 w-4 text-amber-700/80" /> View Guide
+                    </Link>
+
                     <Button
                       size="sm"
-                      className="bg-[#0F2942] hover:bg-[#1A365D] text-white font-poppins font-bold text-xs px-5 py-2.5 rounded-full shadow-md transition-all duration-300"
+                      className="bg-[#1A2E40] hover:bg-[#0F1E2C] text-white font-sans font-semibold text-xs px-5 py-2.5 rounded-full shadow-md transition-all"
                       asChild
                     >
-                      <Link to={linkPath}>
-                        Book Now
+                      <Link to="/destinations/$slug" params={{ slug: d.slug }}>
+                        Explore Journey →
                       </Link>
                     </Button>
                   </div>
                 </div>
-              </article>
+              </div>
             </Reveal>
           );
         })}
+
+        {/* 6th Card — Dark Navy "Why Travel with Nomadik?" Feature Box */}
+        <Reveal delay={5}>
+          <div className="bg-[#122232] rounded-3xl p-8 text-white h-full flex flex-col justify-between border border-slate-800 shadow-xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 -mr-16 -mt-16 w-48 h-48 rounded-full bg-amber-500/10 blur-2xl pointer-events-none" />
+
+            <div className="space-y-6 relative z-10">
+              <div className="flex items-center gap-2">
+                <span className="w-1.5 h-6 bg-amber-400 rounded-full" />
+                <h3 className="font-display text-2xl font-bold text-white">
+                  Why Travel with Nomadik?
+                </h3>
+              </div>
+
+              <div className="grid grid-cols-2 gap-6 pt-2">
+                <div className="space-y-1.5">
+                  <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-amber-400">
+                    <Compass className="h-5 w-5" />
+                  </div>
+                  <h4 className="text-xs font-bold text-white pt-1">Handpicked Experiences</h4>
+                  <p className="text-[11px] text-slate-400 leading-snug">Only the best, curated for you</p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-amber-400">
+                    <Heart className="h-5 w-5" />
+                  </div>
+                  <h4 className="text-xs font-bold text-white pt-1">Trusted by Explorers</h4>
+                  <p className="text-[11px] text-slate-400 leading-snug">Thousands of happy travellers</p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-amber-400">
+                    <ShieldCheck className="h-5 w-5" />
+                  </div>
+                  <h4 className="text-xs font-bold text-white pt-1">Comfort & Safety</h4>
+                  <p className="text-[11px] text-slate-400 leading-snug">Your safety is our priority</p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-amber-400">
+                    <Headphones className="h-5 w-5" />
+                  </div>
+                  <h4 className="text-xs font-bold text-white pt-1">24x7 Support</h4>
+                  <p className="text-[11px] text-slate-400 leading-snug">We're always here for you</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Reveal>
       </div>
     </section>
   );
