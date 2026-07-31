@@ -185,7 +185,7 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
   const [faqSearchQuery, setFaqSearchQuery] = useState("");
   const [selectedDepartureId, setSelectedDepartureId] = useState<string | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<"itinerary" | "includes" | "faqs">("itinerary");
+  const [activeTab, setActiveTab] = useState<"itinerary" | "accommodation" | "includes">("itinerary");
 
   // Hero Gallery Image index
   const [heroImageIndex, setHeroImageIndex] = useState(0);
@@ -846,7 +846,7 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
 
             {/* Custom Tab Selectors */}
             <div className="flex border-b border-[#E4E2DA] gap-6">
-              {(["itinerary", "includes", "faqs"] as const).map((tab) => (
+              {(["itinerary", "accommodation", "includes"] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
@@ -1117,9 +1117,42 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
                     </div>
                   )}
 
+                  {/* Premium Itinerary PDF Card */}
+                  <ItineraryPreviewCard
+                    destinationName={journey?.name || "Journey"}
+                    slug={slug}
+                    document={premiumDoc}
+                    onViewItinerary={handleViewPdf}
+                    isAuthenticated={isAuthenticated}
+                  />
+
+                  {/* Unlock Login Modal */}
+                  <ItineraryLoginModal
+                    open={unlockModalOpen}
+                    onOpenChange={setUnlockModalOpen}
+                    title={`${journey?.name || "Journey"} Travel Guide`}
+                    onSuccess={() => {
+                      setViewerOpen(true);
+                    }}
+                  />
+
+                  {/* Embedded Fullscreen PDF Viewer Dialog */}
+                  <ItineraryPdfViewerModal
+                    open={viewerOpen}
+                    onOpenChange={setViewerOpen}
+                    destinationName={journey?.name || "Journey"}
+                    slug={slug}
+                    documentMeta={premiumDoc}
+                    onBookClick={() => setIsBooking(true)}
+                  />
+                </div>
+              )}
+
+              {activeTab === "accommodation" && (
+                <div className="space-y-6">
                   {/* ==================== 🏨 ACCOMMODATION SECTION ==================== */}
                   {stay && stay.hotel_name ? (
-                    <div className="mt-8 bg-white border border-[#E4E2DA] rounded-3xl p-6 shadow-soft space-y-6 font-poppins text-left">
+                    <div className="bg-white border border-[#E4E2DA] rounded-3xl p-6 shadow-soft space-y-6 font-poppins text-left">
                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-[#E4E2DA]">
                         <div>
                           <span className="text-[10px] uppercase font-bold tracking-wider text-[#C8A96A] bg-[#C8A96A]/10 px-2.5 py-1 rounded-full">
@@ -1240,39 +1273,10 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
                       )}
                     </div>
                   ) : (
-                    <div className="mt-8 bg-white border border-[#E4E2DA] rounded-3xl p-6 shadow-soft text-center font-poppins text-muted-foreground text-xs italic">
+                    <div className="bg-white border border-[#E4E2DA] rounded-3xl p-6 shadow-soft text-center font-poppins text-muted-foreground text-xs italic">
                       🏨 No accommodation assigned
                     </div>
                   )}
-
-                  {/* Premium Itinerary PDF Card */}
-                  <ItineraryPreviewCard
-                    destinationName={journey?.name || "Journey"}
-                    slug={slug}
-                    document={premiumDoc}
-                    onViewItinerary={handleViewPdf}
-                    isAuthenticated={isAuthenticated}
-                  />
-
-                  {/* Unlock Login Modal */}
-                  <ItineraryLoginModal
-                    open={unlockModalOpen}
-                    onOpenChange={setUnlockModalOpen}
-                    title={`${journey?.name || "Journey"} Travel Guide`}
-                    onSuccess={() => {
-                      setViewerOpen(true);
-                    }}
-                  />
-
-                  {/* Embedded Fullscreen PDF Viewer Dialog */}
-                  <ItineraryPdfViewerModal
-                    open={viewerOpen}
-                    onOpenChange={setViewerOpen}
-                    destinationName={journey?.name || "Journey"}
-                    slug={slug}
-                    documentMeta={premiumDoc}
-                    onBookClick={() => setIsBooking(true)}
-                  />
                 </div>
               )}
 
@@ -1317,160 +1321,6 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
                   )}
                 </div>
               )}
-
-              {activeTab === "faqs" &&
-                (() => {
-                  const filtered = parsedFaqs.filter(
-                    (f: any) =>
-                      f.question.toLowerCase().includes(faqSearchQuery.toLowerCase()) ||
-                      f.answer.toLowerCase().includes(faqSearchQuery.toLowerCase()),
-                  );
-
-                  const showFeaturedGroup = !faqSearchQuery;
-                  const featured = showFeaturedGroup ? filtered.filter((f: any) => f.featured) : [];
-                  const regular = showFeaturedGroup
-                    ? filtered.filter((f: any) => !f.featured)
-                    : filtered;
-
-                  const categoriesMap: Record<string, typeof regular> = {};
-                  regular.forEach((faq: any) => {
-                    const cat = faq.category || "General";
-                    if (!categoriesMap[cat]) {
-                      categoriesMap[cat] = [];
-                    }
-                    categoriesMap[cat].push(faq);
-                  });
-
-                  const renderFaqItem = (faq: any, key: string) => {
-                    const isOpen = activeFaqKey === key;
-                    const relatedQuestions = parsedFaqs
-                      .filter(
-                        (r: any) => r.category === faq.category && r.question !== faq.question,
-                      )
-                      .slice(0, 2);
-
-                    return (
-                      <div
-                        key={key}
-                        className="border border-[#E4E2DA] rounded-xl overflow-hidden bg-white shadow-soft transition-all duration-300"
-                      >
-                        <button
-                          className="w-full flex items-center justify-between p-4 text-left hover:bg-[#F8F7F3] transition-colors"
-                          onClick={() => setActiveFaqKey(isOpen ? null : key)}
-                        >
-                          <span className="font-semibold text-xs text-primary font-poppins flex items-center gap-1.5">
-                            <CircleHelp className="h-3.5 w-3.5 text-accent/80 shrink-0" />
-                            {faq.question}
-                          </span>
-                          {isOpen ? (
-                            <ChevronUp className="h-4 w-4 text-accent shrink-0" />
-                          ) : (
-                            <ChevronDown className="h-4 w-4 text-accent shrink-0" />
-                          )}
-                        </button>
-                        <AnimatePresence>
-                          {isOpen && (
-                            <motion.div
-                              initial={{ height: 0, opacity: 0 }}
-                              animate={{ height: "auto", opacity: 1 }}
-                              exit={{ height: 0, opacity: 0 }}
-                              className="overflow-hidden bg-[#F8F7F3]/40 border-t border-[#E4E2DA]"
-                            >
-                              <div className="p-4 space-y-3 font-poppins">
-                                <p className="text-xs text-muted-foreground leading-relaxed">
-                                  {faq.answer}
-                                </p>
-
-                                {relatedQuestions.length > 0 && (
-                                  <div className="pt-2.5 border-t border-[#E4E2DA]/60 mt-2">
-                                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold block mb-1">
-                                      Related Questions:
-                                    </span>
-                                    <div className="flex flex-col gap-1.5">
-                                      {relatedQuestions.map((rel: any, idx: number) => (
-                                        <button
-                                          key={idx}
-                                          type="button"
-                                          onClick={() => {
-                                            const isRelFeatured = rel.featured && showFeaturedGroup;
-                                            const groupPrefix = isRelFeatured
-                                              ? "featured"
-                                              : rel.category;
-                                            const itemsList = isRelFeatured
-                                              ? featured
-                                              : categoriesMap[rel.category];
-                                            const itemIdx = itemsList?.findIndex(
-                                              (x: any) => x.question === rel.question,
-                                            );
-                                            if (itemIdx !== undefined && itemIdx !== -1) {
-                                              setActiveFaqKey(`${groupPrefix}-${itemIdx}`);
-                                            }
-                                          }}
-                                          className="text-left text-[11px] text-accent hover:underline flex items-center gap-1"
-                                        >
-                                          • {rel.question}
-                                        </button>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
-                    );
-                  };
-
-                  return (
-                    <div className="space-y-4">
-                      <div className="relative">
-                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                        <input
-                          type="text"
-                          placeholder="Search FAQs (e.g. meals, safety, pickup)..."
-                          value={faqSearchQuery}
-                          onChange={(e) => setFaqSearchQuery(e.target.value)}
-                          className="w-full pl-10 pr-4 py-3 border border-[#E4E2DA] rounded-xl bg-white focus:outline-none focus:border-accent font-poppins text-xs shadow-soft"
-                        />
-                      </div>
-
-                      {filtered.length === 0 ? (
-                        <p className="text-xs text-muted-foreground italic font-poppins text-center py-6">
-                          No matching FAQs found.
-                        </p>
-                      ) : (
-                        <div className="space-y-6">
-                          {featured.length > 0 && (
-                            <div className="space-y-3">
-                              <h4 className="text-xs font-poppins font-bold uppercase tracking-wider text-accent flex items-center gap-1.5">
-                                <Star className="h-3.5 w-3.5 fill-accent/20" /> Frequently Asked
-                              </h4>
-                              <div className="space-y-2.5">
-                                {featured.map((faq: any, i: number) =>
-                                  renderFaqItem(faq, `featured-${i}`),
-                                )}
-                              </div>
-                            </div>
-                          )}
-
-                          {Object.entries(categoriesMap).map(([category, items]) => (
-                            <div key={category} className="space-y-3">
-                              <h4 className="text-xs font-poppins font-bold uppercase tracking-wider text-[#16212C] border-b border-[#E4E2DA]/60 pb-1">
-                                {category}
-                              </h4>
-                              <div className="space-y-2.5">
-                                {items.map((faq: any, i: number) =>
-                                  renderFaqItem(faq, `${category}-${i}`),
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
             </div>
           </div>
         </div>
