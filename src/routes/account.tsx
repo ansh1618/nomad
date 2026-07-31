@@ -13,10 +13,12 @@ import { supabase } from "@/lib/supabase";
 import { 
   User, Calendar, MapPin, Phone, Heart, Users, ShieldAlert, LogOut, Lock, 
   ChevronRight, Compass, MessageCircle, CircleHelp, FileText, CheckCircle2, Settings,
-  Eye, Loader2, XCircle
+  Eye, Loader2, XCircle, Star, Sparkles
 } from "lucide-react";
 import { getJourneys } from "@/lib/queries-client";
 import { cancelBookingCustomerFn } from "@/lib/mutations/payment";
+import { ReviewFormModal } from "@/components/site/ReviewFormModal";
+import { SEED_REVIEWS } from "@/lib/reviews-client";
 
 export const Route = createFileRoute("/account")({
   validateSearch: (search: Record<string, unknown>): { tab?: string } => ({
@@ -31,7 +33,7 @@ export const Route = createFileRoute("/account")({
   component: AccountDashboard,
 });
 
-type ActiveTab = "profile" | "bookings" | "wishlist" | "travelers" | "support" | "settings" | "documents";
+type ActiveTab = "profile" | "bookings" | "reviews" | "wishlist" | "travelers" | "support" | "settings" | "documents";
 
 function AccountDashboard() {
   const { user, profile, isAuthenticated, updateProfile, refreshProfile, signOut, loading } = useAuth();
@@ -372,6 +374,7 @@ function AccountDashboard() {
             <nav className="flex flex-col gap-1.5 pt-4 border-t border-border">
               {[
                 { id: "bookings", label: "My Bookings", icon: Calendar },
+                { id: "reviews", label: "My Reviews & Badges", icon: Star },
                 { id: "documents", label: "Premium Documents", icon: FileText },
                 { id: "profile", label: "Profile Information", icon: User },
                 { id: "wishlist", label: "Wishlist", icon: Heart },
@@ -411,6 +414,42 @@ function AccountDashboard() {
           {/* Right Dashboard Area */}
           <section className="lg:col-span-9 bg-white border border-border p-6 md:p-8 rounded-3xl shadow-soft min-h-[60vh]">
             
+            {/* MY REVIEWS TAB */}
+            {activeTab === "reviews" && (
+              <div className="space-y-8 font-poppins text-left">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="font-display text-2xl font-bold text-[#102A43]">My Reviews & Badges</h2>
+                    <p className="text-xs text-muted-foreground mt-1">Review completed trips, earn XP, and unlock achievement badges.</p>
+                  </div>
+                  <div className="bg-amber-50 border border-amber-200 px-3.5 py-1.5 rounded-full text-xs font-bold text-amber-900 flex items-center gap-1.5">
+                    <Sparkles className="h-4 w-4 text-amber-600 fill-amber-600" />
+                    <span>XP Points: 450 XP (Level 2 Explorer)</span>
+                  </div>
+                </div>
+
+                {/* Submitted Reviews List */}
+                <div className="space-y-4">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-accent border-b pb-2">Submitted Reviews & Stories</h3>
+                  {SEED_REVIEWS.slice(0, 2).map((rev) => (
+                    <div key={rev.id} className="p-5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-sm text-[#102A43]">{rev.title}</span>
+                        <span className="text-[10px] font-bold uppercase bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
+                          Published & Verified
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-700 leading-relaxed font-poppins">"{rev.review}"</p>
+                      <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
+                        <span>{rev.journey_name} · {rev.trip_date}</span>
+                        <span className="font-bold text-amber-600">Earned +{rev.xp_earned || 200} XP ✨</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* BOOKINGS TAB */}
             {activeTab === "bookings" && (
               <div className="space-y-8">

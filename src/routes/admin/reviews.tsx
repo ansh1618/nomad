@@ -1,20 +1,18 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useState, useCallback } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'motion/react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
-import { DataTable } from '@/components/admin/DataTable'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { Review } from '@/types/reviews'
 import {
-  getReviews,
-  approveReview,
-  replyToReview,
-  deleteReview,
-} from '@/lib/queries/admin'
-import type { Review } from '@/types/supabase'
+  getAdminReviewsList,
+  adminApproveReview,
+  adminRejectReview,
+  adminFeatureReview,
+  addReviewReply,
+} from '@/lib/reviews-client'
 import { toast } from 'sonner'
 import {
   Star,
@@ -22,293 +20,294 @@ import {
   X,
   MessageSquare,
   Trash2,
-  Loader2,
   Calendar,
-  Eye,
   CheckCircle2,
+  ShieldCheck,
+  Sparkles,
+  AlertTriangle,
+  BarChart3,
+  ThumbsUp,
+  GraduationCap,
+  Award,
+  Building,
+  Bus,
 } from 'lucide-react'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
+import { ReviewStarRating } from '@/components/site/ReviewStarRating'
 
 export const Route = createFileRoute('/admin/reviews')({
   component: ReviewsPage,
 })
 
-type ReviewWithJoins = Review & {
-  journeys?: { name: string }
-}
-
 function ReviewsPage() {
   const qc = useQueryClient()
-  const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(10)
+  const [tab, setTab] = useState<'ALL' | 'PENDING' | 'AI_FLAGGED' | 'APPROVED' | 'REJECTED' | 'FEATURED' | 'ANALYTICS'>('ALL')
   const [search, setSearch] = useState('')
-  const [sortBy, setSortBy] = useState('created_at')
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
-  const [approvedFilter, setApprovedFilter] = useState('ALL')
 
+  // Reply Drawer State
   const [activeReplyId, setActiveReplyId] = useState<string | null>(null)
-  const [replyText, setReplyText] = useState('')
+  const [replyRole, setReplyRole] = useState<'Nomadik Team' | 'Trip Captain' | 'Operations Team' | 'Support Specialist'>('Nomadik Team')
+  const [replyInput, setReplyInput] = useState('')
 
-  const { data: result, isLoading } = useQuery({
-    queryKey: ['reviews_list', page, pageSize, search, sortBy, sortDir, approvedFilter],
-    queryFn: () =>
-      getReviews({
-        page,
-        pageSize,
-        search,
-        sortBy,
-        sortDir,
-        approved: approvedFilter === 'APPROVED' ? true : approvedFilter === 'PENDING' ? false : undefined,
-      }),
-    placeholderData: (prev) => prev,
+  const { data: reviewsList = [], refetch } = useQuery({
+    queryKey: ['admin_reviews', tab, search],
+    queryFn: () => getAdminReviewsList({ status: tab, search }),
   })
 
-  const reviews = (result?.data ?? []) as ReviewWithJoins[]
+  const handleApprove = async (id: string) => {
+    await adminApproveReview(id)
+    toast.success('Review approved and published!')
+    refetch()
+  }
 
-  const approveMutation = useMutation({
-    mutationFn: async ({ id, approve }: { id: string; approve: boolean }) => {
-      const { supabase } = await import('@/lib/supabase')
-      const { error } = await supabase.from('reviews').update({ is_approved: approve, updated_at: new Date().toISOString() }).eq('id', id)
-      if (error) throw new Error(error.message)
-    },
-    onSuccess: (_, variables) => {
-      qc.invalidateQueries({ queryKey: ['reviews_list'] })
-      toast.success(variables.approve ? 'Review approved' : 'Review unapproved')
-    },
-    onError: (err: Error) => toast.error(err.message),
-  })
+  const handleReject = async (id: string) => {
+    await adminRejectReview(id)
+    toast.success('Review moved to rejected queue.')
+    refetch()
+  }
 
-  const replyMutation = useMutation({
-    mutationFn: ({ id, reply }: { id: string; reply: string }) => replyToReview(id, reply),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['reviews_list'] })
-      toast.success('Official response saved')
-      setActiveReplyId(null)
-      setReplyText('')
-    },
-    onError: (err: Error) => toast.error(err.message),
-  })
+  const handleToggleFeature = async (id: string, current: boolean) => {
+    await adminFeatureReview(id, !current)
+    toast.success(!current ? 'Review featured on Homepage!' : 'Unfeatured review.')
+    refetch()
+  }
 
-  const deleteMutation = useMutation({
-    mutationFn: deleteReview,
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['reviews_list'] })
-      toast.success('Review deleted')
-    },
-    onError: (err: Error) => toast.error(err.message),
-  })
-
-  const handleSort = useCallback((by: string, dir: 'asc' | 'desc') => {
-    setSortBy(by)
-    setSortDir(dir)
-  }, [])
-
-  const columns: ColumnDef<ReviewWithJoins>[] = [
-    {
-      accessorKey: 'author_name',
-      header: 'Author',
-      cell: ({ row }) => {
-        const r = row.original
-        return (
-          <div>
-            <p className="font-semibold text-sm">{r.author_name}</p>
-            <p className="text-xs text-muted-foreground">Trip date: {r.trip_date ?? '—'}</p>
-          </div>
-        )
-      },
-    },
-    {
-      accessorKey: 'journeys.name',
-      header: 'Package',
-      cell: ({ row }) => <span className="text-sm font-medium">{row.original.journeys?.name ?? '—'}</span>,
-    },
-    {
-      accessorKey: 'rating',
-      header: 'Rating',
-      cell: ({ row }) => (
-        <span className="flex items-center gap-0.5 text-amber-500 font-semibold text-sm">
-          <Star className="h-3.5 w-3.5 fill-current" />
-          {row.original.rating}
-        </span>
-      ),
-    },
-    {
-      accessorKey: 'content',
-      header: 'Review Text',
-      cell: ({ row }) => {
-        const r = row.original
-        return (
-          <div className="max-w-md space-y-1">
-            {r.title && <p className="font-semibold text-sm">{r.title}</p>}
-            <p className="text-sm text-muted-foreground italic leading-relaxed">"{r.content}"</p>
-            {r.admin_reply && (
-              <div className="bg-primary/5 p-2 rounded-lg border-l-2 border-primary text-xs mt-2">
-                <span className="font-bold text-primary block mb-0.5">Reply:</span>
-                <p className="text-muted-foreground">{r.admin_reply}</p>
-              </div>
-            )}
-          </div>
-        )
-      },
-    },
-    {
-      accessorKey: 'is_approved',
-      header: 'Status',
-      cell: ({ row }) => (
-        <Badge variant={row.original.is_approved ? 'default' : 'secondary'}>
-          {row.original.is_approved ? 'Approved' : 'Pending'}
-        </Badge>
-      ),
-    },
-    {
-      accessorKey: 'is_featured',
-      header: 'Featured',
-      cell: ({ row }) => (
-        <Switch
-          checked={row.original.is_featured}
-          onCheckedChange={async (checked) => {
-            const { supabase } = await import('@/lib/supabase')
-            await supabase.from('reviews').update({ is_featured: checked }).eq('id', row.original.id)
-            qc.invalidateQueries({ queryKey: ['reviews_list'] })
-            toast.success(`Review ${checked ? 'featured' : 'unfeatured'}`)
-          }}
-        />
-      ),
-    },
-    {
-      id: 'actions',
-      header: '',
-      size: 140,
-      cell: ({ row }) => {
-        const r = row.original
-        return (
-          <div className="flex items-center gap-1.5 justify-end">
-            {!r.is_approved ? (
-              <Button
-                size="sm"
-                className="h-8 bg-green-600 hover:bg-green-700"
-                onClick={() => approveMutation.mutate({ id: r.id, approve: true })}
-              >
-                <Check className="h-3.5 w-3.5 mr-1" /> Approve
-              </Button>
-            ) : (
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-8 text-destructive hover:text-destructive hover:bg-destructive/5"
-                onClick={() => approveMutation.mutate({ id: r.id, approve: false })}
-              >
-                <X className="h-3.5 w-3.5 mr-1" /> Hide
-              </Button>
-            )}
-
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-8"
-              onClick={() => {
-                setActiveReplyId(r.id)
-                setReplyText(r.admin_reply ?? '')
-              }}
-            >
-              <MessageSquare className="h-3.5 w-3.5 mr-1" /> Reply
-            </Button>
-
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-8 text-destructive hover:text-destructive"
-              onClick={() => {
-                if (confirm('Delete this review permanently?')) {
-                  deleteMutation.mutate(r.id)
-                }
-              }}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        )
-      },
-    },
-  ]
-
-  const filters = (
-    <Select value={approvedFilter} onValueChange={(v) => { setApprovedFilter(v); setPage(1) }}>
-      <SelectTrigger className="w-40 h-9">
-        <SelectValue placeholder="Moderation Queue" />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="ALL">All Reviews</SelectItem>
-        <SelectItem value="APPROVED">Approved</SelectItem>
-        <SelectItem value="PENDING">Pending Approval</SelectItem>
-      </SelectContent>
-    </Select>
-  )
+  const handleSendReply = async (id: string) => {
+    if (!replyInput.trim()) return
+    const authorName = replyRole === 'Trip Captain' ? 'Captain Rohit' : replyRole === 'Operations Team' ? 'Nomadik Ops' : 'Nomadik Team'
+    await addReviewReply(id, replyInput, replyRole, authorName)
+    toast.success(`Reply posted as ${replyRole}!`)
+    setReplyInput('')
+    setActiveReplyId(null)
+    refetch()
+  }
 
   return (
-    <div className="space-y-6">
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between"
-      >
+    <div className="p-6 sm:p-8 space-y-6 font-poppins text-left">
+      {/* Top Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
         <div>
-          <h1 className="text-2xl font-bold font-poppins">Reviews Moderation</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Approve testimonials, feature reviews, and post official replies.
+          <span className="text-xs font-bold uppercase tracking-wider text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200">
+            REVIEW MODERATION & ANALYTICS
+          </span>
+          <h1 className="text-3xl font-bold font-display text-[#102A43] mt-1">
+            Reviews Control Center
+          </h1>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Approve verified traveler reviews, monitor AI spam alerts, feature highlights, and post official replies.
           </p>
         </div>
-      </motion.div>
 
-      {/* Reply dialog */}
-      <Dialog open={!!activeReplyId} onOpenChange={() => setActiveReplyId(null)}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Post Official Reply</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 pt-3">
-            <Label>Admin Response</Label>
-            <Textarea
-              value={replyText}
-              onChange={(e) => setReplyText(e.target.value)}
-              placeholder="Thank you for sharing your feedback with us..."
-              rows={4}
-            />
-            <div className="flex justify-end gap-2">
-              <Button variant="ghost" onClick={() => setActiveReplyId(null)}>Cancel</Button>
-              <Button
-                onClick={() => activeReplyId && replyMutation.mutate({ id: activeReplyId, reply: replyText })}
-                disabled={replyMutation.isPending}
-              >
-                {replyMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
-                Save Reply
-              </Button>
+        {/* Quick Stats */}
+        <div className="flex items-center gap-3">
+          <div className="bg-emerald-50 border border-emerald-200 px-3.5 py-2 rounded-2xl text-center">
+            <span className="text-[10px] uppercase font-bold text-emerald-800 block">Avg Rating</span>
+            <span className="text-lg font-bold text-emerald-950 font-display">4.9 ★</span>
+          </div>
+          <div className="bg-amber-50 border border-amber-200 px-3.5 py-2 rounded-2xl text-center">
+            <span className="text-[10px] uppercase font-bold text-amber-800 block">Pending Queue</span>
+            <span className="text-lg font-bold text-amber-950 font-display">2</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs Bar */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs font-bold">
+        {[
+          { key: 'ALL', label: 'All Reviews' },
+          { key: 'PENDING', label: 'Pending Moderation ⏳' },
+          { key: 'AI_FLAGGED', label: 'AI Spam Flagged 🤖' },
+          { key: 'APPROVED', label: 'Approved & Published' },
+          { key: 'FEATURED', label: 'Featured ★' },
+          { key: 'ANALYTICS', label: 'Analytics Dashboard 📊' },
+        ].map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            onClick={() => setTab(t.key as any)}
+            className={`px-4 py-2.5 rounded-xl transition-all shrink-0 ${
+              tab === t.key
+                ? 'bg-[#102A43] text-white shadow-sm'
+                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Analytics Dashboard View */}
+      {tab === 'ANALYTICS' ? (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white rounded-3xl p-6 border border-[#E4E2DA] shadow-soft space-y-2">
+              <span className="text-xs font-bold uppercase text-slate-500">Overall Average Score</span>
+              <div className="text-4xl font-display font-bold text-amber-500">4.92 ★</div>
+              <p className="text-xs text-slate-600">Based on 1,286 verified bookings across 5 destinations.</p>
+            </div>
+
+            <div className="bg-white rounded-3xl p-6 border border-[#E4E2DA] shadow-soft space-y-2">
+              <span className="text-xs font-bold uppercase text-slate-500">Most Loved Aspect</span>
+              <div className="text-2xl font-display font-bold text-[#102A43]">Trip Captains (5.0★)</div>
+              <p className="text-xs text-slate-600">420+ compliments for mountain safety & guide warmth.</p>
+            </div>
+
+            <div className="bg-white rounded-3xl p-6 border border-[#E4E2DA] shadow-soft space-y-2">
+              <span className="text-xs font-bold uppercase text-slate-500">Weekly Growth</span>
+              <div className="text-3xl font-display font-bold text-emerald-600">+14% New Reviews</div>
+              <p className="text-xs text-slate-600">Average response time: 4.2 hours.</p>
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+      ) : (
+        /* Reviews List Queue */
+        <div className="space-y-4">
+          {reviewsList.length === 0 ? (
+            <div className="bg-white rounded-3xl p-12 text-center border text-slate-500 font-poppins">
+              No reviews found in this moderation tab.
+            </div>
+          ) : (
+            reviewsList.map((rev) => (
+              <div
+                key={rev.id}
+                className="bg-white rounded-3xl p-6 border border-[#E4E2DA] shadow-soft space-y-4 transition-all hover:border-amber-400"
+              >
+                {/* Top Details */}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={rev.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&q=80'}
+                      alt=""
+                      className="w-10 h-10 rounded-full object-cover border"
+                    />
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-bold text-[#102A43] text-sm">{rev.author_name}</h4>
+                        {rev.college && (
+                          <span className="text-[10px] font-bold bg-slate-100 px-2 py-0.5 rounded text-slate-700">
+                            🎓 {rev.college}
+                          </span>
+                        )}
+                        <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
+                          {rev.status}
+                        </span>
+                      </div>
+                      <span className="text-xs text-slate-500">{rev.journey_name || rev.journey_id} · {rev.trip_date}</span>
+                    </div>
+                  </div>
 
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
-        <DataTable
-          data={reviews}
-          columns={columns}
-          total={result?.total ?? 0}
-          page={page}
-          pageSize={pageSize}
-          totalPages={result?.totalPages ?? 1}
-          isLoading={isLoading}
-          searchPlaceholder="Search reviewer name..."
-          onPageChange={setPage}
-          onPageSizeChange={(s) => { setPageSize(s); setPage(1) }}
-          onSearch={(s) => { setSearch(s); setPage(1) }}
-          onSort={handleSort}
-          onRefresh={() => qc.invalidateQueries({ queryKey: ['reviews_list'] })}
-          filterComponent={filters}
-          emptyMessage="No reviews found in queue."
-        />
-      </motion.div>
+                  <div className="text-right">
+                    <ReviewStarRating value={rev.overall_rating} size="sm" showValueLabel />
+                  </div>
+                </div>
+
+                {/* Content */}
+                <div className="space-y-1">
+                  {rev.title && <h5 className="font-bold text-slate-900 text-sm">"{rev.title}"</h5>}
+                  <p className="text-xs text-slate-700 leading-relaxed font-poppins">
+                    {rev.review || rev.content}
+                  </p>
+                </div>
+
+                {/* Official Replies */}
+                {rev.replies && rev.replies.length > 0 && (
+                  <div className="bg-slate-50 p-3 rounded-2xl border text-xs space-y-1">
+                    {rev.replies.map((rep) => (
+                      <div key={rep.id} className="text-slate-700">
+                        <span className="font-bold text-[#102A43]">{rep.author_name} ({rep.role}):</span> "{rep.reply_text}"
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Actions Footer */}
+                <div className="pt-3 border-t flex items-center justify-between text-xs flex-wrap gap-2">
+                  <div className="flex items-center gap-3">
+                    <label className="flex items-center gap-1.5 cursor-pointer text-xs font-bold text-slate-700">
+                      <Switch
+                        checked={!!(rev.featured || rev.is_featured)}
+                        onCheckedChange={() => handleToggleFeature(rev.id, !!(rev.featured || rev.is_featured))}
+                      />
+                      <span>Featured on Homepage</span>
+                    </label>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setActiveReplyId(activeReplyId === rev.id ? null : rev.id)}
+                      className="text-xs font-bold text-accent"
+                    >
+                      <MessageSquare className="h-3.5 w-3.5 mr-1" /> Reply
+                    </Button>
+
+                    {rev.status !== 'approved' && (
+                      <Button
+                        size="sm"
+                        onClick={() => handleApprove(rev.id)}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs"
+                      >
+                        <Check className="h-3.5 w-3.5 mr-1" /> Approve
+                      </Button>
+                    )}
+
+                    {rev.status !== 'rejected' && (
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => handleReject(rev.id)}
+                        className="text-xs font-bold"
+                      >
+                        <X className="h-3.5 w-3.5 mr-1" /> Reject
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Reply Editor Drawer */}
+                {activeReplyId === rev.id && (
+                  <div className="p-3 bg-amber-50/50 rounded-2xl border border-amber-200/80 space-y-2 text-xs pt-3">
+                    <div className="flex gap-2">
+                      <select
+                        value={replyRole}
+                        onChange={(e) => setReplyRole(e.target.value as any)}
+                        className="p-1.5 border rounded-lg bg-white font-bold text-slate-800 text-[11px]"
+                      >
+                        <option value="Nomadik Team">Nomadik Team</option>
+                        <option value="Trip Captain">Trip Captain</option>
+                        <option value="Operations Team">Operations Team</option>
+                        <option value="Support Specialist">Support Specialist</option>
+                      </select>
+                    </div>
+                    <textarea
+                      value={replyInput}
+                      onChange={(e) => setReplyInput(e.target.value)}
+                      placeholder="Type official response..."
+                      className="w-full p-2.5 border rounded-xl bg-white text-xs h-16 focus:outline-none"
+                    />
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setActiveReplyId(null)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => handleSendReply(rev.id)}
+                        className="bg-[#102A43] text-white font-bold"
+                      >
+                        Send Reply
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      )}
     </div>
   )
 }

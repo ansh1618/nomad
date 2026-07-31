@@ -10,7 +10,8 @@ import { OurPromise } from "@/components/site/OurPromise";
 import { FeaturedPackages } from "@/components/site/FeaturedPackages";
 import { FeaturedSpiritualJourneys } from "@/components/site/FeaturedSpiritualJourneys";
 import { NomadikExperience } from "@/components/site/NomadikExperience";
-import { Testimonials } from "@/components/site/Testimonials";
+import { HomepageReviewsSection } from "@/components/site/HomepageReviewsSection";
+import { FloatingReviewWidget } from "@/components/site/FloatingReviewWidget";
 import { InstagramReels } from "@/components/site/InstagramReels";
 import { NomadikCommunity } from "@/components/site/NomadikCommunity";
 import { FAQ } from "@/components/site/FAQ";
@@ -81,8 +82,8 @@ function Index() {
         <FeaturedSpiritualJourneys />
         {/* 10. Horizontal experience timeline */}
         <NomadikExperience />
-        {/* 11. Google-verified reviews */}
-        <Testimonials />
+        {/* 11. Flagship Verified Traveler Reviews & Ratings */}
+        <HomepageReviewsSection />
         {/* 12. Auto-scrolling Instagram reels */}
         <InstagramReels />
         {/* 13. WhatsApp community CTA */}
@@ -92,6 +93,7 @@ function Index() {
       </main>
       <Footer />
       <FloatingUI />
+      <FloatingReviewWidget />
     </div>
   );
 }

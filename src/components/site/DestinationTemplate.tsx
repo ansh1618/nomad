@@ -15,6 +15,7 @@ import { getPackageDocumentBySlugFn } from "@/lib/itinerary-pdf-fns";
 import { ItineraryPreviewCard } from "./ItineraryPreviewCard";
 import { ItineraryLoginModal } from "./ItineraryLoginModal";
 import { ItineraryPdfViewerModal } from "./ItineraryPdfViewerModal";
+import { ReviewsSection } from "./ReviewsSection";
 
 interface DestinationTemplateProps {
   slug: string;
@@ -438,6 +439,16 @@ export function DestinationTemplate({ slug }: DestinationTemplateProps) {
             ))}
           </Accordion>
         </Reveal>
+      </section>
+
+      {/* Verified Traveler Reviews & Rating System */}
+      <section className="bg-white border-t border-[#E4E2DA] py-16">
+        <div className="max-w-7xl mx-auto px-5">
+          <ReviewsSection
+            destinationId={slug}
+            journeyName={dest?.name || slug}
+          />
+        </div>
       </section>
 
       {/* 7. Related Trips Section */}
