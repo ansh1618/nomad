@@ -1,12 +1,10 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
 import { Navbar } from '@/components/site/Navbar'
 import { Footer } from '@/components/site/Footer'
 import { FloatingUI } from '@/components/site/FloatingUI'
-import { getDestinations, getJourneys, getRealDestinationImage, formatPriceDisplay } from '@/lib/queries-client'
+import { getDestinations, getJourneys, getRealDestinationImage } from '@/lib/queries-client'
 import { Search, Compass, MapPin } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { RouteLoadingState, RouteErrorState } from '@/components/site/RouteStates'
 import { motion } from 'motion/react'
@@ -175,11 +173,7 @@ function DestinationsCatalogPage() {
                       </p>
 
                       {/* Footer CTA Button */}
-                      <div className="pt-4 border-t border-border flex items-center justify-between mt-auto">
-                        <span className="text-xs text-muted-foreground font-poppins font-semibold">
-                          View Destination Guide
-                        </span>
-
+                      <div className="pt-4 border-t border-border mt-auto flex justify-end">
                         <Link
                           to={`/destinations/${d.slug}` as any}
                           className="bg-primary text-white font-poppins font-bold text-xs px-5 py-2.5 rounded-xl hover:bg-secondary transition-all shadow-soft flex items-center gap-1"
@@ -199,5 +193,5 @@ function DestinationsCatalogPage() {
       <Footer />
       <FloatingUI />
     </div>
-  )
+  );
 }

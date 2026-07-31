@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { MapPin, BookOpen, ShieldCheck, Heart, Headphones, Compass } from "lucide-react";
+import { MapPin, ShieldCheck, Heart, Headphones, Compass } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "./Reveal";
 import { Route } from "@/routes/index";
@@ -94,18 +94,10 @@ export function PopularDestinations() {
                   </div>
 
                   {/* Card Actions */}
-                  <div className="pt-4 flex items-center justify-between border-t border-slate-100">
-                    <Link
-                      to="/destinations/$slug"
-                      params={{ slug: d.slug }}
-                      className="text-xs font-semibold text-slate-700 hover:text-amber-700 flex items-center gap-1.5 transition-colors"
-                    >
-                      <BookOpen className="h-4 w-4 text-amber-700/80" /> View Guide
-                    </Link>
-
+                  <div className="pt-4 border-t border-slate-100">
                     <Button
                       size="sm"
-                      className="bg-[#1A2E40] hover:bg-[#0F1E2C] text-white font-sans font-semibold text-xs px-5 py-2.5 rounded-full shadow-md transition-all"
+                      className="w-full bg-[#1A2E40] hover:bg-[#0F1E2C] text-white font-sans font-semibold text-xs px-5 py-2.5 rounded-full shadow-md transition-all flex items-center justify-center"
                       asChild
                     >
                       <Link to="/destinations/$slug" params={{ slug: d.slug }}>
