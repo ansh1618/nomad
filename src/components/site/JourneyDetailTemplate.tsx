@@ -33,6 +33,11 @@ import {
   CircleHelp,
   Bus,
   Map,
+  Snowflake,
+  Armchair,
+  Zap,
+  Luggage,
+  Award,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -964,30 +969,169 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
                     </div>
                   )}
 
-                  {/* ==================== 🚍 TRANSPORT SECTION ==================== */}
-                  {transport && transport.vehicle_name && (
-                    <div className="mt-8 bg-white border border-[#E4E2DA] rounded-3xl p-6 shadow-soft space-y-6 font-poppins text-left">
-                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-[#E4E2DA]">
+                  {/* ==================== 🚍 VEHICLE SPECIFICATIONS SECTION ==================== */}
+                  {transport && (
+                    <div className="mt-8 bg-white border border-[#E4E2DA] rounded-3xl p-6 sm:p-8 shadow-soft space-y-6 font-poppins text-left">
+                      {/* Section Header */}
+                      <div className="flex items-start justify-between gap-4 pb-4 border-b border-[#E4E2DA]">
                         <div>
-                          <span className="text-[10px] uppercase font-bold tracking-wider text-[#C8A96A] bg-[#C8A96A]/10 px-2.5 py-1 rounded-full">
-                            🚍 Comfort Transport
-                          </span>
-                          <h3 className="font-display text-xl font-bold text-primary mt-1">
-                            {transport.vehicle_name}
+                          <h3 className="font-display text-2xl font-bold text-[#102A43]">
+                            Vehicle Specifications
                           </h3>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            {transport.vehicle_type || "Standard AC Coach"}
+                          <div className="w-12 h-0.5 bg-[#C8A96A] my-2 rounded-full" />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Guaranteed high comfort standards for your trip
                           </p>
                         </div>
-                        <div className="text-left sm:text-right shrink-0">
-                          <span className="text-[10px] text-muted-foreground uppercase font-semibold block">
-                            Batch Capacity
-                          </span>
-                          <span className="text-sm font-bold text-primary">
-                            {transport.available_seats || 5} Spots Left /{" "}
-                            {transport.seat_capacity || 17} Total
-                          </span>
+
+                        <div className="w-12 h-12 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600 shrink-0 shadow-sm">
+                          <Bus className="h-6 w-6 text-amber-600" />
                         </div>
+                      </div>
+
+                      {/* 2-Column Grid Specs */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* 1. Seating Capacity */}
+                        <div className="p-4 rounded-2xl border border-amber-200/60 bg-amber-50/40 flex items-center gap-3.5 shadow-sm">
+                          <div className="w-11 h-11 rounded-2xl bg-amber-500/15 text-amber-700 flex items-center justify-center shrink-0 border border-amber-500/30">
+                            <Users className="h-5 w-5 text-amber-700" />
+                          </div>
+                          <div>
+                            <span className="block text-[10px] font-bold text-amber-900/60 uppercase tracking-wider">
+                              Seating Capacity
+                            </span>
+                            <span className="block text-sm sm:text-base font-bold text-[#102A43]">
+                              {transport.seat_capacity ? `${transport.seat_capacity} Seater` : "26 Seater"}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* 2. Climate Control */}
+                        <div className="p-4 rounded-2xl border border-blue-200/60 bg-blue-50/40 flex items-center gap-3.5 shadow-sm">
+                          <div className="w-11 h-11 rounded-2xl bg-blue-500/15 text-blue-700 flex items-center justify-center shrink-0 border border-blue-500/30">
+                            <Snowflake className="h-5 w-5 text-blue-700" />
+                          </div>
+                          <div>
+                            <span className="block text-[10px] font-bold text-blue-900/60 uppercase tracking-wider">
+                              Climate Control
+                            </span>
+                            <span className="block text-sm sm:text-base font-bold text-[#102A43]">
+                              {transport.ac ? "100% Climate AC" : "Climate Controlled AC"}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* 3. Reclining Seats */}
+                        <div className="p-4 rounded-2xl border border-emerald-200/60 bg-emerald-50/40 flex items-center gap-3.5 shadow-sm">
+                          <div className="w-11 h-11 rounded-2xl bg-emerald-500/15 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-500/30">
+                            <Armchair className="h-5 w-5 text-emerald-700" />
+                          </div>
+                          <div>
+                            <span className="block text-[10px] font-bold text-emerald-900/60 uppercase tracking-wider">
+                              Reclining Seats
+                            </span>
+                            <span className="block text-sm sm:text-base font-bold text-[#102A43]">
+                              160° Ergonomic Recliners
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* 4. Charging Ports */}
+                        <div className="p-4 rounded-2xl border border-orange-200/60 bg-orange-50/40 flex items-center gap-3.5 shadow-sm">
+                          <div className="w-11 h-11 rounded-2xl bg-orange-500/15 text-orange-700 flex items-center justify-center shrink-0 border border-orange-500/30">
+                            <Zap className="h-5 w-5 text-orange-700" />
+                          </div>
+                          <div>
+                            <span className="block text-[10px] font-bold text-orange-900/60 uppercase tracking-wider">
+                              Charging Ports
+                            </span>
+                            <span className="block text-sm sm:text-base font-bold text-[#102A43]">
+                              Personal USB & AC Sockets
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* 5. Music System */}
+                        <div className="p-4 rounded-2xl border border-purple-200/60 bg-purple-50/40 flex items-center gap-3.5 shadow-sm">
+                          <div className="w-11 h-11 rounded-2xl bg-purple-500/15 text-purple-700 flex items-center justify-center shrink-0 border border-purple-500/30">
+                            <Music className="h-5 w-5 text-purple-700" />
+                          </div>
+                          <div>
+                            <span className="block text-[10px] font-bold text-purple-900/60 uppercase tracking-wider">
+                              Music System
+                            </span>
+                            <span className="block text-sm sm:text-base font-bold text-[#102A43]">
+                              JBL Surround Sound System
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* 6. Luggage Space */}
+                        <div className="p-4 rounded-2xl border border-teal-200/60 bg-teal-50/40 flex items-center gap-3.5 shadow-sm">
+                          <div className="w-11 h-11 rounded-2xl bg-teal-500/15 text-teal-700 flex items-center justify-center shrink-0 border border-teal-500/30">
+                            <Luggage className="h-5 w-5 text-teal-700" />
+                          </div>
+                          <div>
+                            <span className="block text-[10px] font-bold text-teal-900/60 uppercase tracking-wider">
+                              Luggage Space
+                            </span>
+                            <span className="block text-sm sm:text-base font-bold text-[#102A43]">
+                              Under-deck & Overhead Racks
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Full-width Assurance Banners */}
+                      <div className="space-y-3.5 pt-2">
+                        {/* Highway Captain Safety Assurance */}
+                        <div className="bg-emerald-50/60 border border-emerald-200/80 p-4 rounded-2xl flex items-center justify-between relative overflow-hidden shadow-sm">
+                          <div className="flex items-center gap-3.5 z-10">
+                            <div className="w-10 h-10 rounded-full bg-emerald-600/15 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-600/30">
+                              <Award className="h-5 w-5 text-emerald-700" />
+                            </div>
+                            <div>
+                              <h4 className="text-xs sm:text-sm font-bold text-emerald-950 font-poppins">
+                                Highway Captain Safety Assurance
+                              </h4>
+                              <p className="text-[11px] text-emerald-800/80 mt-0.5 font-poppins">
+                                {transport.driverExperience || "Hill-Certified Commercial Captains (10+ Yrs Mountain Exp)"}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="opacity-15 pointer-events-none hidden sm:block">
+                            <Mountain className="h-14 w-14 text-emerald-800" />
+                          </div>
+                        </div>
+
+                        {/* Restroom & Refreshment Stops */}
+                        <div className="bg-sky-50/60 border border-sky-200/80 p-4 rounded-2xl flex items-center justify-between relative overflow-hidden shadow-sm">
+                          <div className="flex items-center gap-3.5 z-10">
+                            <div className="w-10 h-10 rounded-full bg-sky-600/15 text-sky-700 flex items-center justify-center shrink-0 border border-sky-600/30">
+                              <Users className="h-5 w-5 text-sky-700" />
+                            </div>
+                            <div>
+                              <h4 className="text-xs sm:text-sm font-bold text-sky-950 font-poppins">
+                                Restroom & Refreshment Stops
+                              </h4>
+                              <p className="text-[11px] text-sky-800/80 mt-0.5 font-poppins">
+                                {transport.washroomStops || "Scheduled Clean Restroom Breaks Every 3–4 Hours"}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="opacity-20 pointer-events-none hidden sm:block text-sky-700 font-bold text-xs">
+                            🚻 Rest Stop
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Section Divider */}
+                      <div className="flex items-center gap-3 pt-3">
+                        <div className="h-px bg-[#E4E2DA] flex-1" />
+                        <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground font-poppins">
+                          INCLUDED RIDE AMENITIES
+                        </span>
+                        <div className="h-px bg-[#E4E2DA] flex-1" />
                       </div>
 
                       {/* Cover Banner */}
@@ -1001,23 +1145,23 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
                           <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
                           <div className="absolute bottom-4 left-4 flex flex-wrap gap-1.5 z-10">
                             {transport.ac && (
-                              <span className="text-[9px] uppercase tracking-wider font-bold bg-emerald-500 text-white px-2 py-0.5 rounded">
-                                AC
+                              <span className="text-[9px] uppercase tracking-wider font-bold bg-emerald-500 text-white px-2.5 py-1 rounded-full shadow">
+                                ❄️ Climate AC
                               </span>
                             )}
                             {transport.music && (
-                              <span className="text-[9px] uppercase tracking-wider font-bold bg-indigo-500 text-white px-2 py-0.5 rounded">
-                                Music System
+                              <span className="text-[9px] uppercase tracking-wider font-bold bg-indigo-500 text-white px-2.5 py-1 rounded-full shadow">
+                                🎵 JBL Sound System
                               </span>
                             )}
                             {transport.charging_ports && (
-                              <span className="text-[9px] uppercase tracking-wider font-bold bg-amber-500 text-white px-2 py-0.5 rounded">
-                                USB Ports
+                              <span className="text-[9px] uppercase tracking-wider font-bold bg-amber-500 text-white px-2.5 py-1 rounded-full shadow">
+                                ⚡ USB Ports
                               </span>
                             )}
                             {transport.trip_captain && (
-                              <span className="text-[9px] uppercase tracking-wider font-bold bg-primary text-white px-2 py-0.5 rounded">
-                                Captain Included
+                              <span className="text-[9px] uppercase tracking-wider font-bold bg-primary text-white px-2.5 py-1 rounded-full shadow">
+                                👨‍✈️ Captain Included
                               </span>
                             )}
                           </div>
