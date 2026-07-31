@@ -225,7 +225,7 @@ export function BookingWizard({
         <div className="bg-white rounded-2xl border border-border p-3 sm:p-4 min-h-[300px]">
           {currentStep === 0 && <TravellerDetailsStep data={bookingData} updateData={setBookingData} onNext={nextStep} isSidebar={isSidebar} pricing={pricing} departures={departures} />}
           {currentStep === 1 && <AccommodationSelectionStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} isSidebar={isSidebar} pricing={pricing} />}
-          {currentStep === 2 && <AddonsAndCouponsStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} isSidebar={isSidebar} pricing={pricing} />}
+          {currentStep === 2 && <AddonsAndCouponsStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} isSidebar={isSidebar} pricing={pricing} />}
           {currentStep === 3 && <ReviewSummaryStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} isSidebar={isSidebar} pricing={pricing} />}
           {currentStep === 4 && <PaymentStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} isSidebar={isSidebar} pricing={pricing} />}
           {currentStep === 5 && <SuccessConfirmationStep data={bookingData} journey={journey} isSidebar={isSidebar} pricing={pricing} />}
@@ -341,7 +341,7 @@ export function BookingWizard({
         <div className="bg-white p-4 sm:p-8 rounded-3xl shadow-sm border border-border min-h-[400px]">
           {currentStep === 0 && <TravellerDetailsStep data={bookingData} updateData={setBookingData} onNext={nextStep} isSidebar={isSidebar} pricing={pricing} departures={departures} />}
           {currentStep === 1 && <AccommodationSelectionStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} isSidebar={isSidebar} pricing={pricing} />}
-          {currentStep === 2 && <AddonsAndCouponsStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} isSidebar={isSidebar} pricing={pricing} />}
+          {currentStep === 2 && <AddonsAndCouponsStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} isSidebar={isSidebar} pricing={pricing} />}
           {currentStep === 3 && <ReviewSummaryStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} isSidebar={isSidebar} pricing={pricing} />}
           {currentStep === 4 && <PaymentStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} isSidebar={isSidebar} pricing={pricing} />}
           {currentStep === 5 && <SuccessConfirmationStep data={bookingData} journey={journey} isSidebar={isSidebar} pricing={pricing} />}

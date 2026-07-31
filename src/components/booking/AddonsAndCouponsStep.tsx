@@ -5,12 +5,27 @@ import { Tag, Plus, Check, TicketPercent } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 
-export function AddonsAndCouponsStep({ data, updateData, onNext, onPrev, isSidebar = false, pricing }: any) {
-  const [addonsList] = useState([
-    { id: 'a1', name: 'River Rafting', price: 1500, desc: 'Thrilling white water rafting experience.' },
-    { id: 'a2', name: 'Paragliding', price: 3000, desc: 'Soar above the valleys.' },
-    { id: 'a3', name: 'Bonfire Night', price: 500, desc: 'Private bonfire with snacks.' }
-  ]);
+export function AddonsAndCouponsStep({ data, updateData, onNext, onPrev, journey, isSidebar = false, pricing }: any) {
+  const slug = (journey?.slug || data?.journeySlug || data?.selectedJourney?.slug || '').toLowerCase();
+
+  const getAddonsList = () => {
+    if (slug.includes('udaipur') || slug.includes('rajasthan')) {
+      return [
+        { id: 'a_folk', name: 'Cultural Folk Dance Show', price: 1000, desc: 'Dharohar folk dance & puppet performance at Bagore Ki Haveli.' },
+        { id: 'a_cruise', name: 'Sunset Lake Pichola Cruise', price: 1500, desc: 'Exclusive sunset boat cruise past Lake Palace & Jag Mandir.' },
+        { id: 'a3', name: 'Bonfire Night', price: 500, desc: 'Private bonfire with snacks and musical evening.' }
+      ];
+    }
+
+    // Default Mountain / Himalayan Journeys (Manali, Jibhi, Chopta, McLeod Ganj)
+    return [
+      { id: 'a1', name: 'River Rafting', price: 1500, desc: 'Thrilling white water rafting experience.' },
+      { id: 'a2', name: 'Paragliding', price: 3000, desc: 'Soar above the valleys.' },
+      { id: 'a3', name: 'Bonfire Night', price: 500, desc: 'Private bonfire with snacks.' }
+    ];
+  };
+
+  const addonsList = getAddonsList();
   
   const [couponInput, setCouponInput] = useState("");
   const [couponError, setCouponError] = useState("");
