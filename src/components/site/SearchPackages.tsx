@@ -14,14 +14,15 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Reveal } from "./Reveal";
 import { cn } from "@/lib/utils";
-import { Route } from "@/routes/index";
+import { useQuery } from "@tanstack/react-query";
+import { getDestinationsList } from "@/lib/queries-client";
 
 const budgets = ["Under ₹10,000", "₹10,000 – ₹20,000", "₹20,000 – ₹40,000", "₹40,000+"];
 const groupSizes = [
-  "Solo (1 Explorer)",
-  "Couple (2 Explorers)",
+  "Solo",
+  "Couple (2)",
   "Small Group (3-5)",
-  "Large Group (6+)"
+  "Large Group (6+)",
 ];
 
 interface FieldProps {
@@ -40,8 +41,16 @@ function Field({ icon, children }: FieldProps) {
   );
 }
 
-export function SearchPackages() {
-  const { destinations } = Route.useLoaderData();
+interface SearchPackagesProps {
+  destinations?: any[];
+}
+
+export function SearchPackages(props: SearchPackagesProps) {
+  const { data: destinations = props.destinations || [] } = useQuery({
+    queryKey: ["destinations_list_search"],
+    queryFn: () => getDestinationsList(),
+    initialData: props.destinations,
+  });
   const navigate = useNavigate();
   const [date, setDate] = useState<Date>();
   const [selectedDest, setSelectedDest] = useState<string>("");

@@ -3,26 +3,26 @@ import { Link } from "@tanstack/react-router";
 import { MapPin, Compass, Car, Calendar, Route as RouteIcon } from "lucide-react";
 import { Reveal } from "./Reveal";
 import { cn } from "@/lib/utils";
-import { Route } from "@/routes/index";
+import { useQuery } from "@tanstack/react-query";
+import { getJourneys, getDestinationsList } from "@/lib/queries-client";
 
-interface Pin {
-  slug: string;
-  name: string;
-  x: number; // percentage from left
-  y: number; // percentage from top
-  region: string;
+interface MapSectionProps {
+  destinations?: any[];
+  journeys?: any[];
 }
 
-const pins: Pin[] = [
-  { slug: "manali", name: "Manali", x: 44, y: 30, region: "Himachal Pradesh" },
-  { slug: "jibhi", name: "Jibhi", x: 49, y: 34, region: "Himachal Pradesh" },
-  { slug: "mcleodganj", name: "McLeod Ganj", x: 38, y: 26, region: "Himachal Pradesh" },
-  { slug: "chopta-tungnath", name: "Chopta & Tungnath", x: 58, y: 41, region: "Uttarakhand" },
-  { slug: "udaipur", name: "Udaipur", x: 26, y: 70, region: "Rajasthan" },
-];
+export function MapSection(props: MapSectionProps) {
+  const { data: journeys = props.journeys || [] } = useQuery({
+    queryKey: ["journeys_catalog_map"],
+    queryFn: () => getJourneys(),
+    initialData: props.journeys,
+  });
 
-export function MapSection() {
-  const { destinations, journeys } = Route.useLoaderData();
+  const { data: destinations = props.destinations || [] } = useQuery({
+    queryKey: ["destinations_list_map"],
+    queryFn: () => getDestinationsList(),
+    initialData: props.destinations,
+  });
   const [activePin, setActivePin] = useState<string | null>(null);
 
   // Retrieve destination and matching journey data

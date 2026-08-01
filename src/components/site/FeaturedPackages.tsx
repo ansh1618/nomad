@@ -2,14 +2,16 @@ import { Link } from "@tanstack/react-router";
 import { Clock, Check, Star, Car, Compass, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "./Reveal";
-import { Route } from "@/routes/index";
-import { useQuery } from "@tanstack/react-query";
-import { getCmsSection } from "@/lib/queries/cms";
+interface FeaturedPackagesProps {
+  journeys?: any[];
+}
 
-import { getJourneys, getRealDestinationImage, formatPriceDisplay } from '@/lib/queries-client';
-
-export function FeaturedPackages() {
-  const { journeys } = Route.useLoaderData();
+export function FeaturedPackages(props: FeaturedPackagesProps) {
+  const { data: journeys = props.journeys || [] } = useQuery({
+    queryKey: ["journeys_catalog_feat"],
+    queryFn: () => getJourneys(),
+    initialData: props.journeys,
+  });
 
   const { data: section } = useQuery({
     queryKey: ["cms", "featured_packages"],

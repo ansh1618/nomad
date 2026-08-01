@@ -251,6 +251,8 @@ export async function getDestinations() {
   }
 }
 
+export const getDestinationsList = getDestinations;
+
 export async function getDestinationBySlug(slug: string) {
   const data = await sharedGetDestinationBySlug(slug).catch(() => null);
   

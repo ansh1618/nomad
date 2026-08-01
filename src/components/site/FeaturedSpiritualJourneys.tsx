@@ -2,11 +2,19 @@ import { Link } from "@tanstack/react-router";
 import { Clock, Star, Compass } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "./Reveal";
-import { Route } from "@/routes/index";
-import { getRealDestinationImage, formatPriceDisplay } from "@/lib/queries-client";
+import { useQuery } from "@tanstack/react-query";
+import { getJourneys, getRealDestinationImage, formatPriceDisplay } from "@/lib/queries-client";
 
-export function FeaturedSpiritualJourneys() {
-  const { journeys } = Route.useLoaderData();
+interface FeaturedSpiritualJourneysProps {
+  journeys?: any[];
+}
+
+export function FeaturedSpiritualJourneys(props: FeaturedSpiritualJourneysProps) {
+  const { data: journeys = props.journeys || [] } = useQuery({
+    queryKey: ["journeys_catalog_spir"],
+    queryFn: () => getJourneys(),
+    initialData: props.journeys,
+  });
 
   // Filter journeys with category === 'SPIRITUAL'
   const spiritualJourneys = journeys.filter(j => j.category?.toUpperCase() === 'SPIRITUAL');

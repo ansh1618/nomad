@@ -2,11 +2,26 @@ import { Link } from "@tanstack/react-router";
 import { MapPin, ShieldCheck, Heart, Headphones, Compass } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "./Reveal";
-import { Route } from "@/routes/index";
-import { resolveDestinationHero } from "@/lib/media-resolver";
+import { useQuery } from "@tanstack/react-query";
+import { getJourneys, getDestinationsList } from "@/lib/queries-client";
 
-export function PopularDestinations() {
-  const { destinations, journeys } = Route.useLoaderData();
+interface PopularDestinationsProps {
+  destinations?: any[];
+  journeys?: any[];
+}
+
+export function PopularDestinations(props: PopularDestinationsProps) {
+  const { data: journeys = props.journeys || [] } = useQuery({
+    queryKey: ["journeys_catalog_pop"],
+    queryFn: () => getJourneys(),
+    initialData: props.journeys,
+  });
+
+  const { data: destinations = props.destinations || [] } = useQuery({
+    queryKey: ["destinations_list_pop"],
+    queryFn: () => getDestinationsList(),
+    initialData: props.destinations,
+  });
 
   if (!destinations || destinations.length === 0) {
     return null;
