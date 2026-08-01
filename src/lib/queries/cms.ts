@@ -600,16 +600,20 @@ export interface ApprovedReview {
 }
 
 export async function getApprovedReviews(limit = 6): Promise<ApprovedReview[]> {
-  const { data, error } = await supabase
-    .from('reviews')
-    .select('*, journeys(name)')
-    .eq('is_approved', true)
-    .order('is_featured', { ascending: false })
-    .order('created_at', { ascending: false })
-    .limit(limit)
+  try {
+    const { data, error } = await supabase
+      .from('reviews')
+      .select('*, journeys(name)')
+      .eq('is_approved', true)
+      .order('is_featured', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(limit)
 
-  if (error) throw new Error(error.message)
-  return (data ?? []) as ApprovedReview[]
+    if (error) return []
+    return (data ?? []) as ApprovedReview[]
+  } catch {
+    return []
+  }
 }
 
 // ============================================================

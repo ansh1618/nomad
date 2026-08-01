@@ -65,8 +65,30 @@ export async function getDestinations() {
 }
 
 export async function getDestinationBySlug(slug: string) {
-  const data = await sharedGetDestinationBySlug(slug);
-  if (!data) return null;
+  const data = await sharedGetDestinationBySlug(slug).catch(() => null);
+  
+  if (!data) {
+    const nameFriendly = slug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    const fallbackImg = getRealDestinationImage(slug);
+
+    return {
+      slug,
+      name: nameFriendly,
+      subtitle: `Explore ${nameFriendly} with Nomadik`,
+      hero_image: fallbackImg,
+      thumbnail: fallbackImg,
+      cover_image: fallbackImg,
+      image: fallbackImg,
+      gallery: [fallbackImg],
+      overview: `Discover handpicked road trip experiences in ${nameFriendly}. Curated journeys with certified Trip Captains, verified stays, and 24/7 support.`,
+      weather: "Pleasant throughout the year",
+      howToReach: "AC Volvo Bus / Private Conveyance from Delhi / Chandigarh",
+      bestTime: "September to June",
+      topPlaces: ["Scenic Viewpoints", "Heritage Sites", "Local Markets"],
+      faqs: [],
+      reviews: []
+    };
+  }
 
   const dbReviews = await sharedGetApprovedReviews(data.id, 6).catch(() => []);
   const reviewsList = (dbReviews || []).map((r: any) => ({

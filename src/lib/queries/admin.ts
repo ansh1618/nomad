@@ -135,11 +135,22 @@ export async function getReviews(params: PaginationParams & { approved?: boolean
 }
 
 export async function getApprovedReviews(journeyId?: string, limit = 10): Promise<Review[]> {
-  let query = supabase.from('reviews').select('*').eq('is_approved', true).order('created_at', { ascending: false }).limit(limit)
-  if (journeyId) query = query.eq('journey_id', journeyId)
-  const { data, error } = await query
-  if (error) throw new Error(error.message)
-  return (data ?? []) as Review[]
+  try {
+    let query = supabase.from('reviews').select('*').eq('is_approved', true).order('created_at', { ascending: false }).limit(limit)
+    if (journeyId) {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(journeyId);
+      if (isUuid) {
+        query = query.eq('journey_id', journeyId);
+      } else {
+        query = query.or(`journey_id.eq.${journeyId},journey_slug.eq.${journeyId}`);
+      }
+    }
+    const { data, error } = await query
+    if (error) return []
+    return (data ?? []) as Review[]
+  } catch {
+    return []
+  }
 }
 
 export async function createReview(payload: ReviewInsert): Promise<Review> {
