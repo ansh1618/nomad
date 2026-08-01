@@ -346,9 +346,11 @@ export async function getJourneys() {
         dropPoint: j.drop_point,
         itinerary: it,
         overview: j.description || j.overview || j.name,
-        highlights: Array.isArray(it) && it.length > 0 
-          ? it.map((day: any) => day?.title || "").filter(Boolean).slice(0, 3)
-          : (j.highlights || []),
+        highlights: (Array.isArray(j.highlights) && j.highlights.length > 0)
+          ? j.highlights
+          : (Array.isArray(it) && it.length > 0 
+              ? it.map((day: any) => day?.title || "").filter(Boolean).slice(0, 3)
+              : []),
         hotel: j.hotel,
         food: j.food,
         dayByDay: it,
@@ -440,9 +442,11 @@ export async function getJourneyBySlug(slug: string) {
     dropPoint: data.drop_point,
     itinerary: it,
     overview: data.description || data.overview || data.name,
-    highlights: Array.isArray(it) && it.length > 0 
-      ? it.map((day: any) => day?.title || "").filter(Boolean).slice(0, 3)
-      : (data.highlights || []),
+    highlights: (Array.isArray(data.highlights) && data.highlights.length > 0)
+      ? data.highlights
+      : (Array.isArray(it) && it.length > 0 
+          ? it.map((day: any) => day?.title || "").filter(Boolean).slice(0, 3)
+          : []),
     hotel: data.hotels || null,
     food: data.food,
     dayByDay: it,
