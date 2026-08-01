@@ -382,7 +382,12 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
   // Payment schedule dynamic amounts
   const payableNow = paymentSchedule === "full" ? finalPrice : pricing.deposit;
 
-  const itineraryDays: ItineraryDay[] = journey.itinerary_days ?? [];
+  const itineraryDays: ItineraryDay[] =
+    Array.isArray(journey.itinerary_days) && journey.itinerary_days.length > 0
+      ? journey.itinerary_days
+      : Array.isArray(journey.itinerary) && journey.itinerary.length > 0
+      ? journey.itinerary
+      : [];
   const inclusions: string[] = journey.inclusions ?? [];
   const exclusions: string[] = journey.exclusions ?? [];
 

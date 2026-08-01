@@ -199,12 +199,16 @@ export function BookingWizard({
                   {departures.length === 0 ? (
                     <option value="">No departures available</option>
                   ) : (
-                    departures.map((dep) => {
-                      const start = new Date(dep.date);
-                      const formattedDate = start.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+                    departures.map((dep: any) => {
+                      const rawDate = dep.departure_date || dep.departureDate || dep.date;
+                      const start = rawDate ? new Date(rawDate) : new Date();
+                      const formattedDate = !isNaN(start.getTime())
+                        ? start.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+                        : "Upcoming Batch";
+                      const priceVal = dep.base_price ?? dep.basePrice ?? dep.price ?? 6499;
                       return (
                         <option key={dep.id} value={dep.id}>
-                          {formattedDate} — ₹{dep.basePrice.toLocaleString('en-IN')}
+                          {formattedDate} — ₹{Number(priceVal).toLocaleString('en-IN')}
                         </option>
                       );
                     })
@@ -295,12 +299,17 @@ export function BookingWizard({
                 {departures.length === 0 ? (
                   <option value="">No departures available</option>
                 ) : (
-                  departures.map((dep) => {
-                    const start = new Date(dep.date);
-                    const formattedDate = start.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+                  departures.map((dep: any) => {
+                    const rawDate = dep.departure_date || dep.departureDate || dep.date;
+                    const start = rawDate ? new Date(rawDate) : new Date();
+                    const formattedDate = !isNaN(start.getTime())
+                      ? start.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+                      : "Upcoming Batch";
+                    const priceVal = dep.base_price ?? dep.basePrice ?? dep.price ?? 6499;
+                    const seatsVal = dep.available_seats ?? dep.availableSeats ?? 18;
                     return (
                       <option key={dep.id} value={dep.id}>
-                        Batch: {formattedDate} — ₹{dep.basePrice.toLocaleString('en-IN')} ({dep.availableSeats} spots remain)
+                        Batch: {formattedDate} — ₹{Number(priceVal).toLocaleString('en-IN')} ({seatsVal} spots remain)
                       </option>
                     );
                   })
