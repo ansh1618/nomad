@@ -1583,13 +1583,13 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
                       <span className="text-muted-foreground flex items-center gap-1.5">
                         <Building2 className="h-4 w-4 text-accent" /> Accommodation
                       </span>
-                      <span className="font-semibold text-foreground">Boutique Stays</span>
+                      <span className="font-semibold text-foreground">{journey.stayInfo || journey.hotel?.name || "Verified Stays"}</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground flex items-center gap-1.5">
                         <Users className="h-4 w-4 text-accent" /> Group Size
                       </span>
-                      <span className="font-semibold text-foreground">12-18 Explorers</span>
+                      <span className="font-semibold text-foreground">{journey.groupSize || "12-18 Explorers"}</span>
                     </div>
                   </div>
 

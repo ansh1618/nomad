@@ -130,7 +130,7 @@ export function FeaturedPackages(props: FeaturedPackagesProps) {
                     <div className="space-y-0.5">
                       <span className="block text-[9px] uppercase tracking-wider text-muted-foreground/60">Transport</span>
                       <span className="flex items-center gap-1 text-[11px] font-semibold text-foreground">
-                        <Car className="h-3.5 w-3.5 text-accent" /> Tempo / Self
+                        <Car className="h-3.5 w-3.5 text-accent" /> {j.transport || "AC Tempo Traveller"}
                       </span>
                     </div>
                     <div className="space-y-0.5">

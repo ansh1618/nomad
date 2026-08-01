@@ -193,15 +193,15 @@ function JourneysCatalogPage() {
                         </div>
                         <div className="flex items-center gap-2">
                           <Bus className="h-4 w-4 text-gold shrink-0" />
-                          <span className="truncate">{j.transport?.vehicle_name || 'AC Tempo Drive'}</span>
+                          <span className="truncate">{j.transport?.vehicle_name || j.transport || 'AC Tempo Traveller'}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <Users className="h-4 w-4 text-gold shrink-0" />
-                          <span>{j.group_size_max ? `Max ${j.group_size_max}` : '12-18 Tribe'}</span>
+                          <span>{j.groupSize || (j.group_size_max ? `Max ${j.group_size_max}` : '12-18 Explorers')}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <Sparkles className="h-4 w-4 text-gold shrink-0" />
-                          <span>Boutique Stays</span>
+                          <span>{j.stayInfo || j.hotel?.name || 'Verified Stays'}</span>
                         </div>
                       </div>
 

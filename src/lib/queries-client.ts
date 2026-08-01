@@ -315,8 +315,26 @@ export async function getJourneys() {
     if (!data || data.length === 0) return STATIC_FALLBACK_JOURNEYS;
 
     return data.map((j: any) => {
-      const it = j.itinerary_days || [];
+      const rawItinerary = (Array.isArray(j.itinerary) && j.itinerary.length > 0)
+        ? j.itinerary
+        : (Array.isArray(j.itinerary_days) && j.itinerary_days.length > 0)
+        ? j.itinerary_days
+        : [];
+
+      const it = rawItinerary.map((day: any, idx: number) => ({
+        id: day.id || `day-${day.day || day.day_number || idx + 1}`,
+        day_number: day.day || day.day_number || idx + 1,
+        title: day.title || `Day ${day.day || day.day_number || idx + 1}`,
+        description: day.description || "",
+        image_url: day.image_url || null,
+        stay: day.stay || null,
+        transport: day.transport || null,
+        meals: day.meals || { breakfast: true, dinner: true }
+      }));
+
       const galleryFirst = (j.gallery as any)?.[0]?.url || (j.gallery as any)?.[0] || null;
+      const rawPrice = j.price || j.starting_price || j.base_price || 6499;
+
       return {
         id: j.id,
         slug: j.slug,
@@ -334,24 +352,27 @@ export async function getJourneys() {
           j.cover_image,
           galleryFirst
         ),
-        duration: j.duration,
-        transport: j.transport,
-        difficulty: j.difficulty,
-        distance: j.distance,
-        bestSeason: j.season || j.best_season || "Best season",
-        groupSize: j.group_size || j.group_size_max,
-        price: formatPriceDisplay(j.price || j.starting_price || 6499),
-        priceNumber: Number(j.price || j.starting_price) > 0 ? Number(j.price || j.starting_price) : 6499,
+        duration: j.duration || (j.duration_days ? `${j.duration_days} Days / ${j.duration_nights || Math.max(1, j.duration_days - 1)} Nights` : "3 Nights / 4 Days"),
+        duration_days: j.duration_days,
+        duration_nights: j.duration_nights,
+        transport: j.transport || (j.transports as any)?.title || (j.transports as any)?.name || "AC Tempo Traveller",
+        difficulty: j.difficulty || "Moderate",
+        distance: j.distance || "540 KM",
+        bestSeason: j.season || j.best_season || "Year-Round",
+        groupSize: j.group_size || (j.group_size_min ? `${j.group_size_min}-${j.group_size_max || 18} Explorers` : "12-18 Explorers"),
+        price: formatPriceDisplay(rawPrice),
+        priceNumber: Number(rawPrice) > 0 ? Number(rawPrice) : 6499,
         maxCapacity: j.max_capacity || j.group_size_max || 18,
         remainingSeats: j.remaining_seats || j.available_seats || 18,
         pickupPoint: j.pickup_point,
         dropPoint: j.drop_point,
         itinerary: it,
+        itinerary_days: it,
         overview: j.description || j.overview || j.name,
         highlights: (Array.isArray(j.highlights) && j.highlights.length > 0)
           ? j.highlights
           : (Array.isArray(it) && it.length > 0 
-              ? it.map((day: any) => day?.title || "").filter(Boolean).slice(0, 3)
+              ? it.map((day: any) => day?.title || "").filter(Boolean).slice(0, 4)
               : []),
         hotel: j.hotel,
         food: j.food,
@@ -411,6 +432,7 @@ export async function getJourneyBySlug(slug: string) {
       pickupPoint: "Delhi",
       dropPoint: "Delhi",
       itinerary: [],
+      itinerary_days: [],
       overview: `Experience slow-crafted road trips to ${nameFriendly} with certified Trip Captains, verified stays, and 24/7 support.`,
       highlights: ["Scenic Mountain Drives", "Boutique Homestays", "Local Cultural Experiences"],
       inclusions: ["Transfers", "Boutique Stays", "Breakfast & Dinner", "Trip Captain"],
@@ -419,8 +441,25 @@ export async function getJourneyBySlug(slug: string) {
     };
   }
 
-  const it = data.itinerary_days || [];
+  const rawItinerary = (Array.isArray(data.itinerary) && data.itinerary.length > 0)
+    ? data.itinerary
+    : (Array.isArray(data.itinerary_days) && data.itinerary_days.length > 0)
+    ? data.itinerary_days
+    : [];
+
+  const it = rawItinerary.map((day: any, idx: number) => ({
+    id: day.id || `day-${day.day || day.day_number || idx + 1}`,
+    day_number: day.day || day.day_number || idx + 1,
+    title: day.title || `Day ${day.day || day.day_number || idx + 1}`,
+    description: day.description || "",
+    image_url: day.image_url || null,
+    stay: day.stay || null,
+    transport: day.transport || null,
+    meals: day.meals || { breakfast: true, dinner: true }
+  }));
+
   const rawImg = data.hero_banner || (data.destinations as any)?.hero_image || (data.gallery as any)?.[0]?.url || (data.gallery as any)?.[0] || "";
+  const rawPrice = data.price || data.starting_price || data.base_price || 6499;
 
   return {
     id: data.id,
@@ -430,24 +469,27 @@ export async function getJourneyBySlug(slug: string) {
     category: data.category || "",
     name: data.name,
     image: getRealDestinationImage(data.slug || (data.destinations as any)?.slug || "", rawImg),
-    duration: data.duration,
-    transport: data.transport,
-    difficulty: data.difficulty,
-    distance: data.distance,
+    duration: data.duration || (data.duration_days ? `${data.duration_days} Days / ${data.duration_nights || Math.max(1, data.duration_days - 1)} Nights` : "3 Nights / 4 Days"),
+    duration_days: data.duration_days,
+    duration_nights: data.duration_nights,
+    transport: data.transport || (data.transports as any)?.title || (data.transports as any)?.name || "AC Tempo Traveller",
+    difficulty: data.difficulty || "Moderate",
+    distance: data.distance || "540 KM",
     bestSeason: data.season || data.best_season || "Best season",
-    groupSize: data.group_size || data.group_size_max,
-    price: formatPriceDisplay(data.price || data.starting_price || 6499),
-    priceNumber: Number(data.price || data.starting_price) > 0 ? Number(data.price || data.starting_price) : 6499,
+    groupSize: data.group_size || (data.group_size_min ? `${data.group_size_min}-${data.group_size_max || 18} Explorers` : "12-18 Explorers"),
+    price: formatPriceDisplay(rawPrice),
+    priceNumber: Number(rawPrice) > 0 ? Number(rawPrice) : 6499,
     maxCapacity: data.max_capacity || data.group_size_max || 18,
     remainingSeats: data.remaining_seats || data.available_seats || 18,
     pickupPoint: data.pickup_point,
     dropPoint: data.drop_point,
     itinerary: it,
+    itinerary_days: it,
     overview: data.description || data.overview || data.name,
     highlights: (Array.isArray(data.highlights) && data.highlights.length > 0)
       ? data.highlights
       : (Array.isArray(it) && it.length > 0 
-          ? it.map((day: any) => day?.title || "").filter(Boolean).slice(0, 3)
+          ? it.map((day: any) => day?.title || "").filter(Boolean).slice(0, 4)
           : []),
     hotel: data.hotels || null,
     food: data.food,
