@@ -1,19 +1,26 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { DestinationTemplate } from "@/components/site/DestinationTemplate";
-import { getDestinationBySlug, getJourneys, STATIC_FALLBACK_JOURNEYS } from "@/lib/queries-client";
 import { Navbar } from "@/components/site/Navbar";
 import { Footer } from "@/components/site/Footer";
 import { FloatingUI } from "@/components/site/FloatingUI";
 import { RouteLoadingState, RouteErrorState } from "@/components/site/RouteStates";
 import { withTimeout } from "@/lib/promise-timeout";
+import { getDestinationBySlug, getJourneys } from "@/lib/queries-client";
 
 export const Route = createFileRoute("/destinations_/$slug")({
   loader: async ({ params }) => {
-    const [dest, journeys] = await Promise.all([
-      withTimeout(getDestinationBySlug(params.slug), 6000, null),
-      withTimeout(getJourneys(), 6000, STATIC_FALLBACK_JOURNEYS)
-    ]);
-    return { dest, journeys: journeys?.length > 0 ? journeys : STATIC_FALLBACK_JOURNEYS };
+    console.log(`[Loader /destinations/$slug] Loading destination slug: ${params.slug}...`);
+    try {
+      const [dest, journeys] = await Promise.all([
+        withTimeout(getDestinationBySlug(params.slug), 6000, null),
+        withTimeout(getJourneys(), 6000, [])
+      ]);
+      console.log(`[Loader /destinations/$slug] Resolved dest: ${dest?.name || 'Not Found'}, journeys count: ${journeys?.length || 0}`);
+      return { dest, journeys: journeys || [] };
+    } catch (err) {
+      console.error(`[Loader /destinations/$slug] Exception loading ${params.slug}:`, err);
+      return { dest: null, journeys: [] };
+    }
   },
   pendingComponent: RouteLoadingState,
   errorComponent: RouteErrorState,
