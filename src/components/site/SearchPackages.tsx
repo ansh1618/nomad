@@ -51,7 +51,7 @@ export function SearchPackages() {
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedDest) {
-      navigate({ to: `/destinations_/$slug`, params: { slug: selectedDest } as any });
+      navigate({ to: `/destinations/$slug`, params: { slug: selectedDest } as any });
     } else {
       navigate({ to: "/destinations" });
     }
