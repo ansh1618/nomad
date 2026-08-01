@@ -2,6 +2,10 @@ import { Link } from "@tanstack/react-router";
 import { Clock, Check, Star, Car, Compass, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "./Reveal";
+import { useQuery } from "@tanstack/react-query";
+import { getCmsSection } from "@/lib/queries/cms";
+import { getJourneys, getRealDestinationImage, formatPriceDisplay } from "@/lib/queries-client";
+
 interface FeaturedPackagesProps {
   journeys?: any[];
 }
