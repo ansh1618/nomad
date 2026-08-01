@@ -32,7 +32,8 @@ export const Route = createFileRoute('/journeys/')({
 })
 
 function JourneysCatalogPage() {
-  const { journeys } = Route.useLoaderData()
+  const loaderData = (Route.useLoaderData() || {}) as any;
+  const journeys = loaderData?.journeys || [];
   const [activeCategory, setActiveCategory] = useState<string>('ALL')
   const [searchQuery, setSearchQuery] = useState('')
 

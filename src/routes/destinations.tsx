@@ -29,7 +29,9 @@ export const Route = createFileRoute('/destinations')({
 })
 
 function DestinationsCatalogPage() {
-  const { destinations, journeys } = Route.useLoaderData()
+  const loaderData = (Route.useLoaderData() || {}) as any;
+  const destinations = loaderData?.destinations || [];
+  const journeys = loaderData?.journeys || [];
   const [searchQuery, setSearchQuery] = useState('')
 
   const filteredDestinations = (destinations || []).filter((d: any) => {
