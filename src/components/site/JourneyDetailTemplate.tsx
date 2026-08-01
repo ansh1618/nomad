@@ -377,6 +377,7 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
   });
 
   const finalPrice = pricing.subtotal;
+  const priceBeforeDiscount = (pricing.basePrice || 6499) + (pricing.roomSurcharge || 0) + (pricing.addonsTotal || 0);
 
   // Payment schedule dynamic amounts
   const payableNow = paymentSchedule === "full" ? finalPrice : pricing.deposit;
@@ -385,10 +386,23 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
   const inclusions: string[] = journey.inclusions ?? [];
   const exclusions: string[] = journey.exclusions ?? [];
 
-  const transport =
-    journey.transport && journey.transport.length > 0
-      ? journey.transport[0]
-      : getFallbackTransport(slug);
+  const transport = (() => {
+    if (!journey?.transport) return getFallbackTransport(slug);
+    if (typeof journey.transport === "object" && journey.transport !== null) {
+      if (Array.isArray(journey.transport)) return journey.transport[0] || getFallbackTransport(slug);
+      return journey.transport;
+    }
+    if (typeof journey.transport === "string") {
+      try {
+        const parsed = JSON.parse(journey.transport);
+        if (parsed && typeof parsed === "object") return parsed;
+      } catch {
+        const fb = getFallbackTransport(slug);
+        return { ...fb, vehicle_name: journey.transport, name: journey.transport };
+      }
+    }
+    return getFallbackTransport(slug);
+  })();
 
   const rawStay =
     journey.accommodation && (journey.accommodation as any).id
