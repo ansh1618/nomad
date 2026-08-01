@@ -228,92 +228,95 @@ export function DestinationTemplate({ slug }: DestinationTemplateProps) {
             </p>
           </Reveal>
 
-          <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-8 justify-center">
-            {matchedJourneys.map((j, i) => (
-              <Reveal key={j.slug} delay={i} className="group">
-                <article className="hover-lift overflow-hidden rounded-3xl bg-card border border-border shadow-soft flex flex-col h-full">
-                  <Link to="/journeys/$journeyId" params={{ journeyId: j.slug }} className="block cursor-pointer">
-                    <div className="relative aspect-[16/10] overflow-hidden">
-                      <img
-                        src={j.image || 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80'}
-                        alt={j.name}
-                        loading="lazy"
-                        className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                        onError={(e) => {
-                          const target = e.currentTarget;
-                          target.onerror = null;
-                          target.src = 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80';
-                        }}
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                      
-                      {/* Animated seat indicator */}
-                      <div className="absolute top-4 left-4 glass-dark rounded-full px-3 py-1 text-[11px] font-poppins font-bold text-white flex items-center gap-1.5 animate-pulse">
-                        <span className="h-2 w-2 rounded-full bg-[#E53E3E]" />
-                        Only {j.remainingSeats ?? j.maxCapacity ?? 0} Seats Left!
+          {matchedJourneys.length === 0 ? (
+            <div className="mt-8 p-12 text-center bg-card border border-dashed border-border rounded-3xl max-w-md mx-auto space-y-3 shadow-soft">
+              <Compass className="h-10 w-10 text-gold mx-auto animate-pulse" />
+              <h3 className="font-display font-bold text-lg text-primary">No Journeys Scheduled Yet</h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                New convoys to {dest.name} are currently being mapped by our Trip Captains. Contact us to request a custom departure!
+              </p>
+              <Button variant="hero" size="sm" asChild className="mt-2 font-bold text-xs">
+                <Link to="/contact">Request Custom Departure</Link>
+              </Button>
+            </div>
+          ) : (
+            <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-8 justify-center">
+              {matchedJourneys.map((j: any, i: number) => (
+                <Reveal key={j.slug} delay={i} className="group">
+                  <article className="hover-lift overflow-hidden rounded-3xl bg-card border border-border shadow-soft flex flex-col h-full">
+                    <Link to="/journeys/$journeyId" params={{ journeyId: j.slug }} className="block cursor-pointer">
+                      <div className="relative aspect-[16/10] overflow-hidden">
+                        <img
+                          src={j.image || 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80'}
+                          alt={j.name}
+                          loading="lazy"
+                          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                          onError={(e) => {
+                            const target = e.currentTarget;
+                            target.onerror = null;
+                            target.src = 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80';
+                          }}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                        
+                        {/* Animated seat indicator */}
+                        <div className="absolute top-4 left-4 glass-dark rounded-full px-3 py-1 text-[11px] font-poppins font-bold text-white flex items-center gap-1.5 animate-pulse">
+                          <span className="h-2 w-2 rounded-full bg-[#E53E3E]" />
+                          Only {j.remainingSeats ?? j.maxCapacity ?? 0} Seats Left!
+                        </div>
+
+                        <div className="absolute bottom-4 left-4 flex items-center gap-1.5 text-white">
+                          <MapPin className="h-4 w-4 text-gold" />
+                          <span className="font-display text-2xl font-bold">{j.name}</span>
+                        </div>
+                      </div>
+                    </Link>
+
+                    <div className="p-6 flex flex-col flex-1 justify-between space-y-4">
+                      {/* Overview */}
+                      <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed font-sans">{j.overview}</p>
+
+                      {/* Details row */}
+                      <div className="grid grid-cols-2 gap-3 text-xs bg-muted/40 p-3 rounded-2xl border border-border/50">
+                        <div>
+                          <span className="block text-[10px] uppercase tracking-wider text-muted-foreground">Duration</span>
+                          <span className="font-semibold text-foreground flex items-center gap-1 mt-0.5"><Clock className="h-3.5 w-3.5 text-gold" /> {j.duration}</span>
+                        </div>
+                        <div>
+                          <span className="block text-[10px] uppercase tracking-wider text-muted-foreground">Transport</span>
+                          <span className="font-semibold text-foreground flex items-center gap-1 truncate"><Car className="h-3.5 w-3.5 text-secondary" /> {j.transport?.split("/")[0] || "Volvo"}</span>
+                        </div>
+                        <div>
+                          <span className="block text-[10px] uppercase tracking-wider text-muted-foreground">Difficulty</span>
+                          <span className="font-semibold text-foreground flex items-center gap-1 mt-0.5"><Compass className="h-3.5 w-3.5 text-gold" /> {j.difficulty || "Easy"}</span>
+                        </div>
+                        <div>
+                          <span className="block text-[10px] uppercase tracking-wider text-muted-foreground">Group Size</span>
+                          <span className="font-semibold text-foreground flex items-center gap-1 mt-0.5"><Users className="h-3.5 w-3.5 text-accent" /> {typeof j.groupSize === 'string' ? (j.groupSize.split(" ")[0] || "12-18") : (j.group_size_max || "12-18")} Explorers</span>
+                        </div>
                       </div>
 
-                      <div className="absolute bottom-4 left-4 flex items-center gap-1.5 text-white">
-                        <MapPin className="h-4 w-4 text-gold" />
-                        <span className="font-display text-2xl font-bold">{j.name}</span>
+                      {/* Price second */}
+                      <div className="flex items-center justify-between pt-2">
+                        <div>
+                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider block">Starting from</span>
+                          <span className="font-display text-2xl font-bold text-primary">{j.price} <span className="text-xs text-muted-foreground font-sans font-normal">/ Person</span></span>
+                        </div>
+                        <Link
+                          to="/journeys/$journeyId"
+                          params={{ journeyId: j.slug }}
+                          search={{ book: true }}
+                          className="bg-secondary text-white font-poppins font-semibold px-5 py-2.5 rounded-xl hover:bg-primary transition shadow-soft text-sm text-center"
+                        >
+                          Book Now
+                        </Link>
                       </div>
                     </div>
-                  </Link>
-
-                  <div className="p-6 flex flex-col flex-1 justify-between space-y-6">
-                    {/* Experience Info first */}
-                    <div className="grid grid-cols-2 gap-4 text-xs font-sans text-muted-foreground border-b border-border pb-4">
-                      <div>
-                        <span className="block text-[10px] uppercase tracking-wider text-white/50">Duration</span>
-                        <span className="font-semibold text-foreground flex items-center gap-1 mt-0.5"><Clock className="h-3.5 w-3.5 text-accent" /> {j.duration}</span>
-                      </div>
-                      <div>
-                        <span className="block text-[10px] uppercase tracking-wider text-white/50">Transport</span>
-                        <span className="font-semibold text-foreground flex items-center gap-1 mt-0.5"><Car className="h-3.5 w-3.5 text-accent" /> {(() => {
-                          const val = j.transport;
-                          if (!val) return "AC Drive";
-                          if (typeof val === 'string') {
-                            if (val.trim().startsWith('{')) {
-                              try {
-                                const parsed = JSON.parse(val);
-                                return parsed.name || parsed.vehicle_name || "AC Drive";
-                              } catch { return "AC Drive"; }
-                            }
-                            return val.split(" ")[0] || "AC Drive";
-                          }
-                          return val.name || val.vehicle_name || "AC Drive";
-                        })()}</span>
-                      </div>
-                      <div>
-                        <span className="block text-[10px] uppercase tracking-wider text-white/50">Difficulty</span>
-                        <span className="font-semibold text-foreground flex items-center gap-1 mt-0.5"><Compass className="h-3.5 w-3.5 text-accent" /> {j.difficulty || "Moderate"}</span>
-                      </div>
-                      <div>
-                        <span className="block text-[10px] uppercase tracking-wider text-white/50">Group Size</span>
-                        <span className="font-semibold text-foreground flex items-center gap-1 mt-0.5"><Users className="h-3.5 w-3.5 text-accent" /> {typeof j.groupSize === 'string' ? (j.groupSize.split(" ")[0] || "12-18") : (j.group_size_max || "12-18")} Explorers</span>
-                      </div>
-                    </div>
-
-                    {/* Price second */}
-                    <div className="flex items-center justify-between pt-2">
-                      <div>
-                        <span className="text-[10px] text-muted-foreground uppercase tracking-wider block">Starting from</span>
-                        <span className="font-display text-2xl font-bold text-primary">{j.price} <span className="text-xs text-muted-foreground font-sans font-normal">/ Person</span></span>
-                      </div>
-                      <Link
-                        to="/journeys/$journeyId"
-                        params={{ journeyId: j.slug }}
-                        search={{ book: true }}
-                        className="bg-secondary text-white font-poppins font-semibold px-5 py-2.5 rounded-xl hover:bg-primary transition shadow-soft text-sm text-center"
-                      >
-                        Book Now
-                      </Link>
-                    </div>
-                  </div>
-                </article>
-              </Reveal>
-            ))}
-          </div>
+                  </article>
+                </Reveal>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

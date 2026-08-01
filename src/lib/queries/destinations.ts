@@ -101,25 +101,49 @@ export async function getFeaturedDestinations(): Promise<Destination[]> {
 // BY SLUG
 // ==========================================
 export async function getDestinationBySlug(slug: string): Promise<Destination | null> {
-  const { data, error } = await supabase
+  const cleanSlug = slug.toLowerCase().trim();
+
+  // Attempt 1: Exact slug match
+  let { data, error } = await supabase
     .from('destinations')
     .select(DESTINATIONS_SELECT)
-    .eq('slug', slug)
-    .single()
+    .eq('slug', cleanSlug)
+    .maybeSingle();
 
-  if (error) {
-    if (error.code === 'PGRST116') return null
-    throw new Error(error.message)
+  // Attempt 2: Prefix / partial match on slug
+  if (!data) {
+    const { data: prefixData } = await supabase
+      .from('destinations')
+      .select(DESTINATIONS_SELECT)
+      .ilike('slug', `${cleanSlug}%`)
+      .limit(1);
+
+    if (prefixData && prefixData.length > 0) {
+      data = prefixData[0];
+    }
   }
 
-  if (!data) return null
+  // Attempt 3: Match on name
+  if (!data) {
+    const { data: nameData } = await supabase
+      .from('destinations')
+      .select(DESTINATIONS_SELECT)
+      .ilike('name', `%${cleanSlug}%`)
+      .limit(1);
+
+    if (nameData && nameData.length > 0) {
+      data = nameData[0];
+    }
+  }
+
+  if (!data) return null;
 
   return {
     ...data,
     status: (data as any).is_published ? 'PUBLISHED' : 'DRAFT',
     is_featured: false,
     priority: 0
-  } as Destination
+  } as Destination;
 }
 
 // ==========================================

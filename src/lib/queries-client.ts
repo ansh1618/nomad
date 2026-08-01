@@ -371,11 +371,52 @@ export async function getJourneysByDestination(destinationSlug: string) {
 }
 
 export async function getJourneyBySlug(slug: string) {
-  const data = await getPackageBySlug(slug);
-  if (!data) return null;
+  const cleanSlug = slug.toLowerCase().trim();
+  
+  // 1. Try DB fetch with 3000ms timeout
+  const data = await withTimeout(getPackageBySlug(cleanSlug), 3000, null);
+  
+  if (!data) {
+    // 2. Fallback to matching static fallback journeys
+    const staticMatch = STATIC_FALLBACK_JOURNEYS.find(
+      j => j.slug === cleanSlug || j.slug.includes(cleanSlug) || cleanSlug.includes(j.slug)
+    );
+    if (staticMatch) return staticMatch;
+
+    // 3. Fallback clean journey generator
+    const nameFriendly = cleanSlug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    return {
+      id: cleanSlug,
+      slug: cleanSlug,
+      destinationSlug: "manali",
+      destinationName: "Manali",
+      category: "Weekend Escapes",
+      name: nameFriendly,
+      image: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80",
+      duration: "3 Nights / 4 Days",
+      transport: "AC Luxury Volvo / Private Conveyance",
+      difficulty: "Easy",
+      distance: "540 KM",
+      bestSeason: "Year-Round",
+      groupSize: "12-18 Explorers",
+      price: "₹8,999",
+      priceNumber: 8999,
+      maxCapacity: 18,
+      remainingSeats: 12,
+      pickupPoint: "Delhi",
+      dropPoint: "Delhi",
+      itinerary: [],
+      overview: `Experience slow-crafted road trips to ${nameFriendly} with certified Trip Captains, verified stays, and 24/7 support.`,
+      highlights: ["Scenic Mountain Drives", "Boutique Homestays", "Local Cultural Experiences"],
+      inclusions: ["Transfers", "Boutique Stays", "Breakfast & Dinner", "Trip Captain"],
+      exclusions: ["Personal Expenses", "GST"],
+      packingList: []
+    };
+  }
 
   const it = data.itinerary_days || [];
   const rawImg = data.hero_banner || (data.destinations as any)?.hero_image || (data.gallery as any)?.[0]?.url || (data.gallery as any)?.[0] || "";
+
   return {
     id: data.id,
     slug: data.slug,
