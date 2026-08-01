@@ -336,6 +336,23 @@ export async function getJourneys() {
       const galleryFirst = (j.gallery as any)?.[0]?.url || (j.gallery as any)?.[0] || null;
       const rawPrice = j.price || j.starting_price || j.base_price || 6499;
 
+      const rawTransport = j.transport || (j.transports as any)?.title || (j.transports as any)?.name;
+      let cleanTransport = "AC Luxury Tempo Traveller";
+      if (typeof rawTransport === "string") {
+        if (rawTransport.startsWith("{")) {
+          try {
+            const p = JSON.parse(rawTransport);
+            cleanTransport = p.name || p.vehicle_name || p.title || "AC Luxury Tempo Traveller";
+          } catch {
+            cleanTransport = rawTransport;
+          }
+        } else {
+          cleanTransport = rawTransport;
+        }
+      } else if (typeof rawTransport === "object" && rawTransport !== null) {
+        cleanTransport = (rawTransport as any).name || (rawTransport as any).vehicle_name || (rawTransport as any).title || "AC Luxury Tempo Traveller";
+      }
+
       return {
         id: j.id,
         slug: j.slug,
@@ -356,11 +373,11 @@ export async function getJourneys() {
         duration: j.duration || (j.duration_days ? `${j.duration_days} Days / ${j.duration_nights || Math.max(1, j.duration_days - 1)} Nights` : "3 Nights / 4 Days"),
         duration_days: j.duration_days,
         duration_nights: j.duration_nights,
-        transport: j.transport || (j.transports as any)?.title || (j.transports as any)?.name || "AC Tempo Traveller",
+        transport: cleanTransport,
         difficulty: j.difficulty || "Moderate",
         distance: j.distance || "540 KM",
         bestSeason: j.season || j.best_season || "Year-Round",
-        groupSize: j.group_size || (j.group_size_min ? `${j.group_size_min}-${j.group_size_max || 18} Explorers` : "12-18 Explorers"),
+        groupSize: j.group_size || (j.group_size_min ? `${j.group_size_min}-26 Explorers` : "12-26 Explorers"),
         price: formatPriceDisplay(rawPrice),
         priceNumber: Number(rawPrice) > 0 ? Number(rawPrice) : 6499,
         maxCapacity: j.max_capacity || j.group_size_max || 18,
@@ -462,6 +479,23 @@ export async function getJourneyBySlug(slug: string) {
   const rawImg = data.hero_banner || (data.destinations as any)?.hero_image || (data.gallery as any)?.[0]?.url || (data.gallery as any)?.[0] || "";
   const rawPrice = data.price || data.starting_price || data.base_price || 6499;
 
+  const rawTransport = data.transport || (data.transports as any)?.title || (data.transports as any)?.name;
+  let cleanTransport = "AC Luxury Tempo Traveller";
+  if (typeof rawTransport === "string") {
+    if (rawTransport.startsWith("{")) {
+      try {
+        const p = JSON.parse(rawTransport);
+        cleanTransport = p.name || p.vehicle_name || p.title || "AC Luxury Tempo Traveller";
+      } catch {
+        cleanTransport = rawTransport;
+      }
+    } else {
+      cleanTransport = rawTransport;
+    }
+  } else if (typeof rawTransport === "object" && rawTransport !== null) {
+    cleanTransport = (rawTransport as any).name || (rawTransport as any).vehicle_name || (rawTransport as any).title || "AC Luxury Tempo Traveller";
+  }
+
   return {
     id: data.id,
     slug: data.slug,
@@ -473,11 +507,11 @@ export async function getJourneyBySlug(slug: string) {
     duration: data.duration || (data.duration_days ? `${data.duration_days} Days / ${data.duration_nights || Math.max(1, data.duration_days - 1)} Nights` : "3 Nights / 4 Days"),
     duration_days: data.duration_days,
     duration_nights: data.duration_nights,
-    transport: data.transport || (data.transports as any)?.title || (data.transports as any)?.name || "AC Tempo Traveller",
+    transport: cleanTransport,
     difficulty: data.difficulty || "Moderate",
     distance: data.distance || "540 KM",
     bestSeason: data.season || data.best_season || "Best season",
-    groupSize: data.group_size || (data.group_size_min ? `${data.group_size_min}-${data.group_size_max || 18} Explorers` : "12-18 Explorers"),
+    groupSize: data.group_size || (data.group_size_min ? `${data.group_size_min}-26 Explorers` : "12-26 Explorers"),
     price: formatPriceDisplay(rawPrice),
     priceNumber: Number(rawPrice) > 0 ? Number(rawPrice) : 6499,
     maxCapacity: data.max_capacity || data.group_size_max || 18,

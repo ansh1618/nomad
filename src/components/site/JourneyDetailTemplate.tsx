@@ -1588,7 +1588,21 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
                         <Bus className="h-4 w-4 text-accent" /> Transport
                       </span>
                       <span className="font-semibold text-foreground">
-                        {journey.transport || "AC Tempo Traveller"}
+                        {(() => {
+                          const t = journey.transport;
+                          if (!t) return "Luxury AC Force Traveller (26 Seater)";
+                          if (typeof t === "string") {
+                            if (t.startsWith("{")) {
+                              try {
+                                const p = JSON.parse(t);
+                                return p.name || p.vehicle_name || p.title || "Luxury AC Force Traveller (26 Seater)";
+                              } catch { return t; }
+                            }
+                            return t;
+                          }
+                          if (typeof t === "object" && t !== null) return (t as any).name || (t as any).vehicle_name || "Luxury AC Force Traveller (26 Seater)";
+                          return "Luxury AC Force Traveller (26 Seater)";
+                        })()}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
@@ -1601,7 +1615,9 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
                       <span className="text-muted-foreground flex items-center gap-1.5">
                         <Users className="h-4 w-4 text-accent" /> Group Size
                       </span>
-                      <span className="font-semibold text-foreground">{journey.groupSize || "12-18 Explorers"}</span>
+                      <span className="font-semibold text-foreground">
+                        {journey.groupSize && !journey.groupSize.includes("18") ? journey.groupSize : "12-26 Explorers"}
+                      </span>
                     </div>
                   </div>
 
