@@ -135,29 +135,39 @@ export function generateScheduledDepartures(
 // ==========================================
 // UPCOMING (for package page departure picker)
 // ==========================================
-export async function getUpcomingDepartures(journeyId: string): Promise<Departure[]> {
+export async function getUpcomingDepartures(journeyIdOrSlug: string): Promise<Departure[]> {
+  if (!journeyIdOrSlug) return [];
   const today = new Date().toISOString().split('T')[0];
-  let existingDeps: Departure[] = [];
+
+  let resolvedJourneyId = journeyIdOrSlug;
   let journeyInfo: { id: string; name?: string; slug?: string; starting_price?: number } | null = null;
 
-  // Fetch journey info to determine departure rules
-  try {
-    const { data: jData } = await supabase
-      .from('journeys')
-      .select('id, name, slug, starting_price')
-      .eq('id', journeyId)
-      .maybeSingle();
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(journeyIdOrSlug);
 
-    if (jData) journeyInfo = jData;
+  try {
+    let q = supabase.from('journeys').select('id, name, slug, starting_price');
+    if (isUuid) {
+      q = q.eq('id', journeyIdOrSlug);
+    } else {
+      q = q.eq('slug', journeyIdOrSlug);
+    }
+    const { data: jData } = await q.maybeSingle();
+
+    if (jData) {
+      journeyInfo = jData;
+      resolvedJourneyId = jData.id;
+    }
   } catch (jErr) {
     console.warn('[getUpcomingDepartures] Failed to fetch journey info:', jErr);
   }
 
+  let existingDeps: Departure[] = [];
+
   try {
     const { data, error } = await supabase
       .from('departures')
-      .select(DEPARTURE_SELECT)
-      .eq('journey_id', journeyId)
+      .select('*')
+      .eq('journey_id', resolvedJourneyId)
       .eq('is_visible', true)
       .eq('is_cancelled', false)
       .gte('departure_date', today)
@@ -176,7 +186,7 @@ export async function getUpcomingDepartures(journeyId: string): Promise<Departur
       const { data: batches } = await supabase
         .from('trip_batches')
         .select('*')
-        .eq('journey_id', journeyId)
+        .eq('journey_id', resolvedJourneyId)
         .neq('status', 'CANCELLED')
         .gte('departure_date', today)
         .order('departure_date', { ascending: true });
@@ -202,6 +212,8 @@ export async function getUpcomingDepartures(journeyId: string): Promise<Departur
       console.warn('Error fetching legacy trip_batches:', batchErr);
     }
   }
+
+  console.log(`[getUpcomingDepartures] journeyId: ${resolvedJourneyId}, returned ${existingDeps.length} DB departures`);
 
   if (journeyInfo) {
     return generateScheduledDepartures(journeyInfo, existingDeps);

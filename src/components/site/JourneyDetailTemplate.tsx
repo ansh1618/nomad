@@ -263,21 +263,25 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
         return loaderData?.journey;
       }
     },
-    initialData: loaderData?.journey,
+    initialData: loaderData?.journey || undefined,
   });
 
   const { data: departures = loaderData?.departures || [] } = useQuery({
-    queryKey: ["departures", journey?.id],
+    queryKey: ["departures", journey?.id, slug],
     queryFn: async () => {
-      if (!journey?.id) return loaderData?.departures || [];
+      const targetId = journey?.id || slug;
+      if (!targetId) return loaderData?.departures || [];
       try {
-        return await getUpcomingDepartures(journey.id);
+        const res = await getUpcomingDepartures(targetId);
+        console.log(`[JourneyDetailTemplate] getUpcomingDepartures for targetId ${targetId} returned ${res.length} rows`);
+        return res || loaderData?.departures || [];
       } catch (err) {
+        console.warn("[JourneyDetailTemplate] getUpcomingDepartures failed:", err);
         return loaderData?.departures || [];
       }
     },
-    enabled: !!journey?.id,
-    initialData: loaderData?.departures,
+    enabled: !!(journey?.id || slug),
+    initialData: loaderData?.departures || undefined,
   });
 
   const { data: reviews = [] } = useQuery({
@@ -388,6 +392,14 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
       : Array.isArray(journey.itinerary) && journey.itinerary.length > 0
       ? journey.itinerary
       : [];
+
+  if (typeof window !== "undefined") {
+    console.log(`[JourneyDetailTemplate Audit] Journey Slug: ${slug} | Journey ID: ${journey?.id}`);
+    console.log(`[JourneyDetailTemplate Audit] Fetched journey object:`, journey);
+    console.log(`[JourneyDetailTemplate Audit] Fetched itinerary count: ${itineraryDays.length}`, itineraryDays);
+    console.log(`[JourneyDetailTemplate Audit] Fetched departures count: ${departures.length}`, departures);
+  }
+
   const inclusions: string[] = journey.inclusions ?? [];
   const exclusions: string[] = journey.exclusions ?? [];
 
