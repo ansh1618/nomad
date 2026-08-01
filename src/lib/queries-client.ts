@@ -291,6 +291,7 @@ export async function getDestinationBySlug(slug: string) {
   const galleryFirst = (data.gallery as any)?.[0]?.url || (data.gallery as any)?.[0] || null;
 
   return {
+    id: data.id,
     slug: data.slug,
     name: data.name,
     subtitle: data.subtitle,

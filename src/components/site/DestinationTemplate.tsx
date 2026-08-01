@@ -25,17 +25,17 @@ export function DestinationTemplate({ slug }: DestinationTemplateProps) {
   const { isAuthenticated } = useAuth();
   const loaderData = (useLoaderData({ strict: false }) || {}) as any;
 
-  const { data: dest = loaderData?.dest, isLoading: isDestLoading } = useQuery({
+  const { data: dest, isLoading: isDestLoading } = useQuery({
     queryKey: ['destination_detail', slug],
     queryFn: async () => {
       try {
         const res = await getDestinationBySlug(slug);
-        return res || loaderData?.dest;
+        return res || loaderData?.dest || null;
       } catch {
         return loaderData?.dest || null;
       }
     },
-    initialData: loaderData?.dest,
+    initialData: loaderData?.dest || undefined,
   });
 
   const { data: journeys = loaderData?.journeys || [] } = useQuery({
@@ -48,7 +48,7 @@ export function DestinationTemplate({ slug }: DestinationTemplateProps) {
         return loaderData?.journeys || [];
       }
     },
-    initialData: loaderData?.journeys,
+    initialData: loaderData?.journeys || undefined,
   });
 
   const [loginModalOpen, setLoginModalOpen] = useState(false);
@@ -69,7 +69,18 @@ export function DestinationTemplate({ slug }: DestinationTemplateProps) {
     }
   };
 
-  if (!dest && !isDestLoading) {
+  if (isDestLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background p-5 text-center">
+        <div className="space-y-3 text-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent mx-auto" />
+          <p className="text-xs font-poppins text-muted-foreground">Loading destination...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!dest) {
     return (
       <div className="flex h-screen items-center justify-center bg-background p-5 text-center">
         <div>
