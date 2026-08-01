@@ -23,7 +23,33 @@ interface DestinationTemplateProps {
 
 export function DestinationTemplate({ slug }: DestinationTemplateProps) {
   const { isAuthenticated } = useAuth();
-  const { dest, journeys } = useLoaderData({ strict: false }) as any;
+  const loaderData = (useLoaderData({ strict: false }) || {}) as any;
+
+  const { data: dest = loaderData?.dest, isLoading: isDestLoading } = useQuery({
+    queryKey: ['destination_detail', slug],
+    queryFn: async () => {
+      try {
+        const res = await getDestinationBySlug(slug);
+        return res || loaderData?.dest;
+      } catch {
+        return loaderData?.dest || null;
+      }
+    },
+    initialData: loaderData?.dest,
+  });
+
+  const { data: journeys = loaderData?.journeys || [] } = useQuery({
+    queryKey: ['journeys_catalog_dest'],
+    queryFn: async () => {
+      try {
+        const res = await getJourneys();
+        return res || loaderData?.journeys || [];
+      } catch {
+        return loaderData?.journeys || [];
+      }
+    },
+    initialData: loaderData?.journeys,
+  });
 
   const [loginModalOpen, setLoginModalOpen] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
@@ -31,7 +57,7 @@ export function DestinationTemplate({ slug }: DestinationTemplateProps) {
   // Fetch document metadata for this destination
   const { data: documentMeta } = useQuery({
     queryKey: ['package_document_destination', slug],
-    queryFn: () => getPackageDocumentBySlugFn({ data: { slug, type: 'ITINERARY' } }),
+    queryFn: () => getPackageDocumentBySlugFn({ data: { slug, type: 'ITINERARY' } }).catch(() => null),
     enabled: !!slug,
   });
 
@@ -42,7 +68,8 @@ export function DestinationTemplate({ slug }: DestinationTemplateProps) {
       setLoginModalOpen(true);
     }
   };
-  if (!dest) {
+
+  if (!dest && !isDestLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-background p-5 text-center">
         <div>

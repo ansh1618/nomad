@@ -54,7 +54,7 @@ import { validateCoupon } from "@/lib/booking-api";
 import { createGuestBookingFn } from "@/lib/booking-fns";
 import { useAuth } from "./AuthContext";
 import { getPackageDocumentBySlugFn } from "@/lib/itinerary-pdf-fns";
-import { getRealDestinationImage } from "@/lib/queries-client";
+import { getRealDestinationImage, getJourneyBySlug } from "@/lib/queries-client";
 import { resolveJourneyHero } from "@/lib/media-resolver";
 import { resolveBookingPricing } from "@/lib/pricing-fns";
 
@@ -256,10 +256,10 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
     queryKey: ["package", slug],
     queryFn: async () => {
       try {
-        const res = await getPackageBySlug(slug);
+        const res = await getJourneyBySlug(slug);
         return res || loaderData?.journey;
       } catch (err) {
-        console.warn("getPackageBySlug failed in component, using loader fallback:", err);
+        console.warn("getJourneyBySlug failed in component, using loader fallback:", err);
         return loaderData?.journey;
       }
     },
