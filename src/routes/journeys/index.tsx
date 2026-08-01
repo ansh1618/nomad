@@ -3,20 +3,21 @@ import { useState } from 'react'
 import { Navbar } from '@/components/site/Navbar'
 import { Footer } from '@/components/site/Footer'
 import { FloatingUI } from '@/components/site/FloatingUI'
-import { getJourneys, getRealDestinationImage, formatPriceDisplay } from '@/lib/queries-client'
+import { getJourneys, getRealDestinationImage, formatPriceDisplay, STATIC_FALLBACK_JOURNEYS } from '@/lib/queries-client'
 import { Search, Compass, MapPin, Clock, Bus, Users, Sparkles } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { RouteLoadingState, RouteErrorState } from '@/components/site/RouteStates'
 import { withTimeout } from '@/lib/promise-timeout'
+import { motion } from 'framer-motion'
 
 export const Route = createFileRoute('/journeys/')({
   loader: async () => {
     try {
-      const journeys = await withTimeout(getJourneys(), 2000, [])
-      return { journeys }
+      const journeys = await withTimeout(getJourneys(), 6000, STATIC_FALLBACK_JOURNEYS)
+      return { journeys: journeys?.length > 0 ? journeys : STATIC_FALLBACK_JOURNEYS }
     } catch (err) {
       console.error('[Nomadik Journeys Loader] Failed to load journeys:', err)
-      return { journeys: [] }
+      return { journeys: STATIC_FALLBACK_JOURNEYS }
     }
   },
   pendingComponent: RouteLoadingState,

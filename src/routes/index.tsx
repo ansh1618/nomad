@@ -19,7 +19,7 @@ import { Footer } from "@/components/site/Footer";
 import { FloatingUI } from "@/components/site/FloatingUI";
 import { LoadingScreen } from "@/components/site/LoadingScreen";
 
-import { getDestinations, getJourneys } from "@/lib/queries-client";
+import { getDestinations, getJourneys, STATIC_FALLBACK_DESTINATIONS, STATIC_FALLBACK_JOURNEYS } from "@/lib/queries-client";
 import { withTimeout } from "@/lib/promise-timeout";
 import { RouteLoadingState, RouteErrorState } from "@/components/site/RouteStates";
 
@@ -27,13 +27,16 @@ export const Route = createFileRoute("/")({
   loader: async () => {
     try {
       const [destinations, journeys] = await Promise.all([
-        withTimeout(getDestinations(), 2000, []),
-        withTimeout(getJourneys(), 2000, []),
+        withTimeout(getDestinations(), 6000, STATIC_FALLBACK_DESTINATIONS),
+        withTimeout(getJourneys(), 6000, STATIC_FALLBACK_JOURNEYS),
       ]);
-      return { destinations, journeys };
+      return {
+        destinations: destinations?.length > 0 ? destinations : STATIC_FALLBACK_DESTINATIONS,
+        journeys: journeys?.length > 0 ? journeys : STATIC_FALLBACK_JOURNEYS
+      };
     } catch (err) {
-      console.error("[Nomadik Loader] Failed to load data, using empty fallback:", err);
-      return { destinations: [], journeys: [] };
+      console.error("[Nomadik Loader] Failed to load data, using fallback:", err);
+      return { destinations: STATIC_FALLBACK_DESTINATIONS, journeys: STATIC_FALLBACK_JOURNEYS };
     }
   },
   pendingComponent: RouteLoadingState,

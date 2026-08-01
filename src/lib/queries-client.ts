@@ -40,28 +40,214 @@ export function getRealDestinationImage(
   return resolveDestinationHero(slug, candidate);
 }
 
+export const STATIC_FALLBACK_DESTINATIONS: any[] = [
+  {
+    slug: "manali",
+    name: "Manali",
+    subtitle: "Valley of Gods & High Mountain Passes",
+    image: "/images/manali/manali-snow-valley.jpg",
+    overview: "Experience serene snow valleys, Solang adventures, and vibrant Old Manali cafes.",
+    weather: "Pleasant (-2°C to 20°C)",
+    howToReach: "AC Volvo Bus from Delhi / Chandigarh",
+    bestTime: "Year-round (Best for Snow: Dec-Feb)",
+    topPlaces: ["Solang Valley", "Atal Tunnel", "Old Manali", "Hadimba Temple"],
+    faqs: [],
+    reviews: []
+  },
+  {
+    slug: "jibhi",
+    name: "Jibhi",
+    subtitle: "Hidden Himalayan Hamlet in Tirthan Valley",
+    image: "/images/jibhi/jibhi-raghupur-fort-temple.jpg",
+    overview: "Pristine pine forests, wooden chalets, waterfall treks, and tranquil river trails.",
+    weather: "Cool & Crisp (5°C to 22°C)",
+    howToReach: "Volvo Bus to Aut + Cab transfer",
+    bestTime: "March to November",
+    topPlaces: ["Jibhi Waterfalls", "Raghupur Fort", "Chehni Kothi", "Jalori Pass"],
+    faqs: [],
+    reviews: []
+  },
+  {
+    slug: "udaipur",
+    name: "Udaipur",
+    subtitle: "City of Lakes & Royal Rajputana Heritage",
+    image: "/images/udaipur-palace.png",
+    overview: "Golden sunsets over Lake Pichola, royal palaces, heritage cafes, and fort trails.",
+    weather: "Warm & Sunlit (12°C to 30°C)",
+    howToReach: "Direct Train / Flight / Overnight Bus from Delhi / Jaipur",
+    bestTime: "September to March",
+    topPlaces: ["City Palace", "Lake Pichola", "Fateh Sagar", "Monsoon Palace"],
+    faqs: [],
+    reviews: []
+  },
+  {
+    slug: "chopta",
+    name: "Chopta",
+    subtitle: "Mini Switzerland of Uttarakhand & Tungnath Trek",
+    image: "/assets/pkg-adventure.jpg",
+    overview: "Trek to the highest Shiva temple in the world at Tungnath & summit Chandrashila Peak.",
+    weather: "Crisp Alpine Climate (-5°C to 18°C)",
+    howToReach: "Private Conveyance / Volvo via Haridwar & Rishikesh",
+    bestTime: "April to November & Snow Treks in Winter",
+    topPlaces: ["Tungnath Temple", "Chandrashila Peak", "Deoriatal Lake", "Baniyakund Meadows"],
+    faqs: [],
+    reviews: []
+  },
+  {
+    slug: "mcleodganj",
+    name: "McLeod Ganj",
+    subtitle: "Little Lhasa & Dhauladhar Mountain Trails",
+    image: "/images/mcleodganj/mcleodganj-ropeway.jpg",
+    overview: "Tibetan monasteries, Triund trek, cafes in Dharamkot, and majestic Dhauladhar views.",
+    weather: "Pleasant Mountain Breeze (8°C to 24°C)",
+    howToReach: "AC Volvo Bus from Delhi (Overnight)",
+    bestTime: "Year-Round",
+    topPlaces: ["Dalai Lama Temple", "Triund Trek", "Bhagsunag Falls", "Dharamkot"],
+    faqs: [],
+    reviews: []
+  }
+];
+
+export const STATIC_FALLBACK_JOURNEYS: any[] = [
+  {
+    id: "manali-weekend",
+    slug: "manali-weekend",
+    destinationSlug: "manali",
+    destinationName: "Manali",
+    category: "Weekend Escapes",
+    name: "Manali Solang & Kasol Road Expedition",
+    hero_banner: "/images/manali/manali-snow-valley.jpg",
+    image: "/images/manali/manali-snow-valley.jpg",
+    duration: "3 Nights / 4 Days",
+    transport: "AC Luxury Volvo / Tempo Traveller",
+    difficulty: "Easy",
+    distance: "540 KM",
+    bestSeason: "Year-Round",
+    groupSize: "12-18 Explorers",
+    price: "₹8,999",
+    priceNumber: 8999,
+    maxCapacity: 18,
+    remainingSeats: 12,
+    pickupPoint: "Majnu Ka Tilla, Delhi",
+    dropPoint: "Majnu Ka Tilla, Delhi",
+    itinerary: [],
+    overview: "Experience serene snow valleys, Solang adventures, Atal Tunnel & Kasol Riverside cafes.",
+    highlights: ["Solang Valley Adventure", "Atal Tunnel Drive", "Kasol Riverside Cafe Hopping"],
+    inclusions: ["Delhi-Manali Volvo", "3-Star Hotel Stay", "Breakfast & Dinner", "Trip Captain"],
+    exclusions: ["Personal Expenses", "GST"]
+  },
+  {
+    id: "udaipur-weekend",
+    slug: "udaipur-weekend",
+    destinationSlug: "udaipur",
+    destinationName: "Udaipur",
+    category: "Luxury Escapades",
+    name: "Udaipur Royal Lakes & Sunset Cruise",
+    hero_banner: "/images/udaipur-palace.png",
+    image: "/images/udaipur-palace.png",
+    duration: "2 Nights / 3 Days",
+    transport: "AC Sleeper Bus / Private AC Traveler",
+    difficulty: "Easy",
+    distance: "660 KM",
+    bestSeason: "September to March",
+    groupSize: "12-16 Explorers",
+    price: "₹7,499",
+    priceNumber: 7499,
+    maxCapacity: 16,
+    remainingSeats: 10,
+    pickupPoint: "Delhi / Jaipur",
+    dropPoint: "Delhi / Jaipur",
+    itinerary: [],
+    overview: "Golden sunsets over Lake Pichola, heritage city tours, boat cruises & rooftop dinners.",
+    highlights: ["Lake Pichola Sunset Boat Cruise", "City Palace Heritage Tour", "Monsoon Palace Sunset"],
+    inclusions: ["Luxury Bus Transfers", "Heritage Hotel Stay", "Breakfast & Dinner", "Tour Captain"],
+    exclusions: ["Personal Expenses", "GST"]
+  },
+  {
+    id: "chopta-tungnath",
+    slug: "chopta-tungnath",
+    destinationSlug: "chopta",
+    destinationName: "Chopta",
+    category: "Spiritual Trips",
+    name: "Chopta Tungnath & Chandrashila Peak Trek",
+    hero_banner: "/assets/pkg-adventure.jpg",
+    image: "/assets/pkg-adventure.jpg",
+    duration: "3 Nights / 4 Days",
+    transport: "Private Tempo Traveller",
+    difficulty: "Moderate",
+    distance: "450 KM",
+    bestSeason: "April to November",
+    groupSize: "12-16 Explorers",
+    price: "₹8,499",
+    priceNumber: 8499,
+    maxCapacity: 16,
+    remainingSeats: 8,
+    pickupPoint: "Akshardham Metro, Delhi",
+    dropPoint: "Akshardham Metro, Delhi",
+    itinerary: [],
+    overview: "Trek to the highest Shiva temple in the world at Tungnath & summit Chandrashila Peak.",
+    highlights: ["Highest Shiva Temple Trek", "Chandrashila 360 Himalayan View", "Deoriatal Lake Camping"],
+    inclusions: ["Delhi-Chopta Transfers", "Boutique Camps & Stays", "Breakfast & Dinner", "Trek Leader"],
+    exclusions: ["Personal Expenses", "GST"]
+  },
+  {
+    id: "jibhi-tirthan",
+    slug: "jibhi-tirthan",
+    destinationSlug: "jibhi",
+    destinationName: "Jibhi",
+    category: "Backpacking",
+    name: "Jibhi & Jalori Pass Secret Waterfall Escape",
+    hero_banner: "/images/jibhi/jibhi-raghupur-fort-temple.jpg",
+    image: "/images/jibhi/jibhi-raghupur-fort-temple.jpg",
+    duration: "3 Nights / 4 Days",
+    transport: "AC Volvo + Private Cab",
+    difficulty: "Easy",
+    distance: "500 KM",
+    bestSeason: "March to November",
+    groupSize: "12-18 Explorers",
+    price: "₹8,799",
+    priceNumber: 8799,
+    maxCapacity: 18,
+    remainingSeats: 14,
+    pickupPoint: "Kashmere Gate, Delhi",
+    dropPoint: "Kashmere Gate, Delhi",
+    itinerary: [],
+    overview: "Unwind in wooden chalets, hike to Raghupur Fort ruins, and explore hidden Jibhi waterfalls.",
+    highlights: ["Raghupur Fort 360 Viewpoint", "Jibhi Waterfall Walk", "Jalori Pass Trek"],
+    inclusions: ["Volvo Bus Transfers", "Wooden Chalet Stay", "Breakfast & Dinner", "Trip Captain"],
+    exclusions: ["Personal Expenses", "GST"]
+  }
+];
+
 export async function getDestinations() {
-  const data = await getPublishedDestinations();
-  return data.map((d: any) => {
-    const galleryFirst = (d.gallery as any)?.[0]?.url || (d.gallery as any)?.[0] || null;
-    return {
-      slug: d.slug,
-      name: d.name,
-      subtitle: d.subtitle,
-      hero_image: d.hero_image,
-      thumbnail: d.thumbnail,
-      cover_image: d.cover_image,
-      image: getRealDestinationImage(d.slug, d.hero_image, d.thumbnail, d.cover_image, galleryFirst),
-      gallery: d.gallery || [],
-      overview: d.description,
-      weather: d.weather,
-      howToReach: d.how_to_reach,
-      bestTime: d.best_time || "Best time to visit",
-      topPlaces: d.things_to_do || [],
-      faqs: d.faqs || [],
-      reviews: []
-    };
-  });
+  try {
+    const data = await getPublishedDestinations();
+    if (!data || data.length === 0) return STATIC_FALLBACK_DESTINATIONS;
+
+    return data.map((d: any) => {
+      const galleryFirst = (d.gallery as any)?.[0]?.url || (d.gallery as any)?.[0] || null;
+      return {
+        slug: d.slug,
+        name: d.name,
+        subtitle: d.subtitle,
+        hero_image: d.hero_image,
+        thumbnail: d.thumbnail,
+        cover_image: d.cover_image,
+        image: getRealDestinationImage(d.slug, d.hero_image, d.thumbnail, d.cover_image, galleryFirst),
+        gallery: d.gallery || [],
+        overview: d.description,
+        weather: d.weather,
+        howToReach: d.how_to_reach,
+        bestTime: d.best_time || "Best time to visit",
+        topPlaces: d.things_to_do || [],
+        faqs: d.faqs || [],
+        reviews: []
+      };
+    });
+  } catch (err) {
+    console.warn("[getDestinations] Failed to load from DB, returning static fallbacks:", err);
+    return STATIC_FALLBACK_DESTINATIONS;
+  }
 }
 
 export async function getDestinationBySlug(slug: string) {
@@ -121,55 +307,62 @@ export async function getDestinationBySlug(slug: string) {
 }
 
 export async function getJourneys() {
-  const data = await getPublishedPackages();
-  return data.map((j: any) => {
-    const it = j.itinerary_days || [];
-    const galleryFirst = (j.gallery as any)?.[0]?.url || (j.gallery as any)?.[0] || null;
-    return {
-      id: j.id,
-      slug: j.slug,
-      destinationSlug: j.destinations?.slug || "",
-      destinationName: j.destinations?.name || "",
-      category: j.category || "",
-      name: j.name,
-      hero_banner: j.hero_banner,
-      thumbnail: j.thumbnail,
-      cover_image: j.cover_image,
-      image: getRealDestinationImage(
-        j.slug || j.destinations?.slug || "",
-        j.hero_banner || j.destinations?.hero_image,
-        j.thumbnail,
-        j.cover_image,
-        galleryFirst
-      ),
-      duration: j.duration,
-      transport: j.transport,
-      difficulty: j.difficulty,
-      distance: j.distance,
-      bestSeason: j.season || j.best_season || "Best season",
-      groupSize: j.group_size || j.group_size_max,
-      price: formatPriceDisplay(j.price || j.starting_price || 6499),
-      priceNumber: Number(j.price || j.starting_price) > 0 ? Number(j.price || j.starting_price) : 6499,
-      maxCapacity: j.max_capacity || j.group_size_max || 18,
-      remainingSeats: j.remaining_seats || j.available_seats || 18,
-      pickupPoint: j.pickup_point,
-      dropPoint: j.drop_point,
-      itinerary: it,
-      overview: j.description || j.overview || j.name,
-      highlights: Array.isArray(it) && it.length > 0 
-        ? it.map((day: any) => day?.title || "").filter(Boolean).slice(0, 3)
-        : (j.highlights || []),
-      hotel: j.hotel,
-      food: j.food,
-      dayByDay: it,
-      stayInfo: j.hotel || "",
-      foodInfo: j.food || "",
-      transportDetails: j.transport || "",
-      inclusions: j.inclusions || [],
-      exclusions: j.exclusions || [],
-      packingList: j.packing_list || []
-    };
-  });
+  try {
+    const data = await getPublishedPackages();
+    if (!data || data.length === 0) return STATIC_FALLBACK_JOURNEYS;
+
+    return data.map((j: any) => {
+      const it = j.itinerary_days || [];
+      const galleryFirst = (j.gallery as any)?.[0]?.url || (j.gallery as any)?.[0] || null;
+      return {
+        id: j.id,
+        slug: j.slug,
+        destinationSlug: j.destinations?.slug || "",
+        destinationName: j.destinations?.name || "",
+        category: j.category || "",
+        name: j.name,
+        hero_banner: j.hero_banner,
+        thumbnail: j.thumbnail,
+        cover_image: j.cover_image,
+        image: getRealDestinationImage(
+          j.slug || j.destinations?.slug || "",
+          j.hero_banner || j.destinations?.hero_image,
+          j.thumbnail,
+          j.cover_image,
+          galleryFirst
+        ),
+        duration: j.duration,
+        transport: j.transport,
+        difficulty: j.difficulty,
+        distance: j.distance,
+        bestSeason: j.season || j.best_season || "Best season",
+        groupSize: j.group_size || j.group_size_max,
+        price: formatPriceDisplay(j.price || j.starting_price || 6499),
+        priceNumber: Number(j.price || j.starting_price) > 0 ? Number(j.price || j.starting_price) : 6499,
+        maxCapacity: j.max_capacity || j.group_size_max || 18,
+        remainingSeats: j.remaining_seats || j.available_seats || 18,
+        pickupPoint: j.pickup_point,
+        dropPoint: j.drop_point,
+        itinerary: it,
+        overview: j.description || j.overview || j.name,
+        highlights: Array.isArray(it) && it.length > 0 
+          ? it.map((day: any) => day?.title || "").filter(Boolean).slice(0, 3)
+          : (j.highlights || []),
+        hotel: j.hotel,
+        food: j.food,
+        dayByDay: it,
+        stayInfo: j.hotel || "",
+        foodInfo: j.food || "",
+        transportDetails: j.transport || "",
+        inclusions: j.inclusions || [],
+        exclusions: j.exclusions || [],
+        packingList: j.packing_list || []
+      };
+    });
+  } catch (err) {
+    console.warn("[getJourneys] Failed to load from DB, returning static fallbacks:", err);
+    return STATIC_FALLBACK_JOURNEYS;
+  }
 }
 
 export async function getJourneysByDestination(destinationSlug: string) {

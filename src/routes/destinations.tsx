@@ -3,23 +3,24 @@ import { useState } from 'react'
 import { Navbar } from '@/components/site/Navbar'
 import { Footer } from '@/components/site/Footer'
 import { FloatingUI } from '@/components/site/FloatingUI'
-import { getDestinations, getJourneys, getRealDestinationImage } from '@/lib/queries-client'
+import { getDestinations, getJourneys, getRealDestinationImage, STATIC_FALLBACK_DESTINATIONS, STATIC_FALLBACK_JOURNEYS } from '@/lib/queries-client'
 import { Search, Compass, MapPin } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { RouteLoadingState, RouteErrorState } from '@/components/site/RouteStates'
 import { withTimeout } from '@/lib/promise-timeout'
+import { motion } from 'framer-motion'
 
 export const Route = createFileRoute('/destinations')({
   loader: async () => {
     try {
       const [destinations, journeys] = await Promise.all([
-        withTimeout(getDestinations(), 2000, []),
-        withTimeout(getJourneys(), 2000, []),
+        withTimeout(getDestinations(), 6000, STATIC_FALLBACK_DESTINATIONS),
+        withTimeout(getJourneys(), 6000, STATIC_FALLBACK_JOURNEYS),
       ])
-      return { destinations, journeys }
+      return { destinations: destinations?.length > 0 ? destinations : STATIC_FALLBACK_DESTINATIONS, journeys }
     } catch (err) {
       console.error('[Nomadik Destinations Loader] Failed to load data:', err)
-      return { destinations: [], journeys: [] }
+      return { destinations: STATIC_FALLBACK_DESTINATIONS, journeys: STATIC_FALLBACK_JOURNEYS }
     }
   },
   pendingComponent: RouteLoadingState,
