@@ -9,15 +9,17 @@ import { getDestinationBySlug, getJourneys, STATIC_FALLBACK_JOURNEYS } from "@/l
 
 export const Route = createFileRoute("/destinations/$slug")({
   loader: async ({ params }) => {
+    console.log(`[Loader /destinations/$slug] Loading destination slug: ${params.slug}...`);
     try {
       const [dest, journeys] = await Promise.all([
         withTimeout(getDestinationBySlug(params.slug), 6000, null),
-        withTimeout(getJourneys(), 6000, STATIC_FALLBACK_JOURNEYS)
+        withTimeout(getJourneys(), 6000, [])
       ]);
-      return { dest, journeys: journeys?.length > 0 ? journeys : STATIC_FALLBACK_JOURNEYS };
+      console.log(`[Loader /destinations/$slug] Resolved dest: ${dest?.name || 'Not Found'}, journeys count: ${journeys?.length || 0}`);
+      return { dest, journeys: journeys || [] };
     } catch (err) {
-      console.error("[Route Loader] Error in /destinations/$slug loader:", err);
-      return { dest: null, journeys: STATIC_FALLBACK_JOURNEYS };
+      console.error(`[Loader /destinations/$slug] Exception loading ${params.slug}:`, err);
+      return { dest: null, journeys: [] };
     }
   },
   pendingComponent: RouteLoadingState,

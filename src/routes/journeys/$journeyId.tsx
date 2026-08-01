@@ -55,12 +55,15 @@ import { withTimeout } from "@/lib/promise-timeout";
 
 export const Route = createFileRoute("/journeys/$journeyId")({
   loader: async ({ params }) => {
+    console.log(`[Loader /journeys/$journeyId] Step 1: Loading journey for slug '${params.journeyId}'...`);
     try {
       const journey = await getJourneyBySlug(params.journeyId);
+      console.log(`[Loader /journeys/$journeyId] Step 2: Journey loaded -> ${journey?.name || 'Not Found'} (ID: ${journey?.id || 'none'})`);
       const departures = journey?.id ? await withTimeout(fetchActiveDepartures(journey.id), 1500, []) : [];
+      console.log(`[Loader /journeys/$journeyId] Step 3: Departures loaded -> count: ${departures.length}`);
       return { journey, departures };
     } catch (err) {
-      console.error("[Route Loader Error] Failed to load journey:", err);
+      console.error(`[Loader /journeys/$journeyId] Exception loading ${params.journeyId}:`, err);
       const titleFriendly = params.journeyId ? params.journeyId.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ") : "Road Journey";
       return {
         journey: {
