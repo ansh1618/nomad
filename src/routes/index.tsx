@@ -20,14 +20,15 @@ import { FloatingUI } from "@/components/site/FloatingUI";
 import { LoadingScreen } from "@/components/site/LoadingScreen";
 
 import { getDestinations, getJourneys } from "@/lib/queries-client";
+import { withTimeout } from "@/lib/promise-timeout";
 import { RouteLoadingState, RouteErrorState } from "@/components/site/RouteStates";
 
 export const Route = createFileRoute("/")({
   loader: async () => {
     try {
       const [destinations, journeys] = await Promise.all([
-        getDestinations(),
-        getJourneys(),
+        withTimeout(getDestinations(), 2000, []),
+        withTimeout(getJourneys(), 2000, []),
       ]);
       return { destinations, journeys };
     } catch (err) {

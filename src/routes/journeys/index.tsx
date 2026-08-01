@@ -7,12 +7,12 @@ import { getJourneys, getRealDestinationImage, formatPriceDisplay } from '@/lib/
 import { Search, Compass, MapPin, Clock, Bus, Users, Sparkles } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { RouteLoadingState, RouteErrorState } from '@/components/site/RouteStates'
-import { motion } from 'framer-motion'
+import { withTimeout } from '@/lib/promise-timeout'
 
 export const Route = createFileRoute('/journeys/')({
   loader: async () => {
     try {
-      const journeys = await getJourneys()
+      const journeys = await withTimeout(getJourneys(), 2000, [])
       return { journeys }
     } catch (err) {
       console.error('[Nomadik Journeys Loader] Failed to load journeys:', err)

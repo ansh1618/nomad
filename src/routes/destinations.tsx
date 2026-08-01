@@ -7,14 +7,14 @@ import { getDestinations, getJourneys, getRealDestinationImage } from '@/lib/que
 import { Search, Compass, MapPin } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { RouteLoadingState, RouteErrorState } from '@/components/site/RouteStates'
-import { motion } from 'motion/react'
+import { withTimeout } from '@/lib/promise-timeout'
 
 export const Route = createFileRoute('/destinations')({
   loader: async () => {
     try {
       const [destinations, journeys] = await Promise.all([
-        getDestinations(),
-        getJourneys(),
+        withTimeout(getDestinations(), 2000, []),
+        withTimeout(getJourneys(), 2000, []),
       ])
       return { destinations, journeys }
     } catch (err) {

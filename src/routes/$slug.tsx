@@ -6,13 +6,14 @@ import { Footer } from "@/components/site/Footer";
 import { FloatingUI } from "@/components/site/FloatingUI";
 import { RouteLoadingState, RouteErrorState } from "@/components/site/RouteStates";
 
+import { withTimeout } from "@/lib/promise-timeout";
+
 export const Route = createFileRoute("/$slug")({
   loader: async ({ params }) => {
-    const dest = await getDestinationBySlug(params.slug);
-    if (!dest) {
-      throw notFound();
-    }
-    const journeys = await getJourneys();
+    const [dest, journeys] = await Promise.all([
+      withTimeout(getDestinationBySlug(params.slug), 2000, null),
+      withTimeout(getJourneys(), 2000, [])
+    ]);
     return { dest, journeys };
   },
   pendingComponent: RouteLoadingState,

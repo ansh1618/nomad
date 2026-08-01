@@ -4,22 +4,16 @@ import { Button } from "@/components/ui/button";
 
 export function RouteLoadingState() {
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-background/80 backdrop-blur-sm">
-      <div className="flex flex-col items-center gap-5 text-center">
-        <div className="relative flex items-center justify-center">
-          <div className="absolute h-20 w-20 rounded-full border-4 border-gold/20 border-t-gold animate-spin" />
-          <div className="grid h-14 w-14 place-items-center rounded-2xl bg-gold-gradient text-gold-foreground shadow-gold">
-            <Compass className="h-7 w-7 animate-pulse" />
-          </div>
-        </div>
-        <span className="font-display text-xl font-bold tracking-wide text-primary">
-          Finding Your Path...
-        </span>
-        <p className="text-xs text-muted-foreground max-w-[200px]">
-          Mapping the roads and fetching the latest convoys from the mountains.
-        </p>
+    <>
+      {/* Top Gold Progress Bar (Non-blocking, instant visual feedback) */}
+      <div className="fixed top-0 inset-x-0 z-[100] h-1 bg-gradient-to-r from-amber-500 via-[#C8A96A] to-amber-600 animate-pulse pointer-events-none" />
+
+      {/* Non-Blocking Floating Pill Indicator (Never blocks viewport clicks) */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[90] bg-[#102A43]/95 text-white px-5 py-2.5 rounded-full shadow-2xl border border-amber-500/30 backdrop-blur-md flex items-center gap-3 font-poppins text-xs font-bold pointer-events-none animate-bounce">
+        <Compass className="h-4 w-4 text-amber-400 animate-spin" />
+        <span>Loading Journey Data...</span>
       </div>
-    </div>
+    </>
   );
 }
 
