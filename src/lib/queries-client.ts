@@ -3,6 +3,7 @@ import { getPublishedDestinations, getDestinationBySlug as sharedGetDestinationB
 import { getPublishedPackages, getPackageBySlug } from "./queries/packages";
 import { getApprovedReviews as sharedGetApprovedReviews } from "./queries/admin";
 import { resolveDestinationHero, resolveJourneyHero, isValidMediaUrl } from "./media-resolver";
+import { withTimeout } from "@/lib/promise-timeout";
 
 export function formatPriceDisplay(price: any): string {
   if (price === null || price === undefined) return "₹6,499";

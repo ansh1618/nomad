@@ -250,26 +250,51 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
   const [pendingBookingId, setPendingBookingId] = useState("");
   const [pendingBookingRef, setPendingBookingRef] = useState("");
 
-  const { data: journey, isLoading } = useQuery({
+  const loaderData = useLoaderData({ strict: false }) as any;
+
+  const { data: journey = loaderData?.journey, isLoading } = useQuery({
     queryKey: ["package", slug],
-    queryFn: () => getPackageBySlug(slug),
+    queryFn: async () => {
+      try {
+        const res = await getPackageBySlug(slug);
+        return res || loaderData?.journey;
+      } catch (err) {
+        console.warn("getPackageBySlug failed in component, using loader fallback:", err);
+        return loaderData?.journey;
+      }
+    },
+    initialData: loaderData?.journey,
   });
 
-  const { data: departures = [] } = useQuery({
+  const { data: departures = loaderData?.departures || [] } = useQuery({
     queryKey: ["departures", journey?.id],
-    queryFn: () => getUpcomingDepartures(journey!.id),
+    queryFn: async () => {
+      if (!journey?.id) return loaderData?.departures || [];
+      try {
+        return await getUpcomingDepartures(journey.id);
+      } catch (err) {
+        return loaderData?.departures || [];
+      }
+    },
     enabled: !!journey?.id,
+    initialData: loaderData?.departures,
   });
 
   const { data: reviews = [] } = useQuery({
     queryKey: ["reviews", journey?.id],
-    queryFn: () => getApprovedReviews(journey!.id, 6),
+    queryFn: async () => {
+      if (!journey?.id) return [];
+      try { return await getApprovedReviews(journey.id, 6); } catch { return []; }
+    },
     enabled: !!journey?.id,
   });
 
   const { data: packageStories = [] } = useQuery({
     queryKey: ["package_stories", journey?.id],
-    queryFn: () => getStoriesByPackage(journey!.id, 3),
+    queryFn: async () => {
+      if (!journey?.id) return [];
+      try { return await getStoriesByPackage(journey.id, 3); } catch { return []; }
+    },
     enabled: !!journey?.id,
   });
 
@@ -279,7 +304,10 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
 
   const { data: premiumDoc } = useQuery({
     queryKey: ["package_premium_doc", journey?.id, slug],
-    queryFn: () => getPackageDocumentBySlugFn({ data: { slug, type: "ITINERARY" } }),
+    queryFn: async () => {
+      if (!slug) return null;
+      try { return await getPackageDocumentBySlugFn({ data: { slug, type: "ITINERARY" } }); } catch { return null; }
+    },
     enabled: !!slug,
   });
 
@@ -293,7 +321,10 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
 
   const { data: relatedPackages = [] } = useQuery({
     queryKey: ["related", journey?.id, journey?.destination_id],
-    queryFn: () => getRelatedPackages(journey!.id, journey!.destination_id),
+    queryFn: async () => {
+      if (!journey?.id || !journey?.destination_id) return [];
+      try { return await getRelatedPackages(journey.id, journey.destination_id); } catch { return []; }
+    },
     enabled: !!journey?.id && !!journey?.destination_id,
   });
 
