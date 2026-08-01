@@ -1,13 +1,8 @@
 import { createAPIFileRoute } from "@tanstack/react-start/api";
-import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { createHmac } from "crypto";
 import { confirmBookingAfterPayment } from "@/lib/booking-api";
 import { sendBookingConfirmationEmail } from "@/lib/email";
-
-const supabaseAdmin = createClient(
-  process.env.VITE_SUPABASE_URL ?? "",
-  process.env.SUPABASE_SERVICE_ROLE_KEY ?? "",
-);
+import { supabaseAdmin } from "@/lib/supabase-admin";
 
 export const APIRoute = createAPIFileRoute("/api/verify-payment")({
   POST: async ({ request }) => {

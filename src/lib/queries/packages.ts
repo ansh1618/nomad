@@ -109,12 +109,10 @@ export async function getPublishedPackages(destinationId?: string): Promise<Jour
   }
 
   // Fallback: legacy query (no status/priority columns)
-  let fallbackQuery = supabase
+  const { data: legacyData, error: legacyError } = await supabase
     .from('journeys')
     .select('*, destinations(id, slug, name)')
-  if (destinationId) fallbackQuery = fallbackQuery.eq('destination_id', destinationId)
-  const { data: legacyData, error: legacyError } = await fallbackQuery
-  if (legacyError) throw new Error(legacyError.message)
+  if (legacyError) return []
   return (legacyData ?? []) as any[]
 }
 
@@ -138,7 +136,7 @@ export async function getFeaturedPackages(): Promise<Journey[]> {
     .from('journeys')
     .select('*, destinations(id, slug, name)')
     .limit(6)
-  if (legacyError) throw new Error(legacyError.message)
+  if (legacyError) return []
   return (legacyData ?? []) as any[]
 }
 

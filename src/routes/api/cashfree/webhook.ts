@@ -15,16 +15,10 @@
 
 // @ts-ignore
 import { createAPIFileRoute } from "@tanstack/react-start/api";
-import { createClient } from "@supabase/supabase-js";
 import { createHmac } from "crypto";
 import { confirmBookingAfterPayment } from "@/lib/booking-api";
 import { sendBookingConfirmationEmail } from "@/lib/email";
-
-// Service role client (bypasses RLS) — server-only!
-const supabaseAdmin = createClient(
-  process.env.VITE_SUPABASE_URL ?? "",
-  process.env.SUPABASE_SERVICE_ROLE_KEY ?? ""
-);
+import { supabaseAdmin } from "@/lib/supabase-admin";
 
 export const APIRoute = createAPIFileRoute("/api/cashfree/webhook")({
   POST: async ({ request }) => {

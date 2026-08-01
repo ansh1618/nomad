@@ -18,14 +18,17 @@ import { SEED_REVIEWS, CAPTAIN_LEADERBOARD, DESTINATION_LEADERBOARD } from "@/li
 import { Button } from "@/components/ui/button";
 import { motion } from "motion/react";
 
-export function HomepageReviewsSection() {
+import { SectionErrorBoundary } from "./SectionErrorBoundary";
+
+function HomepageReviewsContent() {
   const [activeSlide, setActiveSlide] = useState(0);
   const featuredReviews = SEED_REVIEWS.filter((r) => r.featured || r.is_featured);
 
   // Auto slide carousel
   useEffect(() => {
+    if (featuredReviews.length === 0) return;
     const timer = setInterval(() => {
-      setActiveSlide((prev) => (prev + 1) % featuredReviews.length);
+      setActiveSlide((prev) => (prev + 1) % Math.max(1, featuredReviews.length));
     }, 6000);
     return () => clearInterval(timer);
   }, [featuredReviews.length]);
@@ -226,5 +229,13 @@ export function HomepageReviewsSection() {
         </div>
       </div>
     </section>
+  );
+}
+
+export function HomepageReviewsSection() {
+  return (
+    <SectionErrorBoundary fallbackTitle="Community Reviews Unavailable" fallbackMessage="Traveler reviews are temporarily unavailable right now. The rest of the page remains fully active.">
+      <HomepageReviewsContent />
+    </SectionErrorBoundary>
   );
 }
