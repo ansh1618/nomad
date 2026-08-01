@@ -308,7 +308,7 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
       if (!slug) return null;
       try { return await getPackageDocumentBySlugFn({ data: { slug, type: "ITINERARY" } }); } catch { return null; }
     },
-    enabled: !!slug,
+    enabled: !!slug && typeof window !== 'undefined',
   });
 
   const handleViewPdf = () => {

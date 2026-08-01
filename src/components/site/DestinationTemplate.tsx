@@ -54,11 +54,11 @@ export function DestinationTemplate({ slug }: DestinationTemplateProps) {
   const [loginModalOpen, setLoginModalOpen] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
 
-  // Fetch document metadata for this destination
+  // Fetch document metadata for this destination (client-only to prevent SSR ServerFnException)
   const { data: documentMeta } = useQuery({
     queryKey: ['package_document_destination', slug],
     queryFn: () => getPackageDocumentBySlugFn({ data: { slug, type: 'ITINERARY' } }).catch(() => null),
-    enabled: !!slug,
+    enabled: !!slug && typeof window !== 'undefined',
   });
 
   const handleViewItinerary = () => {

@@ -9,11 +9,18 @@ import { withTimeout } from "@/lib/promise-timeout";
 
 export const Route = createFileRoute("/$slug")({
   loader: async ({ params }) => {
-    const [dest, journeys] = await Promise.all([
-      withTimeout(getDestinationBySlug(params.slug), 6000, null),
-      withTimeout(getJourneys(), 6000, STATIC_FALLBACK_JOURNEYS)
-    ]);
-    return { dest, journeys: journeys?.length > 0 ? journeys : STATIC_FALLBACK_JOURNEYS };
+    console.log(`[Loader /$slug] Loading slug: ${params.slug}...`);
+    try {
+      const [dest, journeys] = await Promise.all([
+        withTimeout(getDestinationBySlug(params.slug), 6000, null),
+        withTimeout(getJourneys(), 6000, [])
+      ]);
+      console.log(`[Loader /$slug] Resolved dest: ${dest?.name || 'Not Found'}, journeys count: ${journeys?.length || 0}`);
+      return { dest, journeys: journeys || [] };
+    } catch (err) {
+      console.error(`[Loader /$slug] Exception loading ${params.slug}:`, err);
+      return { dest: null, journeys: [] };
+    }
   },
   pendingComponent: RouteLoadingState,
   errorComponent: RouteErrorState,
