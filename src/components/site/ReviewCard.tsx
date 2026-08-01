@@ -22,6 +22,7 @@ import {
 import { ReviewStarRating, AspectRatingBar } from "./ReviewStarRating";
 import type { Review, ReviewReply } from "@/types/reviews";
 import { voteHelpfulReview, reportReview, addReviewReply } from "@/lib/reviews-client";
+import { ReportReviewModal } from "./ReportReviewModal";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -363,40 +364,12 @@ export function ReviewCard({ review, onOpenMedia, canReply = false }: ReviewCard
       )}
 
       {/* Report Modal */}
-      {isReportOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-slate-200">
-            <h3 className="font-display font-bold text-lg text-slate-900">
-              Report Review
-            </h3>
-            <p className="text-xs text-slate-600">
-              Please specify the reason for reporting this review to our moderation team:
-            </p>
-            <textarea
-              value={reportReason}
-              onChange={(e) => setReportReason(e.target.value)}
-              placeholder="e.g. Inappropriate language, spam, incorrect info..."
-              className="w-full p-3 border rounded-xl text-xs font-poppins h-24 focus:outline-none focus:border-amber-500"
-            />
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setIsReportOpen(false)}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleReport}
-                className="px-4 py-2 text-xs font-semibold bg-red-600 text-white rounded-xl hover:bg-red-700"
-              >
-                Submit Report
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ReportReviewModal
+        isOpen={isReportOpen}
+        onClose={() => setIsReportOpen(false)}
+        reviewId={review.id}
+        reviewTitle={review.title || review.author_name}
+      />
     </motion.article>
   );
 }

@@ -81,6 +81,10 @@ function AccountDashboard() {
   const [cancelReason, setCancelReason] = useState("");
   const [cancellingId, setCancellingId] = useState<string | null>(null);
 
+  // Review State
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [selectedReviewBooking, setSelectedReviewBooking] = useState<any>(null);
+
   // Load user data
   useEffect(() => {
     if (profile) {
@@ -606,6 +610,70 @@ function AccountDashboard() {
               </div>
             )}
 
+            {/* REVIEWS TAB */}
+            {activeTab === "reviews" && (
+              <div className="space-y-6 font-poppins">
+                <div>
+                  <h2 className="font-display text-2xl font-bold text-primary">My Reviews & Badges</h2>
+                  <p className="text-xs text-muted-foreground mt-1">Review your completed trips, earn Nomadik Explorer Credits, and view community badges.</p>
+                </div>
+
+                {/* Completed Trips Pending Review Banner */}
+                {pastBookings.length > 0 ? (
+                  <div className="space-y-4">
+                    <div className="p-5 bg-gradient-to-r from-amber-500/15 via-amber-400/10 to-transparent border border-amber-500/30 rounded-3xl space-y-3 shadow-soft">
+                      <div className="flex items-center gap-2 text-amber-950 font-bold text-sm font-display">
+                        <Sparkles className="h-5 w-5 text-amber-600 animate-pulse" /> 🎉 Your adventure is complete! Share your experience
+                      </div>
+                      <p className="text-xs text-slate-700 leading-relaxed">
+                        Help fellow travelers by reviewing your completed trip. Earn <strong>+200 Nomadik Explorer Credits</strong> and unlock community badges!
+                      </p>
+                    </div>
+
+                    <div className="space-y-3">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">Completed Trips Eligible for Review</h4>
+                      {pastBookings.map((b) => {
+                        const journey = allJourneys.find((j) => j.id === b.journey_id);
+                        return (
+                          <div key={b.id} className="p-4 bg-white border border-slate-200 rounded-2xl flex items-center justify-between flex-wrap gap-3 shadow-sm hover:border-amber-400 transition-all">
+                            <div className="space-y-1">
+                              <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-md">
+                                ✔ Verified Completed Trip
+                              </span>
+                              <h5 className="font-bold text-sm text-[#102A43] font-display">{journey?.name || b.journey_name || "Completed Road Trip"}</h5>
+                              <p className="text-xs text-slate-500">{b.travel_date || "Recent Trip"} · Booking #{b.booking_id || b.id.slice(0, 8)}</p>
+                            </div>
+                            <Button
+                              variant="hero"
+                              size="sm"
+                              className="gap-1.5 font-bold text-xs shadow-md"
+                              onClick={() => {
+                                setSelectedReviewBooking(b);
+                                setIsReviewModalOpen(true);
+                              }}
+                            >
+                              <Star className="h-3.5 w-3.5 fill-slate-950" /> ★★★★★ Leave Review (+200 XP)
+                            </Button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-12 bg-slate-50 border border-dashed border-slate-200 rounded-3xl space-y-3">
+                    <Star className="h-10 w-10 text-amber-400 mx-auto" />
+                    <h4 className="font-bold text-base text-slate-800 font-display">No Completed Trips Yet</h4>
+                    <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
+                      Reviews can only be submitted after your trip is completed. Book your next adventure with Nomadik to unlock verified review rewards!
+                    </p>
+                    <Button variant="outline" size="sm" asChild className="mt-2">
+                      <Link to="/journeys">Explore Road Trips</Link>
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* DOCUMENTS TAB */}
             {activeTab === "documents" && (
               <div className="space-y-8">
@@ -1038,6 +1106,18 @@ function AccountDashboard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Verified Traveler Review Submission Wizard */}
+      <ReviewFormModal
+        isOpen={isReviewModalOpen}
+        onClose={() => setIsReviewModalOpen(false)}
+        bookingId={selectedReviewBooking?.id || selectedReviewBooking?.booking_id}
+        journeyName={selectedReviewBooking?.departures?.journeys?.name || selectedReviewBooking?.journey_name}
+        onSuccess={() => {
+          setIsReviewModalOpen(false);
+          toast.success("Review submitted for moderation! +200 XP Credits earned!");
+        }}
+      />
     </div>
   );
 }
