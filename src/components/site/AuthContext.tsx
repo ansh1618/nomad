@@ -62,23 +62,27 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // ─────────────────────────────────────────────────────────────
 
 async function fetchProfileFromDB(userId: string): Promise<UserProfile | null> {
-  // Primary: profiles table (v17 migration)
-  const { data: profile, error } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", userId)
-    .single();
+  try {
+    // Primary: profiles table (v17 migration)
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", userId)
+      .maybeSingle();
 
-  if (!error && profile) return profile as UserProfile;
+    if (profile) return profile as UserProfile;
 
-  // Fallback: legacy users table
-  const { data: legacyUser } = await supabase
-    .from("users")
-    .select("*")
-    .eq("id", userId)
-    .single();
+    // Fallback: legacy users table
+    const { data: legacyUser } = await supabase
+      .from("users")
+      .select("*")
+      .eq("id", userId)
+      .maybeSingle();
 
-  return (legacyUser as UserProfile) ?? null;
+    return (legacyUser as UserProfile) ?? null;
+  } catch {
+    return null;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -133,7 +137,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const safety = setTimeout(() => {
       console.warn("[Auth] Safety timeout — forcing loading=false");
       resolve();
-    }, 6000);
+    }, 1500);
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);

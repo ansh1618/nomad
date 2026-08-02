@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { withTimeout } from '@/lib/promise-timeout'
 import type {
   Departure,
   DepartureInsert,
@@ -34,30 +35,44 @@ export async function getDepartures(
 ): Promise<PaginatedResult<Departure>> {
   const { page = 1, pageSize = 20, search, sortBy = 'departure_date', sortDir = 'asc', journeyId, status, fromDate, toDate } = params
 
-  let query = supabase
-    .from('departures')
-    .select(DEPARTURE_SELECT, { count: 'exact' })
+  try {
+    let query = supabase
+      .from('departures')
+      .select(DEPARTURE_SELECT, { count: 'exact' })
 
-  if (journeyId) query = query.eq('journey_id', journeyId)
-  if (status) query = query.eq('status', status)
-  if (fromDate) query = query.gte('departure_date', fromDate)
-  if (toDate) query = query.lte('departure_date', toDate)
-  if (search) {
-    query = query.or(`pickup_location.ilike.%${search}%,drop_location.ilike.%${search}%`)
-  }
+    if (journeyId) query = query.eq('journey_id', journeyId)
+    if (status) query = query.eq('status', status)
+    if (fromDate) query = query.gte('departure_date', fromDate)
+    if (toDate) query = query.lte('departure_date', toDate)
+    if (search) {
+      query = query.or(`pickup_location.ilike.%${search}%,drop_location.ilike.%${search}%`)
+    }
 
-  query = query.order(sortBy, { ascending: sortDir === 'asc' })
-  query = query.range((page - 1) * pageSize, page * pageSize - 1)
+    query = query.order(sortBy, { ascending: sortDir === 'asc' })
+    query = query.range((page - 1) * pageSize, page * pageSize - 1)
 
-  const { data, error, count } = await query
-  if (error) throw new Error(error.message)
+    const { data, error, count } = await withTimeout(query, 3000, { data: [], error: null, count: 0 })
+    if (error) {
+      console.warn("[Departures Query] Supabase query returned error:", error.message);
+    }
 
-  return {
-    data: (data ?? []) as Departure[],
-    total: count ?? 0,
-    page,
-    pageSize,
-    totalPages: Math.ceil((count ?? 0) / pageSize),
+    const resData = (data ?? []) as Departure[];
+    return {
+      data: resData,
+      total: count ?? resData.length,
+      page,
+      pageSize,
+      totalPages: Math.ceil((count ?? resData.length) / pageSize) || 1,
+    }
+  } catch (err) {
+    console.error("[Departures Query] Exception caught:", err);
+    return {
+      data: [],
+      total: 0,
+      page,
+      pageSize,
+      totalPages: 1,
+    }
   }
 }
 
