@@ -1,5 +1,4 @@
 import { supabase } from '@/lib/supabase'
-import { withTimeout } from '@/lib/promise-timeout'
 import type {
   Departure,
   DepartureInsert,
@@ -35,6 +34,7 @@ export async function getDepartures(
 ): Promise<PaginatedResult<Departure>> {
   const { page = 1, pageSize = 20, search, sortBy = 'departure_date', sortDir = 'asc', journeyId, status, fromDate, toDate } = params
 
+  console.time("[Departures Query]");
   try {
     let query = supabase
       .from('departures')
@@ -51,9 +51,11 @@ export async function getDepartures(
     query = query.order(sortBy, { ascending: sortDir === 'asc' })
     query = query.range((page - 1) * pageSize, page * pageSize - 1)
 
-    const { data, error, count } = await withTimeout(query, 3000, { data: [], error: null, count: 0 })
+    const { data, error, count } = await query
+    console.timeEnd("[Departures Query]");
+
     if (error) {
-      console.warn("[Departures Query] Supabase query returned error:", error.message);
+      console.error("[Departures Query] Error:", error.message);
     }
 
     const resData = (data ?? []) as Departure[];
@@ -65,6 +67,7 @@ export async function getDepartures(
       totalPages: Math.ceil((count ?? resData.length) / pageSize) || 1,
     }
   } catch (err) {
+    console.timeEnd("[Departures Query]");
     console.error("[Departures Query] Exception caught:", err);
     return {
       data: [],

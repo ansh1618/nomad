@@ -113,11 +113,14 @@ function AdminDashboard() {
     queryKey: ['dashboard_stats'],
     queryFn: async () => {
       console.log("[Auth] Fetching stats");
+      console.time("[Auth] Stats Query");
       try {
         const res = await getDashboardStats();
+        console.timeEnd("[Auth] Stats Query");
         console.log("[Auth] Stats loaded", res);
         return res;
       } catch (err) {
+        console.timeEnd("[Auth] Stats Query");
         console.error("[Auth] Error fetching stats:", err);
         return {
           today_bookings: 0,
@@ -142,11 +145,14 @@ function AdminDashboard() {
     queryKey: ['monthly_revenue'],
     queryFn: async () => {
       console.log("[Auth] Fetching revenue");
+      console.time("[Auth] Revenue Query");
       try {
         const res = await getMonthlyRevenue();
+        console.timeEnd("[Auth] Revenue Query");
         console.log("[Auth] Revenue loaded", res);
         return res || [];
       } catch (err) {
+        console.timeEnd("[Auth] Revenue Query");
         console.error("[Auth] Error fetching revenue:", err);
         return [];
       }
@@ -157,11 +163,14 @@ function AdminDashboard() {
     queryKey: ['recent_bookings'],
     queryFn: async () => {
       console.log("[Auth] Fetching bookings");
+      console.time("[Auth] Bookings Query");
       try {
         const res = await getBookings({ page: 1, pageSize: 8, sortBy: 'created_at', sortDir: 'desc' });
+        console.timeEnd("[Auth] Bookings Query");
         console.log("[Auth] Bookings loaded", res);
         return res;
       } catch (err) {
+        console.timeEnd("[Auth] Bookings Query");
         console.error("[Auth] Error fetching bookings:", err);
         return { data: [], total: 0, page: 1, pageSize: 8, totalPages: 0 };
       }
@@ -172,11 +181,14 @@ function AdminDashboard() {
     queryKey: ['upcoming_departures_dash'],
     queryFn: async () => {
       console.log("[Auth] Fetching departures");
+      console.time("[Auth] Departures Query");
       try {
         const res = await getDepartures({ page: 1, pageSize: 5, status: 'UPCOMING', sortBy: 'departure_date', sortDir: 'asc' });
+        console.timeEnd("[Auth] Departures Query");
         console.log("[Auth] Departures loaded", res);
         return res;
       } catch (err) {
+        console.timeEnd("[Auth] Departures Query");
         console.error("[Auth] Error fetching departures:", err);
         return { data: [], total: 0, page: 1, pageSize: 5, totalPages: 0 };
       }
@@ -187,11 +199,14 @@ function AdminDashboard() {
     queryKey: ['package_performance'],
     queryFn: async () => {
       console.log("[Auth] Fetching package performance");
+      console.time("[Auth] Package Perf Query");
       try {
         const res = await getPackagePerformance();
+        console.timeEnd("[Auth] Package Perf Query");
         console.log("[Auth] Package performance loaded", res);
         return res || [];
       } catch (err) {
+        console.timeEnd("[Auth] Package Perf Query");
         console.error("[Auth] Error fetching package performance:", err);
         return [];
       }
