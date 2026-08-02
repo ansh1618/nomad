@@ -1,6 +1,7 @@
 import { useState, useEffect, createContext, useContext } from "react";
 import { supabase } from "@/lib/supabase";
 import type { User, Session } from "@supabase/supabase-js";
+import { withTimeout } from "@/lib/promise-timeout";
 export type AdminRole = 'SUPER_ADMIN' | 'ADMIN' | 'TRIP_MANAGER' | 'ACCOUNTANT' | 'SUPPORT';
 
 interface AdminUser {
@@ -28,31 +29,13 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const fetchAdminRole = async (userId: string, email: string) => {
+    console.log("[Auth] Checking admin");
+    console.log(`[Auth] User ID: ${userId} | Email: ${email}`);
+
     try {
       const cleanEmail = (email || "").toLowerCase().trim();
       let adminObj: any = null;
 
-      // 1. Try by ID
-      const { data: byId } = await supabase
-        .from("admins")
-        .select("id, email, role, is_active")
-        .eq("id", userId)
-        .maybeSingle();
-
-      if (byId) adminObj = byId;
-
-      // 2. Try by email if ID query returned null
-      if (!adminObj && cleanEmail) {
-        const { data: byEmail } = await supabase
-          .from("admins")
-          .select("id, email, role, is_active")
-          .ilike("email", cleanEmail)
-          .maybeSingle();
-
-        if (byEmail) adminObj = byEmail;
-      }
-
-      // 3. Fallback verification for verified admin accounts
       const knownAdminEmails = [
         "anshjee2024aspirant@gmail.com",
         "harshkumarjha563@gmail.com",
@@ -60,25 +43,44 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
         "harsh.nomadik@gmail.com"
       ];
 
-      if (!adminObj && cleanEmail && knownAdminEmails.includes(cleanEmail)) {
-        console.log(`[Admin Auth] Verified admin email '${cleanEmail}' granted SUPER_ADMIN access`);
+      if (cleanEmail && knownAdminEmails.includes(cleanEmail)) {
+        console.log(`[Auth] Admin query finished — Super Admin verified: '${cleanEmail}'`);
         adminObj = {
           id: userId,
           email: cleanEmail,
           role: "SUPER_ADMIN",
           is_active: true
         };
+      } else {
+        console.log("[Auth] Querying admins table in database...");
+        try {
+          const { data, error } = await withTimeout(
+            supabase
+              .from("admins")
+              .select("id, email, role, is_active")
+              .or(`id.eq.${userId},email.ilike.${cleanEmail}`)
+              .maybeSingle(),
+            2000,
+            { data: null, error: null }
+          );
+          console.log("[Auth] Admin query finished");
+          console.log("[Auth] Query Result:", data);
+          if (error) console.log("[Auth] Query Error:", error);
+          if (data) adminObj = data;
+        } catch (dbErr) {
+          console.warn("[Auth] Database admin query failed/timed out:", dbErr);
+        }
       }
 
       if (!adminObj || !adminObj.is_active) {
-        console.warn("[Admin Auth] Access denied. User is not registered in admins table:", email);
+        console.warn("[Auth] Access denied — Admin record does not exist or is inactive for:", email);
         setAdmin(null);
         return null;
       }
 
       const authorizedRoles = ["SUPER_ADMIN", "ADMIN", "TRIP_MANAGER", "ACCOUNTANT", "SUPPORT"];
       if (!authorizedRoles.includes(adminObj.role)) {
-        console.warn("[Admin Auth] Access denied. Role is not authorized:", adminObj.role);
+        console.warn("[Auth] Access denied — Role not authorized:", adminObj.role);
         setAdmin(null);
         return null;
       }
@@ -89,10 +91,10 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
         role: adminObj.role as AdminRole,
       };
       setAdmin(adminData);
-      console.log("[Auth] Admin verified:", adminData.email);
+      console.log("[Auth] Admin verified:", adminData.email, `(${adminData.role})`);
       return adminData;
     } catch (e) {
-      console.error("[Admin Auth] fetchAdminRole query exception:", e);
+      console.error("[Auth] fetchAdminRole exception:", e);
       setAdmin(null);
       return null;
     }
