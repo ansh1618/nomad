@@ -3,6 +3,7 @@ import { Navbar } from "@/components/site/Navbar";
 import { Hero } from "@/components/site/Hero";
 import { PopularDestinations } from "@/components/site/PopularDestinations";
 import { TravelStats } from "@/components/site/TravelStats";
+import { NorthCampusSection } from "@/components/site/NorthCampusSection";
 import { WhyChooseUs } from "@/components/site/WhyChooseUs";
 import { MapSection } from "@/components/site/MapSection";
 import { WhyWeDontSellTrips } from "@/components/site/WhyWeDontSellTrips";
@@ -72,6 +73,8 @@ function Index() {
         <PopularDestinations />
         {/* 4. Animated stats counter */}
         <TravelStats />
+        {/* Nomadik x North Campus Collaboration */}
+        <NorthCampusSection />
         {/* 5. Why Nomadik — 6 brand pillars */}
         <WhyChooseUs />
         {/* 6. Interactive India road map */}
