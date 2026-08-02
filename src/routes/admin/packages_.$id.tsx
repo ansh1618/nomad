@@ -724,6 +724,7 @@ function PackageFormPage() {
       try {
         if (transport.vehicle_name) {
           const transPayload = {
+            journey_id: savedPkg.id,
             package_id: savedPkg.id,
             vehicle_name: transport.vehicle_name,
             vehicle_type: transport.vehicle_type || '',

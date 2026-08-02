@@ -216,9 +216,9 @@ export async function getPackageBySlug(slug: string): Promise<Journey | null> {
       const { data: trans, error: transError } = await supabase
         .from('transport')
         .select('*')
-        .eq('package_id', journey.id)
-      if (!transError && trans) {
-        journey = { ...journey, transport: trans as any[] }
+        .or(`journey_id.eq.${journey.id},package_id.eq.${journey.id}`)
+      if (!transError && trans && trans.length > 0) {
+        journey = { ...journey, transport: trans[0] } as any
       }
     } catch (e) {
       console.warn('[getPackageBySlug] Could not fetch transport separately:', e)
