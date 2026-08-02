@@ -252,28 +252,31 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
 
   const loaderData = useLoaderData({ strict: false }) as any;
 
-  const { data: journey = loaderData?.journey, isLoading } = useQuery({
-    queryKey: ["package", slug],
+  const { data: journey, isLoading } = useQuery({
+    queryKey: ["journey", slug],
     queryFn: async () => {
       try {
         const res = await getJourneyBySlug(slug);
-        return res || loaderData?.journey;
+        return res || loaderData?.journey || null;
       } catch (err) {
-        console.warn("getJourneyBySlug failed in component, using loader fallback:", err);
-        return loaderData?.journey;
+        console.warn("getJourneyBySlug failed in component:", err);
+        return loaderData?.journey || null;
       }
     },
     initialData: loaderData?.journey || undefined,
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: true,
   });
 
   const { data: departures = loaderData?.departures || [] } = useQuery({
-    queryKey: ["departures", journey?.id, slug],
+    queryKey: ["departures", journey?.id || slug],
     queryFn: async () => {
       const targetId = journey?.id || slug;
       if (!targetId) return loaderData?.departures || [];
       try {
         const res = await getUpcomingDepartures(targetId);
-        console.log(`[JourneyDetailTemplate] getUpcomingDepartures for targetId ${targetId} returned ${res.length} rows`);
         return res || loaderData?.departures || [];
       } catch (err) {
         console.warn("[JourneyDetailTemplate] getUpcomingDepartures failed:", err);
@@ -282,6 +285,10 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
     },
     enabled: !!(journey?.id || slug),
     initialData: loaderData?.departures || undefined,
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: true,
   });
 
   const { data: reviews = [] } = useQuery({

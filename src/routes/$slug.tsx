@@ -12,8 +12,8 @@ export const Route = createFileRoute("/$slug")({
     console.log(`[Loader /$slug] Loading slug: ${params.slug}...`);
     try {
       const [dest, journeys] = await Promise.all([
-        withTimeout(getDestinationBySlug(params.slug), 6000, null),
-        withTimeout(getJourneys(), 6000, [])
+        getDestinationBySlug(params.slug),
+        getJourneys()
       ]);
       console.log(`[Loader /$slug] Resolved dest: ${dest?.name || 'Not Found'}, journeys count: ${journeys?.length || 0}`);
       return { dest, journeys: journeys || [] };

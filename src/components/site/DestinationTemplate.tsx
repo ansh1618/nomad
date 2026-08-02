@@ -26,7 +26,7 @@ export function DestinationTemplate({ slug }: DestinationTemplateProps) {
   const loaderData = (useLoaderData({ strict: false }) || {}) as any;
 
   const { data: dest, isLoading: isDestLoading } = useQuery({
-    queryKey: ['destination_detail', slug],
+    queryKey: ['destination', slug],
     queryFn: async () => {
       try {
         const res = await getDestinationBySlug(slug);
@@ -36,6 +36,10 @@ export function DestinationTemplate({ slug }: DestinationTemplateProps) {
       }
     },
     initialData: loaderData?.dest || undefined,
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: true,
   });
 
   const { data: journeys = loaderData?.journeys || [] } = useQuery({
@@ -49,6 +53,10 @@ export function DestinationTemplate({ slug }: DestinationTemplateProps) {
       }
     },
     initialData: loaderData?.journeys || undefined,
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: true,
   });
 
   const [loginModalOpen, setLoginModalOpen] = useState(false);

@@ -13,11 +13,11 @@ import { motion } from 'framer-motion'
 export const Route = createFileRoute('/journeys/')({
   loader: async () => {
     try {
-      const journeys = await withTimeout(getJourneys(), 6000, STATIC_FALLBACK_JOURNEYS)
-      return { journeys: journeys?.length > 0 ? journeys : STATIC_FALLBACK_JOURNEYS }
+      const journeys = await getJourneys()
+      return { journeys: journeys || [] }
     } catch (err) {
       console.error('[Nomadik Journeys Loader] Failed to load journeys:', err)
-      return { journeys: STATIC_FALLBACK_JOURNEYS }
+      return { journeys: [] }
     }
   },
   pendingComponent: RouteLoadingState,

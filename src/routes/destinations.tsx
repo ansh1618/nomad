@@ -14,13 +14,13 @@ export const Route = createFileRoute('/destinations')({
   loader: async () => {
     try {
       const [destinations, journeys] = await Promise.all([
-        withTimeout(getDestinations(), 6000, STATIC_FALLBACK_DESTINATIONS),
-        withTimeout(getJourneys(), 6000, STATIC_FALLBACK_JOURNEYS),
+        getDestinations(),
+        getJourneys(),
       ])
-      return { destinations: destinations?.length > 0 ? destinations : STATIC_FALLBACK_DESTINATIONS, journeys }
+      return { destinations: destinations || [], journeys: journeys || [] }
     } catch (err) {
       console.error('[Nomadik Destinations Loader] Failed to load data:', err)
-      return { destinations: STATIC_FALLBACK_DESTINATIONS, journeys: STATIC_FALLBACK_JOURNEYS }
+      return { destinations: [], journeys: [] }
     }
   },
   pendingComponent: RouteLoadingState,
