@@ -296,10 +296,10 @@ export async function getJourneys() {
     if (!data || data.length === 0) return STATIC_FALLBACK_JOURNEYS;
 
     return data.map((j: any) => {
-      const rawItinerary = (Array.isArray(j.itinerary) && j.itinerary.length > 0)
-        ? j.itinerary
-        : (Array.isArray(j.itinerary_days) && j.itinerary_days.length > 0)
+      const rawItinerary = (Array.isArray(j.itinerary_days) && j.itinerary_days.length > 0)
         ? j.itinerary_days
+        : (Array.isArray(j.itinerary) && j.itinerary.length > 0)
+        ? j.itinerary
         : [];
 
       const it = rawItinerary.map((day: any, idx: number) => ({
@@ -404,10 +404,10 @@ export async function getJourneyBySlug(slug: string) {
   
   if (!data) return null;
 
-  const rawItinerary = (Array.isArray(data.itinerary) && data.itinerary.length > 0)
-    ? data.itinerary
-    : (Array.isArray(data.itinerary_days) && data.itinerary_days.length > 0)
+  const rawItinerary = (Array.isArray(data.itinerary_days) && data.itinerary_days.length > 0)
     ? data.itinerary_days
+    : (Array.isArray(data.itinerary) && data.itinerary.length > 0)
+    ? data.itinerary
     : [];
 
   const it = rawItinerary.map((day: any, idx: number) => ({

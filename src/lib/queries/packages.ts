@@ -178,27 +178,23 @@ export async function getPackageBySlug(slug: string): Promise<Journey | null> {
 
   if (!journey) return null
 
-  // --- Ensure itinerary_days are loaded from its own table ---
-  const hasRealDays = journey.itinerary_days && journey.itinerary_days.length > 0
+  // --- Always fetch fresh itinerary_days directly from single source of truth table ---
+  try {
+    const { data: days, error: daysError } = await supabase
+      .from('itinerary_days')
+      .select('*')
+      .eq('journey_id', journey.id)
+      .order('sort_order', { ascending: true })
+      .order('day_number', { ascending: true })
 
-  if (!hasRealDays) {
-    try {
-      const { data: days, error: daysError } = await supabase
-        .from('itinerary_days')
-        .select('*')
-        .eq('journey_id', journey.id)
-        .order('sort_order', { ascending: true })
-        .order('day_number', { ascending: true })
-
-      if (!daysError && days) {
-        journey = { ...journey, itinerary_days: days as ItineraryDay[] }
-      }
-    } catch (e) {
-      console.warn('[getPackageBySlug] Could not fetch itinerary_days separately:', e)
+    if (!daysError && days && days.length > 0) {
+      journey = { ...journey, itinerary_days: days as ItineraryDay[] }
     }
+  } catch (e) {
+    console.warn('[getPackageBySlug] Could not fetch itinerary_days separately:', e)
   }
 
-  // Ensure itinerary_days defaults to empty array if still null/undefined
+  // Ensure itinerary_days defaults to empty array if null/undefined
   if (!journey.itinerary_days) {
     journey.itinerary_days = []
   } else {
@@ -663,6 +659,9 @@ export async function replaceItineraryDays(journeyId: string, days: Omit<Itinera
       console.error('[replaceItineraryDays] Count mismatch! Expected:', payload.length, 'Got:', verifiedRows?.length)
       throw new Error(`Itinerary validation mismatch: expected ${payload.length} records, database has ${verifiedRows?.length ?? 0}`)
     }
+
+    // 5. Clear legacy journeys.itinerary column to ensure itinerary_days table is the sole single source of truth
+    await supabase.from('journeys').update({ itinerary: null }).eq('id', journeyId).catch(() => {});
 
     return normalizeItineraryDays(verifiedRows ?? [])
   } catch (e: any) {
