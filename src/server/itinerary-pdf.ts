@@ -151,18 +151,19 @@ export async function createOrUpdateJourneyDocument(payload: JourneyDocumentPayl
     if (existing) {
       nextVersion = (existing.version || 1) + 1;
 
-      // Soft archive previous version to preserve history (Versioning requirement)
-      await supabaseAdmin
-        .from("journey_documents")
-        .update({ is_active: false, updated_at: new Date().toISOString() })
-        .eq("id", existing.id)
-        .catch(() => {});
+      try {
+        await supabaseAdmin
+          .from("journey_documents")
+          .update({ is_active: false, updated_at: new Date().toISOString() })
+          .eq("id", existing.id);
+      } catch {}
 
-      await supabaseAdmin
-        .from("package_documents")
-        .update({ is_active: false, updated_at: new Date().toISOString() })
-        .eq("id", existing.id)
-        .catch(() => {});
+      try {
+        await supabaseAdmin
+          .from("package_documents")
+          .update({ is_active: false, updated_at: new Date().toISOString() })
+          .eq("id", existing.id);
+      } catch {}
     }
 
     // Insert new active metadata record

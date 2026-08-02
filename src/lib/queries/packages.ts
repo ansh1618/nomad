@@ -662,7 +662,14 @@ export async function replaceItineraryDays(journeyId: string, days: Omit<Itinera
     }
 
     // 5. Clear legacy journeys.itinerary column to ensure itinerary_days table is the sole single source of truth
-    await supabase.from('journeys').update({ itinerary: null }).eq('id', journeyId).catch(() => {});
+    try {
+      const { error: legacyErr } = await supabase.from('journeys').update({ itinerary: null }).eq('id', journeyId);
+      if (legacyErr) {
+        console.warn('[replaceItineraryDays] Ignored error clearing legacy itinerary column:', legacyErr.message);
+      }
+    } catch (e) {
+      console.warn('[replaceItineraryDays] Ignored exception clearing legacy itinerary column:', e);
+    }
 
     return normalizeItineraryDays(verifiedRows ?? [])
   } catch (e: any) {
