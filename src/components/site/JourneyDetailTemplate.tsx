@@ -1658,12 +1658,7 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
         </div>
       </div>
 
-      {/* 🚍 Your Ride / Premium Transport Experience Section */}
-      <TransportSection
-        transportData={journey.transport}
-        journeyName={journey.name}
-        slug={slug}
-      />
+
 
       {/* 📸 Trip Gallery (Real Photos) */}
       {(() => {
