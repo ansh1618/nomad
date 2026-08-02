@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { useAdminAuth } from "@/hooks/use-admin-auth";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ export const Route = createFileRoute("/admin/login")({
 
 function AdminLoginPage() {
   const { signIn, isAdmin } = useAdminAuth();
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(true);
@@ -29,6 +30,13 @@ function AdminLoginPage() {
       setRememberMe(savedRemember === "true");
     }
   }, []);
+
+  // Redirect automatically when isAdmin becomes true
+  useEffect(() => {
+    if (isAdmin) {
+      navigate({ to: "/admin" });
+    }
+  }, [isAdmin, navigate]);
 
   // If already logged in as admin, show redirect message
   if (isAdmin) {
@@ -97,11 +105,18 @@ function AdminLoginPage() {
     // Save remember me preference
     localStorage.setItem("admin_remember_me", String(rememberMe));
 
-    const result = await signIn(email, password);
-    if (result.error) {
-      setError(result.error);
+    try {
+      const result = await signIn(email, password);
+      if (result.error) {
+        setError(result.error);
+      } else {
+        navigate({ to: "/admin" });
+      }
+    } catch (err: any) {
+      setError(err?.message || "An unexpected login error occurred.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (

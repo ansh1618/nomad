@@ -159,17 +159,9 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
-import { runStartupIntegrityCheck } from "@/lib/integrity-checker";
-
 function MainAppLayout() {
   const { user, isEmailVerified } = useAuth();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    runStartupIntegrityCheck().catch(err => {
-      console.warn("Startup integrity check encountered an error:", err);
-    });
-  }, []);
 
   useEffect(() => {
     if (user) {
