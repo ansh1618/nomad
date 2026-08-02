@@ -149,7 +149,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, newSession) => {
+      (event, newSession) => {
         if (!isMounted) return;
         console.log("[Auth] Auth state change event:", event);
         setSession(newSession);
@@ -158,20 +158,25 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
         if (newSession?.user) {
           console.log("[Auth] Login success for user:", newSession.user.email);
           console.log("[Auth] Checking admin");
-          const adminResult = await fetchAdminRole(newSession.user.id, newSession.user.email ?? "");
-          if (!adminResult) {
-            console.warn("[Auth] Access denied — signing out unauthorized user");
-            await supabase.auth.signOut();
-            setSession(null);
-            setUser(null);
-            setAdmin(null);
-          } else {
-            console.log("[Auth] Admin verified");
-          }
+          setTimeout(async () => {
+            const adminResult = await fetchAdminRole(newSession.user.id, newSession.user.email ?? "");
+            if (!adminResult) {
+              console.warn("[Auth] Access denied — signing out unauthorized user");
+              await supabase.auth.signOut();
+              if (isMounted) {
+                setSession(null);
+                setUser(null);
+                setAdmin(null);
+              }
+            } else {
+              console.log("[Auth] Admin verified");
+            }
+            if (isMounted) setLoading(false);
+          }, 0);
         } else {
           setAdmin(null);
+          if (isMounted) setLoading(false);
         }
-        if (isMounted) setLoading(false);
       }
     );
 

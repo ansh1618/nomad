@@ -153,27 +153,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // ── Auth state listener ──────────────────────────────────
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, newSession) => {
+      (event, newSession) => {
         console.log("[Auth] Event:", event);
         setSession(newSession);
         setUser(newSession?.user ?? null);
 
         if (newSession?.user) {
-          const p = await fetchProfileFromDB(newSession.user.id);
-          if (p) setProfile(p);
+          setTimeout(async () => {
+            const p = await fetchProfileFromDB(newSession.user.id);
+            if (p) setProfile(p);
+            if (event === "SIGNED_IN" && newSession.user.email) {
+              mergeGuestBookings(newSession.user.email, newSession.user.id).catch(() => {});
+            }
+          }, 0);
         } else {
           setProfile(null);
         }
 
         resolve(); // in case initial getSession didn't
-
-        // Handle specific events
-        if (event === "SIGNED_IN" && newSession?.user) {
-          const u = newSession.user;
-          const email = u.email ?? "";
-          // Merge any guest bookings made before login (non-blocking)
-          if (email) mergeGuestBookings(email, u.id).catch(() => {});
-        }
 
         if (event === "SIGNED_OUT") {
           toast.info("Logged out successfully.");
@@ -192,7 +189,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const meta = newSession.user.user_metadata;
           const avatarFromOAuth = meta?.avatar_url || meta?.picture;
           if (avatarFromOAuth) {
-            await supabase
+            supabase
               .from("profiles")
               .update({ avatar_url: avatarFromOAuth, updated_at: new Date().toISOString() })
               .eq("id", newSession.user.id);
