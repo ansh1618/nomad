@@ -59,68 +59,8 @@ import { resolveJourneyHero } from "@/lib/media-resolver";
 import { resolveBookingPricing } from "@/lib/pricing-fns";
 
 const getFallbackTransport = (slug: string) => {
-  const s = slug.toLowerCase();
-  if (s.includes("jibhi")) {
-    return {
-      vehicle_name: "Force Traveller (17 Seater)",
-      vehicle_type: "Super Deluxe AC Traveller",
-      seat_capacity: 17,
-      available_seats: 6,
-      departure_time: "06:30 PM",
-      arrival_time: "08:30 AM (Next Day)",
-      ac: true,
-      music: true,
-      charging_ports: true,
-      trip_captain: true,
-      cover_image:
-        "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=1200&q=80",
-      gallery: [
-        "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=600&q=80",
-        "https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&w=600&q=80",
-        "https://images.unsplash.com/photo-1494905998402-395d579af36f?auto=format&fit=crop&w=600&q=80",
-      ],
-      features: [
-        "Pushback Seats",
-        "Charging Points",
-        "Music System",
-        "AC",
-        "First Aid Kit",
-        "Ample Legroom",
-      ],
-    };
-  }
-  if (s.includes("manali")) {
-    return {
-      vehicle_name: "Volvo Sleeper Coach / Tempo Traveller",
-      vehicle_type: "Premium AC Volvo Multi-Axle",
-      seat_capacity: 40,
-      available_seats: 12,
-      departure_time: "05:30 PM",
-      arrival_time: "09:00 AM (Next Day)",
-      ac: true,
-      music: true,
-      charging_ports: true,
-      trip_captain: true,
-      cover_image:
-        "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=1200&q=80",
-      gallery: [
-        "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=600&q=80",
-        "https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&w=600&q=80",
-        "https://images.unsplash.com/photo-1494905998402-395d579af36f?auto=format&fit=crop&w=600&q=80",
-      ],
-      features: [
-        "Premium Volvo Suspension",
-        "Pushback Seats",
-        "Individual AC Vents",
-        "USB Charging",
-        "Music System",
-        "LED Cabin Lights",
-      ],
-    };
-  }
-  // Default to Udaipur / general
   return {
-    vehicle_name: "Luxury AC Tempo Traveller",
+    vehicle_name: "Luxury AC Force Traveller",
     vehicle_type: "17-Seater Premium Cruiser",
     seat_capacity: 17,
     available_seats: 5,
@@ -130,12 +70,12 @@ const getFallbackTransport = (slug: string) => {
     music: true,
     charging_ports: true,
     trip_captain: true,
-    cover_image:
-      "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=1200&q=80",
+    cover_image: "/images/transport/force-traveller-front.jpg",
     gallery: [
-      "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=600&q=80",
-      "https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&w=600&q=80",
-      "https://images.unsplash.com/photo-1494905998402-395d579af36f?auto=format&fit=crop&w=600&q=80",
+      "/images/transport/force-traveller-front.jpg",
+      "/images/transport/force-traveller-side.jpg",
+      "/images/transport/force-traveller-interior-seats.jpg",
+      "/images/transport/force-traveller-interior-cabin.jpg",
     ],
     features: [
       "Pushback Seats",

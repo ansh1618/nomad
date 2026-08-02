@@ -512,8 +512,10 @@ function getFallbackTransport(slug: string): TransportSpec {
     driverExperience: "Certified Highway Captains (10+ Yrs Highway Exp)",
     washroomStops: "Scheduled Clean Restroom Stops every 3-4 Hours",
     images: [
-      "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&w=600&q=80"
+      "/images/transport/force-traveller-front.jpg",
+      "/images/transport/force-traveller-side.jpg",
+      "/images/transport/force-traveller-interior-seats.jpg",
+      "/images/transport/force-traveller-interior-cabin.jpg"
     ],
     features: [
       "Pushback Seats",

@@ -31,7 +31,7 @@ export const AUTHENTIC_DESTINATION_MEDIA: Record<string, { hero: string; gallery
     hero: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=2000&q=90",
     gallery: [
       { url: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=1200&q=80", caption: "Jibhi Valley Riverside Wooden Homestay" },
-      { url: "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=1200&q=80", caption: "Jalori Pass & Serolsar Lake Trail" }
+      { url: "/images/transport/force-traveller-front.jpg", caption: "Jalori Pass & Serolsar Lake Trail" }
     ]
   },
   mcleodganj: {
