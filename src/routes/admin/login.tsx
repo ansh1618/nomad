@@ -34,21 +34,10 @@ function AdminLoginPage() {
   // Redirect automatically when isAdmin becomes true
   useEffect(() => {
     if (isAdmin) {
+      console.log("[Auth] isAdmin is true on login page -> Redirecting to /admin");
       navigate({ to: "/admin" });
     }
   }, [isAdmin, navigate]);
-
-  // If already logged in as admin, show redirect message
-  if (isAdmin) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0b]">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="h-6 w-6 animate-spin text-white/60" />
-          <p className="text-sm text-white/60 font-poppins">Redirecting to admin dashboard...</p>
-        </div>
-      </div>
-    );
-  }
 
   const handleForgotPassword = async () => {
     setError("");

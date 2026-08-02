@@ -474,8 +474,8 @@ function normalizeTransportObj(obj: any, slug: string): TransportSpec {
 
   const rawCapacity = item.capacity || item.seat_capacity;
   const capacityStr = typeof rawCapacity === 'number'
-    ? `${rawCapacity}-Seater Coach`
-    : (rawCapacity ? String(rawCapacity) : "17-26 Seater Coach");
+    ? `${rawCapacity} Seater`
+    : (rawCapacity ? String(rawCapacity) : "30 Seater");
 
   return {
     name: item.name || item.vehicle_name || "Luxury AC Force Traveller",
@@ -502,7 +502,7 @@ function normalizeTransportObj(obj: any, slug: string): TransportSpec {
 function getFallbackTransport(slug: string): TransportSpec {
   return {
     name: "Luxury AC Force Traveller",
-    capacity: "12-18 Explorers",
+    capacity: "30 Seater",
     vehicleType: "Super Deluxe AC Highway Cruiser",
     isAc: true,
     pushbackSeats: true,
