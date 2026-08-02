@@ -1,27 +1,25 @@
 /**
- * Guarantees that an async promise settles within timeoutMs.
- * If the promise exceeds timeoutMs, it logs a warning and returns fallbackValue immediately.
+ * Executes an async promise without canceling real Supabase responses.
+ * If execution takes longer than 5000ms, it logs a soft warning but allows the real query to complete.
+ * Fallback values are ONLY returned if the promise throws a hard network exception.
  */
 export function withTimeout<T>(
   promise: Promise<T>,
-  timeoutMs: number = 2500,
+  _timeoutMs: number = 30000,
   fallbackValue: T
 ): Promise<T> {
-  let timerId: any = null;
+  const warnTimer = setTimeout(() => {
+    console.warn(`[Promise Warning] Database query taking longer than 5000ms — waiting for Supabase response...`);
+  }, 5000);
 
-  const timeoutPromise = new Promise<T>((resolve) => {
-    timerId = setTimeout(() => {
-      console.warn(`[Promise Timeout] Request exceeded ${timeoutMs}ms limit. Returning fallback data.`);
-      resolve(fallbackValue);
-    }, timeoutMs);
-  });
-
-  return Promise.race([promise, timeoutPromise]).then((result) => {
-    if (timerId) clearTimeout(timerId);
-    return result;
-  }).catch((err) => {
-    if (timerId) clearTimeout(timerId);
-    console.error('[Promise Error] Async request failed:', err?.message || err);
-    return fallbackValue;
-  });
+  return promise
+    .then((result) => {
+      clearTimeout(warnTimer);
+      return result;
+    })
+    .catch((err) => {
+      clearTimeout(warnTimer);
+      console.error('[Promise Error] Database query exception caught:', err?.message || err);
+      return fallbackValue;
+    });
 }
