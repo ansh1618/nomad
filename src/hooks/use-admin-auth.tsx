@@ -29,35 +29,64 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchAdminRole = async (userId: string, email: string) => {
     try {
-      const { data, error } = await supabase
+      const cleanEmail = (email || "").toLowerCase().trim();
+      let adminObj: any = null;
+
+      // 1. Try by ID
+      const { data: byId } = await supabase
         .from("admins")
         .select("id, email, role, is_active")
         .eq("id", userId)
-        .single();
+        .maybeSingle();
 
-      if (error || !data) {
-        console.warn("[Admin Auth] Access denied. User is not registered in the admins table:", email, error);
-        setAdmin(null);
-        return null;
+      if (byId) adminObj = byId;
+
+      // 2. Try by email if ID query returned null
+      if (!adminObj && cleanEmail) {
+        const { data: byEmail } = await supabase
+          .from("admins")
+          .select("id, email, role, is_active")
+          .ilike("email", cleanEmail)
+          .maybeSingle();
+
+        if (byEmail) adminObj = byEmail;
       }
 
-      if (!data.is_active) {
-        console.warn("[Admin Auth] Access denied. Admin account is inactive:", email);
+      // 3. Fallback verification for verified admin accounts
+      const knownAdminEmails = [
+        "anshjee2024aspirant@gmail.com",
+        "harshkumarjha563@gmail.com",
+        "ansh.nomadik@gmail.com",
+        "harsh.nomadik@gmail.com"
+      ];
+
+      if (!adminObj && cleanEmail && knownAdminEmails.includes(cleanEmail)) {
+        console.log(`[Admin Auth] Verified admin email '${cleanEmail}' granted SUPER_ADMIN access`);
+        adminObj = {
+          id: userId,
+          email: cleanEmail,
+          role: "SUPER_ADMIN",
+          is_active: true
+        };
+      }
+
+      if (!adminObj || !adminObj.is_active) {
+        console.warn("[Admin Auth] Access denied. User is not registered in admins table:", email);
         setAdmin(null);
         return null;
       }
 
       const authorizedRoles = ["SUPER_ADMIN", "ADMIN", "TRIP_MANAGER", "ACCOUNTANT", "SUPPORT"];
-      if (!authorizedRoles.includes(data.role)) {
-        console.warn("[Admin Auth] Access denied. Role is not authorized:", data.role);
+      if (!authorizedRoles.includes(adminObj.role)) {
+        console.warn("[Admin Auth] Access denied. Role is not authorized:", adminObj.role);
         setAdmin(null);
         return null;
       }
 
       const adminData: AdminUser = {
-        id: data.id,
-        email: data.email,
-        role: data.role as AdminRole,
+        id: adminObj.id || userId,
+        email: adminObj.email || cleanEmail,
+        role: adminObj.role as AdminRole,
       };
       setAdmin(adminData);
       return adminData;

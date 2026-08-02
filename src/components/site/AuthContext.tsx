@@ -167,8 +167,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (event === "SIGNED_IN" && newSession?.user) {
           const u = newSession.user;
           const email = u.email ?? "";
-          // Merge any guest bookings made before login
-          if (email) await mergeGuestBookings(email, u.id);
+          // Merge any guest bookings made before login (non-blocking)
+          if (email) mergeGuestBookings(email, u.id).catch(() => {});
         }
 
         if (event === "SIGNED_OUT") {
