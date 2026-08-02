@@ -724,28 +724,38 @@ export async function getRelatedPackages(journeyId: string, destinationId: strin
 // ==========================================
 // SAVE REVISION
 // ==========================================
-export async function savePackageRevision(journeyId: string, revisionData: Journey, adminId?: string): Promise<void> {
-  const { error } = await supabase.from('package_revisions').insert({
-    journey_id: journeyId,
-    revision_data: revisionData as unknown as Record<string, unknown>,
-    created_by: adminId ?? null,
-  })
-  if (error) console.error('Failed to save revision:', error.message)
+export async function savePackageRevision(journeyId: string, snapshotData: Journey, adminId?: string): Promise<void> {
+  try {
+    const { error } = await supabase.from('package_revisions').insert({
+      journey_id: journeyId,
+      snapshot: snapshotData as unknown as Record<string, unknown>,
+      created_by: adminId ?? null,
+    })
+    if (error) {
+      console.warn('[savePackageRevision] Could not save revision:', error.message)
+    }
+  } catch (err: any) {
+    console.warn('[savePackageRevision] Ignored exception saving revision:', err?.message || err)
+  }
 }
 
 // ==========================================
 // GET REVISIONS
 // ==========================================
 export async function getPackageRevisions(journeyId: string) {
-  const { data, error } = await supabase
-    .from('package_revisions')
-    .select('id, revision_note, created_at, admins(email, full_name)')
-    .eq('journey_id', journeyId)
-    .order('created_at', { ascending: false })
-    .limit(20)
+  try {
+    const { data, error } = await supabase
+      .from('package_revisions')
+      .select('id, created_at, created_by, snapshot')
+      .eq('journey_id', journeyId)
+      .order('created_at', { ascending: false })
+      .limit(20)
 
-  if (error) throw new Error(error.message)
-  return data ?? []
+    if (error) return []
+    return data ?? []
+  } catch {
+    return []
+  }
 }
 
 // ==========================================

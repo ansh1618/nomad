@@ -794,10 +794,17 @@ function PackageFormPage() {
     onSuccess: ({ savedPkg, savedDays }) => {
       // Invalidate all relevant query caches so both admin and public see fresh data
       qc.invalidateQueries({ queryKey: ['packages'] })
+      qc.invalidateQueries({ queryKey: ['published_packages'] })
       qc.invalidateQueries({ queryKey: ['package', savedPkg.id] })
       qc.invalidateQueries({ queryKey: ['package', id] })
+      qc.invalidateQueries({ queryKey: ['journeys'] })
+      qc.invalidateQueries({ queryKey: ['journey'] })
+      qc.invalidateQueries({ queryKey: ['destinations'] })
+      qc.invalidateQueries({ queryKey: ['hotels'] })
+      qc.invalidateQueries({ queryKey: ['departures'] })
       if (savedPkg.slug) {
         qc.invalidateQueries({ queryKey: ['package', savedPkg.slug] })
+        qc.invalidateQueries({ queryKey: ['journey', savedPkg.slug] })
       }
 
       // Re-hydrate itinerary state from the verified database rows
