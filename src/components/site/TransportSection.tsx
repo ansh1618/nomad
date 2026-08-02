@@ -221,67 +221,58 @@ export function TransportSection({
                 </div>
               </div>
 
-              {/* Specifications Cards Grid */}
+              {/* Specifications Cards Grid (Dynamically Mapped from Admin Object) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* 1. Vehicle Name & Capacity */}
-                <div className="p-3.5 bg-[#FAF9F5] rounded-2xl border border-[#E4E2DA]/80 space-y-1">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-                    <Bus className="h-4 w-4 text-[#D97706]" /> Seating Capacity
-                  </div>
-                  <p className="font-poppins font-bold text-sm text-primary">
-                    {parsedTransport.capacity || "17-26 Seater Coach"}
-                  </p>
-                </div>
-
-                {/* 2. AC Status */}
-                <div className="p-3.5 bg-[#FAF9F5] rounded-2xl border border-[#E4E2DA]/80 space-y-1">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-                    <Wind className="h-4 w-4 text-blue-500" /> Climate Control
-                  </div>
-                  <p className="font-poppins font-bold text-sm text-primary">
-                    {parsedTransport.isAc !== false ? "100% Climate AC" : "Standard Vents"}
-                  </p>
-                </div>
-
-                {/* 3. Pushback Seats */}
-                <div className="p-3.5 bg-[#FAF9F5] rounded-2xl border border-[#E4E2DA]/80 space-y-1">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-                    <Armchair className="h-4 w-4 text-emerald-600" /> Reclining Seats
-                  </div>
-                  <p className="font-poppins font-bold text-sm text-primary">
-                    {parsedTransport.pushbackSeats !== false ? "160° Ergonomic Recliners" : "Standard Comfort Seats"}
-                  </p>
-                </div>
-
-                {/* 4. Charging Ports */}
-                <div className="p-3.5 bg-[#FAF9F5] rounded-2xl border border-[#E4E2DA]/80 space-y-1">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-                    <Zap className="h-4 w-4 text-amber-500" /> Charging Ports
-                  </div>
-                  <p className="font-poppins font-bold text-sm text-primary truncate">
-                    {parsedTransport.chargingPorts || "Individual USB / Socket Ports"}
-                  </p>
-                </div>
-
-                {/* 5. Music & Audio */}
-                <div className="p-3.5 bg-[#FAF9F5] rounded-2xl border border-[#E4E2DA]/80 space-y-1">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-                    <Music className="h-4 w-4 text-purple-500" /> Music System
-                  </div>
-                  <p className="font-poppins font-bold text-sm text-primary truncate">
-                    {parsedTransport.musicSystem || "JBL Sound & Ambient Lights"}
-                  </p>
-                </div>
-
-                {/* 6. Luggage Space */}
-                <div className="p-3.5 bg-[#FAF9F5] rounded-2xl border border-[#E4E2DA]/80 space-y-1">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-                    <Luggage className="h-4 w-4 text-teal-600" /> Luggage Space
-                  </div>
-                  <p className="font-poppins font-bold text-sm text-primary truncate">
-                    {parsedTransport.luggageSpace || "Under-deck & Overhead Racks"}
-                  </p>
-                </div>
+                {[
+                  {
+                    icon: Bus,
+                    title: "Seating Capacity",
+                    value: parsedTransport.capacity || "30 Seater",
+                    color: "text-[#D97706]"
+                  },
+                  {
+                    icon: Wind,
+                    title: "Climate Control",
+                    value: parsedTransport.isAc !== false ? "100% Climate AC" : "Standard Vehicle",
+                    color: "text-blue-500"
+                  },
+                  {
+                    icon: Armchair,
+                    title: "Reclining Seats",
+                    value: parsedTransport.pushbackSeats !== false ? (parsedTransport.vehicleType || "160° Pushback Seats") : "Standard Comfort Seats",
+                    color: "text-emerald-600"
+                  },
+                  {
+                    icon: Zap,
+                    title: "Charging Ports",
+                    value: parsedTransport.chargingPorts || "Individual USB / Socket Ports",
+                    color: "text-amber-500"
+                  },
+                  {
+                    icon: Music,
+                    title: "Music System",
+                    value: parsedTransport.musicSystem || "JBL Sound & Ambient Lights",
+                    color: "text-purple-500"
+                  },
+                  {
+                    icon: Luggage,
+                    title: "Luggage Space",
+                    value: parsedTransport.luggageSpace || "Under-deck & Overhead Racks",
+                    color: "text-teal-600"
+                  }
+                ].map((spec, idx) => {
+                  const Icon = spec.icon;
+                  return (
+                    <div key={idx} className="p-3.5 bg-[#FAF9F5] rounded-2xl border border-[#E4E2DA]/80 space-y-1">
+                      <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                        <Icon className={`h-4 w-4 ${spec.color}`} /> {spec.title}
+                      </div>
+                      <p className="font-poppins font-bold text-sm text-primary truncate" title={spec.value}>
+                        {spec.value}
+                      </p>
+                    </div>
+                  );
+                })}
               </div>
 
               {/* Driver & Safety Highlights */}
@@ -472,7 +463,7 @@ function normalizeTransportObj(obj: any, slug: string): TransportSpec {
     )
   ) as string[];
 
-  const rawCapacity = item.capacity || item.seat_capacity;
+  const rawCapacity = item.seating_capacity_display || item.capacity || item.seat_capacity;
   const capacityStr = typeof rawCapacity === 'number'
     ? `${rawCapacity} Seater`
     : (rawCapacity ? String(rawCapacity) : "30 Seater");
@@ -480,17 +471,17 @@ function normalizeTransportObj(obj: any, slug: string): TransportSpec {
   return {
     name: item.name || item.vehicle_name || "Luxury AC Force Traveller",
     capacity: capacityStr,
-    vehicleType: item.vehicleType || item.vehicle_type || "Super Deluxe AC Coach",
-    isAc: item.isAc ?? item.ac ?? true,
-    pushbackSeats: item.pushbackSeats ?? item.pushback_seats ?? true,
-    chargingPorts: item.chargingPorts || item.charging_ports_text || item.charging_ports || "Individual USB & Socket Ports",
-    musicSystem: item.musicSystem || item.music_system_text || item.music_system || "JBL Sound System & Ambient Lighting",
-    luggageSpace: item.luggageSpace || item.luggage_space || "Under-deck & Overhead Luggage Bays",
-    driverExperience: item.driverExperience || item.driver_experience || "Certified Highway Captains (10+ Yrs Highway Exp)",
+    vehicleType: item.vehicle_subtitle || item.vehicleType || item.vehicle_type || "Super Deluxe AC Coach",
+    isAc: item.climate_ac_vehicle ?? item.isAc ?? item.ac ?? true,
+    pushbackSeats: item.pushback_seats_enabled ?? item.pushbackSeats ?? item.pushback_seats ?? true,
+    chargingPorts: item.charging_ports_specification || item.chargingPorts || item.charging_ports_text || item.charging_ports || "Individual USB & Socket Ports",
+    musicSystem: item.music_audio_system_spec || item.musicSystem || item.music_system_text || item.music_system || "JBL Sound System & Ambient Lighting",
+    luggageSpace: item.luggage_space_spec || item.luggageSpace || item.luggage_space || "Under-deck & Overhead Luggage Bays",
+    driverExperience: item.driver_experience_safety_assurance || item.driverExperience || item.driver_experience || "Certified Highway Captains (10+ Yrs Highway Exp)",
     washroomStops: item.washroomStops || item.washroom_stops || "Scheduled Clean Restroom Stops every 3-4 Hours",
     images: images.length > 0 ? images : getFallbackTransport(slug).images,
     features: Array.isArray(item.features) && item.features.length > 0 ? item.features : [
-      "Pushback Seats", "Personal USB Charging", "Climate AC Vents", "JBL Sound System", "Luggage Storage", "Clean Restroom Breaks", "Safety GPS Tracking"
+      "160° Pushback Seats", "Personal USB Charging", "Climate AC Vents", "JBL Sound System", "Luggage Storage", "Clean Restroom Breaks", "Safety GPS Tracking"
     ],
     pickupPoints: Array.isArray(item.pickup_points) ? item.pickup_points : (Array.isArray(item.pickupPoints) ? item.pickupPoints : []),
     dropPoints: Array.isArray(item.drop_points) ? item.drop_points : (Array.isArray(item.dropPoints) ? item.dropPoints : []),
@@ -518,7 +509,7 @@ function getFallbackTransport(slug: string): TransportSpec {
       "/images/transport/force-traveller-interior-cabin.jpg"
     ],
     features: [
-      "Pushback Seats",
+      "160° Pushback Seats",
       "Personal USB Charging",
       "Climate AC Vents",
       "JBL Sound System",
