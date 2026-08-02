@@ -92,22 +92,24 @@ export async function getPublishedPackages(destinationId?: string): Promise<Jour
   try {
     let query = supabase
       .from('journeys')
-      .select(JOURNEY_LIST_SELECT)
+      .select(JOURNEY_SELECT)
       .eq('status', 'PUBLISHED')
-      .order('priority', { ascending: false })
+      .order('created_at', { ascending: false })
 
     if (destinationId) query = query.eq('destination_id', destinationId)
 
     const { data, error } = await query
-    if (!error) return (data ?? []) as Journey[]
+    if (!error && data) return data as Journey[]
   } catch (e) {
-    console.warn('Modern getPublishedPackages failed, falling back:', e)
+    console.warn('getPublishedPackages failed:', e)
   }
 
-  // Fallback: legacy query (no status/priority columns)
+  // Fallback query without status filter if needed
   const { data: legacyData, error: legacyError } = await supabase
     .from('journeys')
-    .select('*, destinations(id, slug, name)')
+    .select(JOURNEY_SELECT)
+    .order('created_at', { ascending: false })
+
   if (legacyError) return []
   return (legacyData ?? []) as any[]
 }
@@ -116,22 +118,21 @@ export async function getFeaturedPackages(): Promise<Journey[]> {
   try {
     const { data, error } = await supabase
       .from('journeys')
-      .select(JOURNEY_LIST_SELECT)
+      .select(JOURNEY_SELECT)
       .eq('status', 'PUBLISHED')
-      .eq('is_featured', true)
-      .order('priority', { ascending: false })
+      .order('created_at', { ascending: false })
       .limit(6)
 
-    if (!error) return (data ?? []) as Journey[]
+    if (!error && data) return data as Journey[]
   } catch (e) {
-    console.warn('Modern getFeaturedPackages failed, falling back:', e)
+    console.warn('getFeaturedPackages failed:', e)
   }
 
-  // Fallback: legacy query
   const { data: legacyData, error: legacyError } = await supabase
     .from('journeys')
-    .select('*, destinations(id, slug, name)')
+    .select(JOURNEY_SELECT)
     .limit(6)
+
   if (legacyError) return []
   return (legacyData ?? []) as any[]
 }

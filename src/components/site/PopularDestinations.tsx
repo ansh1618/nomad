@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Reveal } from "./Reveal";
 import { useQuery } from "@tanstack/react-query";
 import { getJourneys, getDestinationsList } from "@/lib/queries-client";
+import { resolveDestinationHero } from "@/lib/media-resolver";
 
 interface PopularDestinationsProps {
   destinations?: any[];
