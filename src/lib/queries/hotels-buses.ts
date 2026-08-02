@@ -51,6 +51,7 @@ export async function getHotels(
 }
 
 export async function getHotelById(id: string): Promise<Hotel | null> {
+  if (!id || id === 'new') return null
   const { data, error } = await supabase
     .from('hotels')
     .select(HOTEL_SELECT)
@@ -58,7 +59,7 @@ export async function getHotelById(id: string): Promise<Hotel | null> {
     .single()
 
   if (error) {
-    if (error.code === 'PGRST116') return null
+    if (error.code === 'PGRST116' || error.code === '22P02') return null
     throw new Error(error.message)
   }
   return data as Hotel

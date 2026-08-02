@@ -316,6 +316,24 @@ function HotelFormPage() {
                 </div>
               </div>
 
+              <div className="space-y-1.5">
+                <Label>Description</Label>
+                <Textarea {...register('description')} placeholder="Write a brief overview of this property, ambiance, and location highlights..." rows={3} />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Hero Image (Cover)</Label>
+                <ImageField
+                  value={gallery[0] || ''}
+                  onChange={(url) => {
+                    if (url) {
+                      setGallery([url, ...gallery.filter(g => g !== url)])
+                    }
+                  }}
+                  label="Hero Cover Image"
+                />
+              </div>
+
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-1.5 col-span-2">
                   <Label>Address / Landmark</Label>
