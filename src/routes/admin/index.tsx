@@ -111,28 +111,91 @@ function AdminDashboard() {
 
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['dashboard_stats'],
-    queryFn: getDashboardStats,
-    refetchInterval: 60_000, // Refresh every minute
+    queryFn: async () => {
+      console.log("[Auth] Fetching stats");
+      try {
+        const res = await getDashboardStats();
+        console.log("[Auth] Stats loaded", res);
+        return res;
+      } catch (err) {
+        console.error("[Auth] Error fetching stats:", err);
+        return {
+          today_bookings: 0,
+          today_revenue: 0,
+          monthly_revenue: 0,
+          confirmed_bookings: 0,
+          pending_bookings: 0,
+          completed_trips: 0,
+          today_leads: 0,
+          week_leads: 0,
+          total_customers: 0,
+          active_packages: 0,
+          upcoming_departures: 0,
+          lead_conversion_rate: 0
+        };
+      }
+    },
+    refetchInterval: 60_000,
   })
 
   const { data: monthlyRevenue = [] } = useQuery({
     queryKey: ['monthly_revenue'],
-    queryFn: getMonthlyRevenue,
+    queryFn: async () => {
+      console.log("[Auth] Fetching revenue");
+      try {
+        const res = await getMonthlyRevenue();
+        console.log("[Auth] Revenue loaded", res);
+        return res || [];
+      } catch (err) {
+        console.error("[Auth] Error fetching revenue:", err);
+        return [];
+      }
+    },
   })
 
   const { data: recentBookingsResult, isLoading: bookingsLoading } = useQuery({
     queryKey: ['recent_bookings'],
-    queryFn: () => getBookings({ page: 1, pageSize: 8, sortBy: 'created_at', sortDir: 'desc' }),
+    queryFn: async () => {
+      console.log("[Auth] Fetching bookings");
+      try {
+        const res = await getBookings({ page: 1, pageSize: 8, sortBy: 'created_at', sortDir: 'desc' });
+        console.log("[Auth] Bookings loaded", res);
+        return res;
+      } catch (err) {
+        console.error("[Auth] Error fetching bookings:", err);
+        return { data: [], total: 0, page: 1, pageSize: 8, totalPages: 0 };
+      }
+    },
   })
 
   const { data: upcomingDepsResult, isLoading: depsLoading } = useQuery({
     queryKey: ['upcoming_departures_dash'],
-    queryFn: () => getDepartures({ page: 1, pageSize: 5, status: 'UPCOMING', sortBy: 'departure_date', sortDir: 'asc' }),
+    queryFn: async () => {
+      console.log("[Auth] Fetching departures");
+      try {
+        const res = await getDepartures({ page: 1, pageSize: 5, status: 'UPCOMING', sortBy: 'departure_date', sortDir: 'asc' });
+        console.log("[Auth] Departures loaded", res);
+        return res;
+      } catch (err) {
+        console.error("[Auth] Error fetching departures:", err);
+        return { data: [], total: 0, page: 1, pageSize: 5, totalPages: 0 };
+      }
+    },
   })
 
   const { data: packagePerf = [] } = useQuery({
     queryKey: ['package_performance'],
-    queryFn: getPackagePerformance,
+    queryFn: async () => {
+      console.log("[Auth] Fetching package performance");
+      try {
+        const res = await getPackagePerformance();
+        console.log("[Auth] Package performance loaded", res);
+        return res || [];
+      } catch (err) {
+        console.error("[Auth] Error fetching package performance:", err);
+        return [];
+      }
+    },
   })
 
   const recentBookings: Booking[] = recentBookingsResult?.data ?? []
@@ -144,17 +207,6 @@ function AdminDashboard() {
     revenue: m.revenue,
     bookings: m.bookings,
   }))
-
-  if (statsLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">Loading dashboard...</p>
-        </div>
-      </div>
-    )
-  }
 
   const statCards = [
     {
