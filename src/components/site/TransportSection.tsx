@@ -435,72 +435,75 @@ export function TransportSection({
       </AnimatePresence>
     </section>
   );
-}// Fallbacks per destination slug
+}
+
+export interface TransportSpec {
+  name?: string;
+  capacity?: string;
+  vehicleType?: string;
+  isAc?: boolean;
+  pushbackSeats?: boolean;
+  chargingPorts?: string;
+  musicSystem?: string;
+  luggageSpace?: string;
+  driverExperience?: string;
+  washroomStops?: string;
+  images?: string[];
+  features?: string[];
+  pickupPoints?: string[];
+  dropPoints?: string[];
+  departureTime?: string;
+  arrivalTime?: string;
+}
+
+function normalizeTransportObj(obj: any, slug: string): TransportSpec {
+  const item = Array.isArray(obj) ? obj[0] : obj;
+  if (!item) return getFallbackTransport(slug);
+
+  const images = Array.from(
+    new Set(
+      [
+        item.cover_image,
+        item.vehicle_cover,
+        ...(Array.isArray(item.images) ? item.images : []),
+        ...(Array.isArray(item.gallery) ? item.gallery : []),
+        ...(Array.isArray(item.transport_gallery) ? item.transport_gallery : []),
+      ].filter(Boolean)
+    )
+  ) as string[];
+
+  const rawCapacity = item.capacity || item.seat_capacity;
+  const capacityStr = typeof rawCapacity === 'number'
+    ? `${rawCapacity}-Seater Coach`
+    : (rawCapacity ? String(rawCapacity) : "17-26 Seater Coach");
+
+  return {
+    name: item.name || item.vehicle_name || "Luxury AC Force Traveller",
+    capacity: capacityStr,
+    vehicleType: item.vehicleType || item.vehicle_type || "Super Deluxe AC Coach",
+    isAc: item.isAc ?? item.ac ?? true,
+    pushbackSeats: item.pushbackSeats ?? item.pushback_seats ?? true,
+    chargingPorts: item.chargingPorts || item.charging_ports_text || item.charging_ports || "Individual USB & Socket Ports",
+    musicSystem: item.musicSystem || item.music_system_text || item.music_system || "JBL Sound System & Ambient Lighting",
+    luggageSpace: item.luggageSpace || item.luggage_space || "Under-deck & Overhead Luggage Bays",
+    driverExperience: item.driverExperience || item.driver_experience || "Certified Highway Captains (10+ Yrs Highway Exp)",
+    washroomStops: item.washroomStops || item.washroom_stops || "Scheduled Clean Restroom Stops every 3-4 Hours",
+    images: images.length > 0 ? images : getFallbackTransport(slug).images,
+    features: Array.isArray(item.features) && item.features.length > 0 ? item.features : [
+      "Pushback Seats", "Personal USB Charging", "Climate AC Vents", "JBL Sound System", "Luggage Storage", "Clean Restroom Breaks", "Safety GPS Tracking"
+    ],
+    pickupPoints: Array.isArray(item.pickup_points) ? item.pickup_points : (Array.isArray(item.pickupPoints) ? item.pickupPoints : []),
+    dropPoints: Array.isArray(item.drop_points) ? item.drop_points : (Array.isArray(item.dropPoints) ? item.dropPoints : []),
+    departureTime: item.departure_time || item.departureTime || "",
+    arrivalTime: item.arrival_time || item.arrivalTime || "",
+  };
+}
+
 function getFallbackTransport(slug: string): TransportSpec {
-  const s = slug.toLowerCase();
-  const REAL_VEHICLE_IMAGES = [
-    "/images/transport/force-traveller-front.jpg",
-    "/images/transport/force-traveller-side.jpg",
-    "/images/transport/force-traveller-interior-seats.jpg",
-    "/images/transport/force-traveller-interior-cabin.jpg",
-  ];
-
-  if (s.includes("jibhi") || s.includes("tirthan") || s.includes("chopta") || s.includes("spiti")) {
-    return {
-      name: "Force Traveller 17 Seater (Mountain Edition)",
-      capacity: "12-18 Explorers",
-      vehicleType: "Super Deluxe AC Mountain Cruiser",
-      isAc: true,
-      pushbackSeats: true,
-      chargingPorts: "Personal USB & AC Socket Ports on Every Row",
-      musicSystem: "JBL Surround Audio & LED Ambient Cabin Lighting",
-      luggageSpace: "Under-deck & Overhead Luggage Storage Bays",
-      driverExperience: "Hill-Certified Captains with 12+ Yrs Mountain Exp",
-      washroomStops: "Scheduled Clean Restroom Breaks Every 3-4 Hours",
-      images: REAL_VEHICLE_IMAGES,
-      features: [
-        "Pushback Recliners",
-        "Personal USB Ports",
-        "Climate AC Vents",
-        "JBL Sound System",
-        "Luggage Storage",
-        "Hill-Certified Captain",
-        "Clean Restroom Breaks",
-        "First Aid Kit",
-      ],
-    };
-  }
-
-  if (s.includes("manali") || s.includes("shimla")) {
-    return {
-      name: "Luxury AC Force Traveller (Mountain Cruiser)",
-      capacity: "12-18 Explorers",
-      vehicleType: "Super Deluxe AC Coach",
-      isAc: true,
-      pushbackSeats: true,
-      chargingPorts: "Individual Mobile Charging Sockets",
-      musicSystem: "JBL Surround Sound & LED Ambient Lighting",
-      luggageSpace: "Under-deck & Overhead Luggage Bays",
-      driverExperience: "Certified Highway Captains (12+ Yrs Mountain Exp)",
-      washroomStops: "Scheduled Clean Restroom Breaks Every 3-4 Hours",
-      images: REAL_VEHICLE_IMAGES,
-      features: [
-        "Pushback Seats",
-        "Personal USB Charging",
-        "Climate AC Vents",
-        "JBL Sound System",
-        "Ambient LED Cabin Lights",
-        "Under-deck Luggage",
-        "Verified Restroom Stops",
-      ],
-    };
-  }
-
-  // Default General
   return {
     name: "Luxury AC Force Traveller",
     capacity: "12-18 Explorers",
-    vehicleType: "Deluxe Highway Cruiser",
+    vehicleType: "Super Deluxe AC Highway Cruiser",
     isAc: true,
     pushbackSeats: true,
     chargingPorts: "Personal USB & Charging Sockets",
@@ -508,7 +511,10 @@ function getFallbackTransport(slug: string): TransportSpec {
     luggageSpace: "Overhead & Under-deck Luggage Bays",
     driverExperience: "Certified Highway Captains (10+ Yrs Highway Exp)",
     washroomStops: "Scheduled Clean Restroom Stops every 3-4 Hours",
-    images: REAL_VEHICLE_IMAGES,
+    images: [
+      "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&w=600&q=80"
+    ],
     features: [
       "Pushback Seats",
       "Personal USB Charging",
@@ -519,23 +525,7 @@ function getFallbackTransport(slug: string): TransportSpec {
       "Clean Restroom Breaks",
       "First Aid Kit",
     ],
-  };
-}
-
-function normalizeTransportObj(obj: any, slug: string): TransportSpec {
-  const fallback = getFallbackTransport(slug);
-  return {
-    name: obj.name || obj.vehicle_name || fallback.name,
-    capacity: obj.capacity || obj.vehicle_type || obj.seat_capacity ? `${obj.seat_capacity || ''} Seater` : fallback.capacity,
-    vehicleType: obj.vehicleType || obj.vehicle_type || fallback.vehicleType,
-    isAc: obj.isAc ?? obj.ac ?? fallback.isAc,
-    pushbackSeats: obj.pushbackSeats ?? obj.pushback_seats ?? fallback.pushbackSeats,
-    chargingPorts: obj.chargingPorts || obj.charging_ports || fallback.chargingPorts,
-    musicSystem: obj.musicSystem || obj.music_system || fallback.musicSystem,
-    luggageSpace: obj.luggageSpace || obj.luggage_space || fallback.luggageSpace,
-    driverExperience: obj.driverExperience || obj.driver_experience || fallback.driverExperience,
-    washroomStops: obj.washroomStops || obj.washroom_stops || fallback.washroomStops,
-    images: Array.isArray(obj.images) && obj.images.length > 0 ? obj.images : (Array.isArray(obj.gallery) && obj.gallery.length > 0 ? obj.gallery : fallback.images),
-    features: Array.isArray(obj.features) && obj.features.length > 0 ? obj.features : fallback.features,
+    pickupPoints: [],
+    dropPoints: []
   };
 }

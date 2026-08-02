@@ -1535,6 +1535,15 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
                   )}
                 </div>
               )}
+
+              {/* 🚌 DYNAMIC TRANSPORT SECTION (ADMIN SINGLE SOURCE OF TRUTH) */}
+              <div className="pt-8 border-t border-[#E4E2DA]">
+                <TransportSection
+                  transportData={journey?.transport}
+                  journeyName={journey?.name}
+                  slug={slug}
+                />
+              </div>
             </div>
           </div>
         </div>
