@@ -29,8 +29,10 @@ function AdminLayoutGate() {
   useEffect(() => {
     if (!loading) {
       if (!isAdmin && currentPath !== "/admin/login") {
+        console.warn("[Auth] Unauthenticated user accessing admin path -> Redirecting to /admin/login");
         navigate({ to: "/admin/login" });
       } else if (isAdmin && currentPath === "/admin/login") {
+        console.log("[Auth] Admin verified -> Redirecting to /admin");
         navigate({ to: "/admin" });
       }
     }

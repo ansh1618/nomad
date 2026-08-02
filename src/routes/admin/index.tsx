@@ -104,6 +104,10 @@ function StatCard({
 function AdminDashboard() {
   const { admin } = useAdminAuth()
 
+  useEffect(() => {
+    console.log("[Auth] Dashboard mounted");
+  }, []);
+
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['dashboard_stats'],
     queryFn: getDashboardStats,

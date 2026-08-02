@@ -89,6 +89,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
         role: adminObj.role as AdminRole,
       };
       setAdmin(adminData);
+      console.log("[Auth] Admin verified:", adminData.email);
       return adminData;
     } catch (e) {
       console.error("[Admin Auth] fetchAdminRole query exception:", e);
@@ -98,15 +99,15 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    let resolved = false;
-    const resolve = () => {
-      if (!resolved) {
-        resolved = true;
+    let isMounted = true;
+
+    // Safety timeout: max 3 seconds wait
+    const safetyTimer = setTimeout(() => {
+      if (isMounted) {
+        console.warn("[Auth] Safety timeout reached (3s) — forcing loading=false");
         setLoading(false);
       }
-    };
-
-    const timer = setTimeout(resolve, 5000);
+    }, 3000);
 
     // Setup unload handler for non-persistent sessions (Remember Me option)
     const handleUnload = () => {
@@ -118,64 +119,95 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     window.addEventListener("beforeunload", handleUnload);
 
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!isMounted) return;
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
+        console.log("[Auth] Session found for:", session.user.email);
+        console.log("[Auth] Checking admin");
         fetchAdminRole(session.user.id, session.user.email ?? "")
           .then((adminResult) => {
             if (!adminResult) {
-              // Sign out immediately if not authorized admin
+              console.warn("[Auth] User is not authorized admin — signing out");
               supabase.auth.signOut();
               setSession(null);
               setUser(null);
               setAdmin(null);
             }
           })
-          .finally(resolve);
+          .finally(() => {
+            if (isMounted) setLoading(false);
+          });
       } else {
-        resolve();
+        if (isMounted) setLoading(false);
       }
+    }).catch((err) => {
+      console.warn("[Auth] getSession error:", err);
+      if (isMounted) setLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, newSession) => {
+      async (event, newSession) => {
+        if (!isMounted) return;
+        console.log("[Auth] Auth state change event:", event);
         setSession(newSession);
         setUser(newSession?.user ?? null);
+
         if (newSession?.user) {
+          console.log("[Auth] Login success for user:", newSession.user.email);
+          console.log("[Auth] Checking admin");
           const adminResult = await fetchAdminRole(newSession.user.id, newSession.user.email ?? "");
           if (!adminResult) {
-            // Sign out immediately if not authorized admin
+            console.warn("[Auth] Access denied — signing out unauthorized user");
             await supabase.auth.signOut();
             setSession(null);
             setUser(null);
             setAdmin(null);
+          } else {
+            console.log("[Auth] Admin verified");
           }
         } else {
           setAdmin(null);
         }
-        resolve();
+        if (isMounted) setLoading(false);
       }
     );
 
     return () => {
-      clearTimeout(timer);
+      isMounted = false;
+      clearTimeout(safetyTimer);
       window.removeEventListener("beforeunload", handleUnload);
       subscription.unsubscribe();
     };
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return { error: error.message };
-
-    if (data.user) {
-      const adminResult = await fetchAdminRole(data.user.id, data.user.email ?? "");
-      if (!adminResult) {
-        await supabase.auth.signOut();
-        return { error: "Access denied. You are not authorized or your admin account is inactive." };
+    console.log("[Auth] Starting signIn process for:", email);
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        console.warn("[Auth] signInWithPassword error:", error.message);
+        return { error: error.message };
       }
+
+      if (data.user) {
+        console.log("[Auth] Login success for user ID:", data.user.id);
+        console.log("[Auth] Checking admin");
+        const adminResult = await fetchAdminRole(data.user.id, data.user.email ?? "");
+        if (!adminResult) {
+          await supabase.auth.signOut();
+          return { error: "Access denied. You are not authorized or your admin account is inactive." };
+        }
+        console.log("[Auth] Admin verified");
+      }
+      return { error: null };
+    } catch (err: any) {
+      console.error("[Auth] Exception during signIn:", err);
+      return { error: err?.message || "Login failed" };
+    } finally {
+      setLoading(false);
     }
-    return { error: null };
   };
 
   const signOut = async () => {
