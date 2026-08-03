@@ -45,10 +45,10 @@ function JourneysCatalogPage() {
     const query = searchQuery.toLowerCase().trim()
     const matchesSearch =
       !query ||
-      j.name.toLowerCase().includes(query) ||
-      (j.overview && j.overview.toLowerCase().includes(query)) ||
-      (j.highlights && j.highlights.some((h: string) => h.toLowerCase().includes(query))) ||
-      (j.slug && j.slug.toLowerCase().includes(query))
+      String(j.name ?? "").toLowerCase().includes(query) ||
+      String(j.overview ?? "").toLowerCase().includes(query) ||
+      (Array.isArray(j.highlights) && j.highlights.some((h: any) => String(h ?? "").toLowerCase().includes(query))) ||
+      String(j.slug ?? "").toLowerCase().includes(query)
 
     return matchesCategory && matchesSearch
   })

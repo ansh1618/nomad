@@ -48,7 +48,7 @@ export function resolveBookingPricing({
     } 
     // If it's the raw DB object
     else if (room.sharing_type) {
-      const st = room.sharing_type.toLowerCase();
+      const st = String(room.sharing_type ?? "").toLowerCase();
       if (st.includes("double")) roomModifier = 800;
       else if (st.includes("triple")) roomModifier = 500;
     }

@@ -100,8 +100,8 @@ export async function getFeaturedDestinations(): Promise<Destination[]> {
 // ==========================================
 // BY SLUG
 // ==========================================
-export async function getDestinationBySlug(slug: string): Promise<Destination | null> {
-  const cleanSlug = slug.toLowerCase().trim();
+export async function getDestinationBySlug(slug: any): Promise<Destination | null> {
+  const cleanSlug = String(slug ?? "").toLowerCase().trim();
 
   // Attempt 1: Exact slug match
   let { data, error } = await supabase

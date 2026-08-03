@@ -71,15 +71,21 @@ export function isValidMediaUrl(url?: string | null): boolean {
   return lower.startsWith("/") || lower.startsWith("http://") || lower.startsWith("https://");
 }
 
-export function resolveDestinationHero(slug?: string | null, rawHero?: string | null): string {
-  const s = (slug || "").toLowerCase().trim();
+export function resolveDestinationHero(slug?: any, rawHero?: any): string {
+  const s = typeof slug === "string"
+    ? slug.toLowerCase().trim()
+    : String(slug?.slug || slug?.name || "").toLowerCase().trim();
 
-  // If rawHero is valid, use it
-  if (isValidMediaUrl(rawHero)) {
-    return rawHero!.trim();
+  const heroStr = typeof rawHero === "string"
+    ? rawHero
+    : typeof rawHero?.url === "string"
+    ? rawHero.url
+    : "";
+
+  if (isValidMediaUrl(heroStr)) {
+    return heroStr.trim();
   }
 
-  // Fallback strictly per destination slug
   if (s.includes("udaipur")) return AUTHENTIC_DESTINATION_MEDIA.udaipur.hero;
   if (s.includes("manali")) return AUTHENTIC_DESTINATION_MEDIA.manali.hero;
   if (s.includes("jibhi") || s.includes("tirthan")) return AUTHENTIC_DESTINATION_MEDIA.jibhi.hero;
@@ -89,28 +95,41 @@ export function resolveDestinationHero(slug?: string | null, rawHero?: string | 
   return AUTHENTIC_DESTINATION_MEDIA.udaipur.hero;
 }
 
-export function resolveJourneyHero(journeySlug?: string | null, rawHero?: string | null, destSlug?: string | null): string {
-  if (isValidMediaUrl(rawHero)) {
-    return rawHero!.trim();
+export function resolveJourneyHero(journeySlug?: any, rawHero?: any, destSlug?: any): string {
+  const heroStr = typeof rawHero === "string" ? rawHero : typeof rawHero?.url === "string" ? rawHero.url : "";
+  if (isValidMediaUrl(heroStr)) {
+    return heroStr.trim();
   }
   return resolveDestinationHero(destSlug || journeySlug, null);
 }
 
-export function resolveGallery(rawGallery?: any[], slug?: string | null): any[] {
-  if (Array.isArray(rawGallery) && rawGallery.length > 0) {
-    const cleaned = rawGallery.filter(item => {
-      const url = typeof item === 'string' ? item : item?.url;
-      return isValidMediaUrl(url);
-    });
+export function resolveGallery(arg1?: any, arg2?: any): any[] {
+  let rawGallery: any[] | null = null;
+  let slugStr: string = "";
+
+  if (Array.isArray(arg1)) {
+    rawGallery = arg1;
+    slugStr = typeof arg2 === "string" ? arg2 : String(arg2?.slug || arg2?.name || arg2 || "");
+  } else if (Array.isArray(arg2)) {
+    rawGallery = arg2;
+    slugStr = typeof arg1 === "string" ? arg1 : String(arg1?.slug || arg1?.name || arg1 || "");
+  } else {
+    slugStr = typeof arg1 === "string" ? arg1 : typeof arg2 === "string" ? arg2 : String(arg1 || arg2 || "");
+  }
+
+  if (rawGallery && rawGallery.length > 0) {
+    const cleaned = rawGallery
+      .map((item) => (typeof item === "string" ? item : item?.url || item?.src))
+      .filter((url) => isValidMediaUrl(url));
     if (cleaned.length > 0) return cleaned;
   }
 
-  const s = (slug || "").toLowerCase().trim();
+  const s = String(slugStr || "").toLowerCase().trim();
   if (s.includes("udaipur")) return AUTHENTIC_DESTINATION_MEDIA.udaipur.gallery;
   if (s.includes("manali")) return AUTHENTIC_DESTINATION_MEDIA.manali.gallery;
-  if (s.includes("jibhi")) return AUTHENTIC_DESTINATION_MEDIA.jibhi.gallery;
-  if (s.includes("mcleod")) return AUTHENTIC_DESTINATION_MEDIA.mcleodganj.gallery;
-  if (s.includes("chopta")) return AUTHENTIC_DESTINATION_MEDIA["chopta-tungnath"].gallery;
+  if (s.includes("jibhi") || s.includes("tirthan")) return AUTHENTIC_DESTINATION_MEDIA.jibhi.gallery;
+  if (s.includes("mcleod") || s.includes("dharamshala")) return AUTHENTIC_DESTINATION_MEDIA.mcleodganj.gallery;
+  if (s.includes("chopta") || s.includes("tungnath")) return AUTHENTIC_DESTINATION_MEDIA["chopta-tungnath"].gallery;
 
   return AUTHENTIC_DESTINATION_MEDIA.udaipur.gallery;
 }

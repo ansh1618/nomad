@@ -443,25 +443,25 @@ export async function getApprovedReviews(options?: {
     let resultList = Array.from(uniqueMap.values());
 
     if (options?.journeyId) {
-      const target = options.journeyId.toLowerCase();
+      const target = String(options.journeyId ?? "").toLowerCase();
       resultList = resultList.filter(
         (r) =>
-          (r.journey_id && r.journey_id.toLowerCase().includes(target)) ||
-          (r.journey_slug && r.journey_slug.toLowerCase().includes(target))
+          String(r.journey_id ?? "").toLowerCase().includes(target) ||
+          String(r.journey_slug ?? "").toLowerCase().includes(target)
       );
     }
     if (options?.destinationId) {
-      const target = options.destinationId.toLowerCase();
+      const target = String(options.destinationId ?? "").toLowerCase();
       resultList = resultList.filter(
         (r) =>
-          (r.destination_id && r.destination_id.toLowerCase().includes(target)) ||
-          (r.journey_slug && r.journey_slug.toLowerCase().includes(target))
+          String(r.destination_id ?? "").toLowerCase().includes(target) ||
+          String(r.journey_slug ?? "").toLowerCase().includes(target)
       );
     }
     if (options?.collegeFilter) {
-      const targetCollege = options.collegeFilter.toLowerCase().trim();
+      const targetCollege = String(options.collegeFilter ?? "").toLowerCase().trim();
       resultList = resultList.filter(
-        (r) => r.college && r.college.toLowerCase().includes(targetCollege)
+        (r) => String(r.college ?? "").toLowerCase().includes(targetCollege)
       );
     }
     if (options?.ratingFilter) {
@@ -471,13 +471,13 @@ export async function getApprovedReviews(options?: {
       resultList = resultList.filter((r) => r.media && r.media.length > 0);
     }
     if (options?.searchQuery?.trim()) {
-      const q = options.searchQuery.toLowerCase().trim();
+      const q = String(options.searchQuery ?? "").toLowerCase().trim();
       resultList = resultList.filter(
         (r) =>
-          r.author_name.toLowerCase().includes(q) ||
-          (r.title && r.title.toLowerCase().includes(q)) ||
-          (r.review && r.review.toLowerCase().includes(q)) ||
-          (r.college && r.college.toLowerCase().includes(q))
+          String(r.author_name ?? "").toLowerCase().includes(q) ||
+          String(r.title ?? "").toLowerCase().includes(q) ||
+          String(r.review ?? "").toLowerCase().includes(q) ||
+          String(r.college ?? "").toLowerCase().includes(q)
       );
     }
 

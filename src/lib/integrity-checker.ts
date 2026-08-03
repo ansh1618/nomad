@@ -90,7 +90,7 @@ export async function runStartupIntegrityCheck(): Promise<SystemIntegrityReport>
       .from("destinations")
       .select("id, slug, name");
 
-    const existingSlugMap = new Map((existingDests || []).map(d => [d.slug.toLowerCase(), d]));
+    const existingSlugMap = new Map((existingDests || []).map(d => [String(d.slug ?? "").toLowerCase(), d]));
 
     for (const req of REQUIRED_DESTINATIONS) {
       if (!existingSlugMap.has(req.slug)) {
@@ -130,11 +130,11 @@ export async function runStartupIntegrityCheck(): Promise<SystemIntegrityReport>
       if (!j.destination_id || !validDestIds.has(j.destination_id)) {
         // Try to deduce destination from slug / name
         let matchedDestId: string | null = null;
-        const jSlug = j.slug.toLowerCase();
-        const jName = j.name.toLowerCase();
+        const jSlug = String(j.slug ?? "").toLowerCase();
+        const jName = String(j.name ?? "").toLowerCase();
 
         for (const [dSlug, destObj] of existingSlugMap.entries()) {
-          if (jSlug.includes(dSlug) || jName.includes(dSlug) || jName.includes(destObj.name.toLowerCase())) {
+          if (jSlug.includes(dSlug) || jName.includes(dSlug) || jName.includes(String(destObj.name ?? "").toLowerCase())) {
             matchedDestId = destObj.id;
             break;
           }

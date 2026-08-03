@@ -38,10 +38,10 @@ function DestinationsCatalogPage() {
     const query = searchQuery.toLowerCase().trim()
     if (!query) return true
     return (
-      d.name.toLowerCase().includes(query) ||
-      (d.state && d.state.toLowerCase().includes(query)) ||
-      (d.description && d.description.toLowerCase().includes(query)) ||
-      (d.slug && d.slug.toLowerCase().includes(query))
+      String(d.name ?? "").toLowerCase().includes(query) ||
+      String(d.state ?? "").toLowerCase().includes(query) ||
+      String(d.description ?? "").toLowerCase().includes(query) ||
+      String(d.slug ?? "").toLowerCase().includes(query)
     )
   })
 

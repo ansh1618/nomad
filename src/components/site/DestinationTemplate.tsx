@@ -437,21 +437,27 @@ export function DestinationTemplate({ slug }: DestinationTemplateProps) {
               <div className="h-10 w-10 shrink-0 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center font-bold">S</div>
               <div>
                 <h4 className="font-poppins font-bold text-sm">Summer (Apr - Jun)</h4>
-                <p className="mt-1 text-xs text-muted-foreground">{dest.weather.summer}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {typeof dest.weather === "string" ? dest.weather : dest.weather?.summer || "Pleasant pleasant mountain climate (15°C - 25°C)."}
+                </p>
               </div>
             </div>
             <div className="bg-white border border-border p-5 rounded-2xl flex gap-4">
               <div className="h-10 w-10 shrink-0 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center font-bold">M</div>
               <div>
                 <h4 className="font-poppins font-bold text-sm">Monsoon (Jul - Sep)</h4>
-                <p className="mt-1 text-xs text-muted-foreground">{dest.weather.monsoon}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {typeof dest.weather === "string" ? dest.weather : dest.weather?.monsoon || "Lush green valleys with light mountain showers."}
+                </p>
               </div>
             </div>
             <div className="bg-white border border-border p-5 rounded-2xl flex gap-4">
               <div className="h-10 w-10 shrink-0 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold">W</div>
               <div>
                 <h4 className="font-poppins font-bold text-sm">Winter (Oct - Mar)</h4>
-                <p className="mt-1 text-xs text-muted-foreground">{dest.weather.winter}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {typeof dest.weather === "string" ? dest.weather : dest.weather?.winter || "Crisp winter snow and chilly mountain breeze (0°C - 10°C)."}
+                </p>
               </div>
             </div>
           </div>
@@ -463,15 +469,21 @@ export function DestinationTemplate({ slug }: DestinationTemplateProps) {
           <div className="space-y-4">
             <div className="bg-white border border-border p-5 rounded-2xl">
               <span className="text-[10px] font-poppins font-bold text-accent uppercase tracking-wider block">By Road</span>
-              <p className="mt-1 text-xs text-foreground/80 leading-relaxed">{dest.howToReach.road}</p>
+              <p className="mt-1 text-xs text-foreground/80 leading-relaxed">
+                {typeof dest.howToReach === "string" ? dest.howToReach : dest.howToReach?.road || "Direct Volvo buses & taxis available from Delhi & Chandigarh."}
+              </p>
             </div>
             <div className="bg-white border border-border p-5 rounded-2xl">
               <span className="text-[10px] font-poppins font-bold text-accent uppercase tracking-wider block">By Train</span>
-              <p className="mt-1 text-xs text-foreground/80 leading-relaxed">{dest.howToReach.rail}</p>
+              <p className="mt-1 text-xs text-foreground/80 leading-relaxed">
+                {typeof dest.howToReach === "string" ? dest.howToReach : dest.howToReach?.rail || "Nearest major railway station is Chandigarh / Una."}
+              </p>
             </div>
             <div className="bg-white border border-border p-5 rounded-2xl">
               <span className="text-[10px] font-poppins font-bold text-accent uppercase tracking-wider block">By Flight</span>
-              <p className="mt-1 text-xs text-foreground/80 leading-relaxed">{dest.howToReach.air}</p>
+              <p className="mt-1 text-xs text-foreground/80 leading-relaxed">
+                {typeof dest.howToReach === "string" ? dest.howToReach : dest.howToReach?.air || "Nearest airport is Bhuntar (Kullu) / Chandigarh Airport."}
+              </p>
             </div>
           </div>
         </Reveal>

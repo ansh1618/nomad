@@ -6,8 +6,8 @@ import { z } from "zod";
 import { resolveBookingPricing } from "./pricing-fns";
 
 // Helper: Extract 3-letter destination code from slug/name
-function getDestinationCode(slugOrName: string = ""): string {
-  const s = slugOrName.toLowerCase();
+function getDestinationCode(slugOrName: any = ""): string {
+  const s = String(slugOrName ?? "").toLowerCase();
   if (s.includes("manali")) return "MAN";
   if (s.includes("udaipur")) return "UDP";
   if (s.includes("chopta")) return "CHP";
