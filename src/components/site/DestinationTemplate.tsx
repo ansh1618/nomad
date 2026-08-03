@@ -16,6 +16,7 @@ import { ItineraryPreviewCard } from "./ItineraryPreviewCard";
 import { ItineraryLoginModal } from "./ItineraryLoginModal";
 import { ItineraryPdfViewerModal } from "./ItineraryPdfViewerModal";
 import { ReviewsSection } from "./ReviewsSection";
+import { UniversalLightboxModal } from "./UniversalLightboxModal";
 
 interface DestinationTemplateProps {
   slug: string;
@@ -61,6 +62,8 @@ export function DestinationTemplate({ slug }: DestinationTemplateProps) {
 
   const [loginModalOpen, setLoginModalOpen] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
+  const [galleryLightboxOpen, setGalleryLightboxOpen] = useState(false);
+  const [galleryLightboxIndex, setGalleryLightboxIndex] = useState(0);
 
   // Fetch document metadata for this destination (client-only to prevent SSR ServerFnException)
   const { data: documentMeta } = useQuery({
@@ -260,6 +263,64 @@ export function DestinationTemplate({ slug }: DestinationTemplateProps) {
         slug={slug}
         documentMeta={documentMeta}
       />
+
+      {/* Destination Gallery Section */}
+      {(() => {
+        const galleryList = resolveGallery(slug, dest?.gallery);
+        if (!galleryList || galleryList.length === 0) return null;
+
+        return (
+          <>
+            <section className="max-w-7xl mx-auto px-5 py-12">
+              <Reveal className="flex items-center justify-between border-b border-border pb-4 mb-8">
+                <div>
+                  <span className="text-xs font-poppins font-bold uppercase tracking-[0.25em] text-gold">Visuals</span>
+                  <h2 className="font-display text-2xl sm:text-3xl font-bold text-primary mt-1">
+                    {dest.name} Photo Gallery
+                  </h2>
+                </div>
+                <span className="text-xs font-poppins font-semibold text-muted-foreground">
+                  {galleryList.length} Photos
+                </span>
+              </Reveal>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                {galleryList.map((imgUrl: string, idx: number) => (
+                  <Reveal key={idx} delay={idx % 4}>
+                    <div
+                      onClick={() => {
+                        setGalleryLightboxIndex(idx);
+                        setGalleryLightboxOpen(true);
+                      }}
+                      className="group relative aspect-[4/3] rounded-2xl overflow-hidden cursor-pointer border border-border shadow-soft bg-muted"
+                    >
+                      <img
+                        src={imgUrl}
+                        alt={`${dest.name} memory ${idx + 1}`}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        loading="lazy"
+                      />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                        <span className="text-xs font-poppins font-bold bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/30">
+                          View Photo
+                        </span>
+                      </div>
+                    </div>
+                  </Reveal>
+                ))}
+              </div>
+            </section>
+
+            <UniversalLightboxModal
+              isOpen={galleryLightboxOpen}
+              onClose={() => setGalleryLightboxOpen(false)}
+              images={galleryList}
+              initialIndex={galleryLightboxIndex}
+              title={`${dest.name} — Destination Gallery`}
+            />
+          </>
+        );
+      })()}
 
       {/* 3. Upcoming Journeys Section */}
       <section id="journeys" className="bg-muted/30 py-20">

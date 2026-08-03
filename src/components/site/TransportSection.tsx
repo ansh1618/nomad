@@ -3,6 +3,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { UniversalLightboxModal } from "./UniversalLightboxModal";
 import {
   Bus,
   ShieldCheck,
@@ -334,96 +335,13 @@ export function TransportSection({
       </div>
 
       {/* FULLSCREEN INTERACTIVE LIGHTBOX MODAL */}
-      <AnimatePresence>
-        {lightboxOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] bg-slate-950/95 backdrop-blur-2xl flex flex-col justify-between p-4 sm:p-8"
-          >
-            {/* Lightbox Header */}
-            <div className="flex items-center justify-between text-white z-10">
-              <div className="flex items-center gap-3">
-                <Badge className="bg-[#F59E0B] text-slate-950 font-bold text-xs">
-                  {parsedTransport.capacity || "Luxury Vehicle"}
-                </Badge>
-                <span className="font-display font-bold text-sm sm:text-base text-slate-200">
-                  {parsedTransport.name} Interior Gallery
-                </span>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <span className="font-mono text-xs text-slate-400">
-                  {lightboxIdx + 1} / {images.length}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setLightboxOpen(false)}
-                  className="text-slate-400 hover:text-white rounded-full bg-slate-800/60"
-                >
-                  <X className="h-5 w-5" />
-                </Button>
-              </div>
-            </div>
-
-            {/* Lightbox Main Image Display */}
-            <div className="relative flex-1 flex items-center justify-center my-4 overflow-hidden">
-              <motion.img
-                key={lightboxIdx}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.25 }}
-                src={images[lightboxIdx]}
-                alt={`Transport gallery view ${lightboxIdx + 1}`}
-                className="max-h-[80vh] max-w-[90vw] object-contain rounded-2xl shadow-2xl border border-slate-800"
-              />
-
-              {/* Prev / Next Navigation Buttons */}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() =>
-                  setLightboxIdx((prev) => (prev - 1 + images.length) % images.length)
-                }
-                className="absolute left-2 sm:left-6 top-1/2 -translate-y-1/2 text-white bg-slate-900/80 hover:bg-slate-800 rounded-full h-12 w-12 border border-slate-700 shadow-xl"
-              >
-                <ChevronLeft className="h-6 w-6" />
-              </Button>
-
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() =>
-                  setLightboxIdx((prev) => (prev + 1) % images.length)
-                }
-                className="absolute right-2 sm:right-6 top-1/2 -translate-y-1/2 text-white bg-slate-900/80 hover:bg-slate-800 rounded-full h-12 w-12 border border-slate-700 shadow-xl"
-              >
-                <ChevronRight className="h-6 w-6" />
-              </Button>
-            </div>
-
-            {/* Lightbox Footer Thumbnail Bar */}
-            <div className="flex items-center justify-center gap-2 overflow-x-auto py-2 z-10">
-              {images.map((img, i) => (
-                <button
-                  key={i}
-                  onClick={() => setLightboxIdx(i)}
-                  className={`w-16 h-12 rounded-lg overflow-hidden border-2 transition-all shrink-0 ${
-                    i === lightboxIdx
-                      ? "border-[#F59E0B] scale-110"
-                      : "border-slate-800 opacity-50 hover:opacity-100"
-                  }`}
-                >
-                  <img src={img} alt="thumb" className="w-full h-full object-cover" />
-                </button>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <UniversalLightboxModal
+        isOpen={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        images={images}
+        initialIndex={lightboxIdx}
+        title={`${parsedTransport.name} — Vehicle Gallery`}
+      />
     </section>
   );
 }

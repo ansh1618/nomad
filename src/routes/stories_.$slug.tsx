@@ -3,6 +3,7 @@ import { Navbar } from "@/components/site/Navbar";
 import { Footer } from "@/components/site/Footer";
 import { FloatingUI } from "@/components/site/FloatingUI";
 import { Reveal } from "@/components/site/Reveal";
+import { UniversalLightboxModal } from "@/components/site/UniversalLightboxModal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -100,50 +101,82 @@ function renderMarkdown(md: string): string {
 }
 
 // ─── Gallery Slider ─────────────────────────────────────────────────────────
-function GallerySlider({ images }: { images: string[] }) {
+function GallerySlider({ images, title }: { images: string[]; title?: string }) {
   const [current, setCurrent] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+
   if (!images || images.length === 0) return null;
 
   return (
-    <div className="relative rounded-2xl overflow-hidden bg-black aspect-video">
-      <AnimatePresence mode="wait">
-        <motion.img
-          key={current}
-          src={images[current]}
-          alt={`Gallery ${current + 1}`}
-          className="w-full h-full object-cover"
-          initial={{ opacity: 0, scale: 1.03 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.4 }}
-        />
-      </AnimatePresence>
-      {images.length > 1 && (
-        <>
-          <button
-            onClick={() => setCurrent((c) => (c === 0 ? images.length - 1 : c - 1))}
-            className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full backdrop-blur-sm transition-colors"
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-          <button
-            onClick={() => setCurrent((c) => (c === images.length - 1 ? 0 : c + 1))}
-            className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full backdrop-blur-sm transition-colors"
-          >
-            <ChevronRight className="h-5 w-5" />
-          </button>
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5">
-            {images.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setCurrent(i)}
-                className={`rounded-full transition-all ${i === current ? "w-5 h-1.5 bg-white" : "w-1.5 h-1.5 bg-white/50"}`}
-              />
-            ))}
-          </div>
-        </>
-      )}
-    </div>
+    <>
+      <div
+        onClick={() => setLightboxOpen(true)}
+        className="relative rounded-2xl overflow-hidden bg-black aspect-video cursor-pointer group"
+      >
+        <AnimatePresence mode="wait">
+          <motion.img
+            key={current}
+            src={images[current]}
+            alt={`Gallery ${current + 1}`}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            initial={{ opacity: 0, scale: 1.03 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4 }}
+            loading="lazy"
+          />
+        </AnimatePresence>
+        
+        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+          <span className="text-xs font-poppins font-bold bg-white/20 backdrop-blur-md px-4 py-2 rounded-full border border-white/30">
+            Open Fullscreen Gallery
+          </span>
+        </div>
+
+        {images.length > 1 && (
+          <>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setCurrent((c) => (c === 0 ? images.length - 1 : c - 1));
+              }}
+              className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full backdrop-blur-sm transition-colors z-10"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setCurrent((c) => (c === images.length - 1 ? 0 : c + 1));
+              }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full backdrop-blur-sm transition-colors z-10"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-10">
+              {images.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCurrent(i);
+                  }}
+                  className={`rounded-full transition-all ${i === current ? "w-5 h-1.5 bg-white" : "w-1.5 h-1.5 bg-white/50"}`}
+                />
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+
+      <UniversalLightboxModal
+        isOpen={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        images={images}
+        initialIndex={current}
+        title={title || "Story Gallery"}
+      />
+    </>
   );
 }
 

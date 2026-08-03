@@ -16,6 +16,7 @@ import { ReviewFormModal } from "./ReviewFormModal";
 import type { Review, ReviewFilterState, ReviewRatingStats } from "@/types/reviews";
 import { getApprovedReviews } from "@/lib/reviews-client";
 import { motion, AnimatePresence } from "motion/react";
+import { UniversalLightboxModal } from "./UniversalLightboxModal";
 
 interface ReviewsSectionProps {
   journeyId?: string;
@@ -268,22 +269,12 @@ export function ReviewsSection({
       />
 
       {/* Media Lightbox */}
-      {lightboxMediaUrl && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <button
-            type="button"
-            onClick={() => setLightboxMediaUrl(null)}
-            className="absolute top-5 right-5 text-white bg-black/50 p-2 rounded-full hover:bg-black"
-          >
-            <X className="h-6 w-6" />
-          </button>
-          <img
-            src={lightboxMediaUrl}
-            alt="Traveler Fullscreen Memory"
-            className="max-h-[85vh] max-w-[90vw] object-contain rounded-2xl shadow-2xl"
-          />
-        </div>
-      )}
+      <UniversalLightboxModal
+        isOpen={!!lightboxMediaUrl}
+        onClose={() => setLightboxMediaUrl(null)}
+        images={lightboxMediaUrl ? [lightboxMediaUrl] : []}
+        title="Traveler Review Photo"
+      />
     </section>
   );
 }

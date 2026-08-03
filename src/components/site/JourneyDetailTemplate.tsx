@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate, useLoaderData } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "motion/react";
 import { useQuery } from "@tanstack/react-query";
+import { UniversalLightboxModal } from "./UniversalLightboxModal";
 import {
   Check,
   X,
@@ -1405,147 +1406,23 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
       })()}
 
       {/* Lightbox Modal */}
-      <AnimatePresence>
-        {lightboxOpen &&
-          (() => {
-            const galleryList = (journey.gallery ?? []).map((item: any) =>
-              typeof item === "string" ? { url: item, caption: "", day: null } : item,
-            );
-            const filteredList =
-              lightboxDayFilter === null
-                ? galleryList
-                : galleryList.filter((item: any) => item.day === lightboxDayFilter);
+      {(() => {
+        const galleryList = (journey.gallery ?? []).map((item: any) =>
+          typeof item === "string"
+            ? { src: item, caption: "" }
+            : { src: item.url || item.src, caption: item.caption || "" }
+        );
 
-            const currentItem = filteredList[lightboxIndex] || filteredList[0] || null;
-
-            return (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 z-[150] bg-black/95 flex flex-col justify-between p-4"
-              >
-                <div className="flex items-center justify-between text-white border-b border-white/10 pb-3">
-                  <div>
-                    <h3 className="font-poppins font-bold text-sm tracking-wide">
-                      Community Hub Explorer
-                    </h3>
-                    <p className="text-[10px] text-white/60 font-poppins">
-                      {currentItem
-                        ? currentItem.day
-                          ? `Day ${currentItem.day} Experience`
-                          : "General Memories"
-                        : ""}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <select
-                      value={lightboxDayFilter === null ? "" : String(lightboxDayFilter)}
-                      onChange={(e) => {
-                        const val = e.target.value === "" ? null : Number(e.target.value);
-                        setLightboxDayFilter(val);
-                        setLightboxIndex(0);
-                      }}
-                      className="bg-white/10 text-white border border-white/20 rounded-lg px-2.5 py-1 text-xs font-poppins focus:outline-none"
-                    >
-                      <option value="" className="text-slate-900">
-                        Show All Days
-                      </option>
-                      {itineraryDays.map((d) => (
-                        <option
-                          key={d.day_number}
-                          value={String(d.day_number)}
-                          className="text-slate-900"
-                        >
-                          Day {d.day_number}: {d.title}
-                        </option>
-                      ))}
-                    </select>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-white/80 hover:text-white"
-                      onClick={() => setLightboxOpen(false)}
-                    >
-                      <X className="h-6 w-6" />
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="flex-1 flex items-center justify-center relative my-4">
-                  {filteredList.length > 1 && (
-                    <button
-                      onClick={() =>
-                        setLightboxIndex((prev) =>
-                          prev === 0 ? filteredList.length - 1 : prev - 1,
-                        )
-                      }
-                      className="absolute left-4 bg-white/10 hover:bg-white/20 text-white p-3 rounded-full z-10 transition-colors backdrop-blur-sm"
-                    >
-                      <ChevronLeft className="h-6 w-6" />
-                    </button>
-                  )}
-
-                  {currentItem ? (
-                    <div className="max-w-4xl max-h-[70vh] flex flex-col items-center">
-                      <img
-                        src={currentItem.url}
-                        alt=""
-                        className="max-w-full max-h-[65vh] object-contain rounded-lg border border-white/10"
-                      />
-                      {currentItem.caption && (
-                        <p className="text-white/90 text-xs sm:text-sm text-center mt-4 bg-black/40 px-4 py-2 rounded-xl border border-white/10 font-poppins leading-relaxed max-w-lg">
-                          {currentItem.caption}
-                        </p>
-                      )}
-                    </div>
-                  ) : (
-                    <p className="text-white/50 text-sm font-poppins">
-                      No memories found for this filter.
-                    </p>
-                  )}
-
-                  {filteredList.length > 1 && (
-                    <button
-                      onClick={() =>
-                        setLightboxIndex((prev) =>
-                          prev === filteredList.length - 1 ? 0 : prev + 1,
-                        )
-                      }
-                      className="absolute right-4 bg-white/10 hover:bg-white/20 text-white p-3 rounded-full z-10 transition-colors backdrop-blur-sm"
-                    >
-                      <ChevronRight className="h-6 w-6" />
-                    </button>
-                  )}
-                </div>
-
-                <div className="border-t border-white/10 pt-3 flex items-center justify-between text-white/80 text-[10px] font-poppins">
-                  <span>
-                    Photo {filteredList.length > 0 ? lightboxIndex + 1 : 0} of {filteredList.length}
-                  </span>
-                  <div className="flex gap-1.5 overflow-x-auto max-w-xl pb-1">
-                    {filteredList.map((img: any, i: number) => (
-                      <button
-                        key={i}
-                        onClick={() => setLightboxIndex(i)}
-                        className={`h-9 w-12 rounded overflow-hidden border-2 shrink-0 transition-all ${
-                          lightboxIndex === i
-                            ? "border-[#C8A96A] scale-95"
-                            : "border-transparent opacity-50 hover:opacity-100"
-                        }`}
-                      >
-                        <img src={img.url} alt="" className="w-full h-full object-cover" />
-                      </button>
-                    ))}
-                  </div>
-                  <span>
-                    {lightboxDayFilter ? `Filtered: Day ${lightboxDayFilter}` : "All Memories"}
-                  </span>
-                </div>
-              </motion.div>
-            );
-          })()}
-      </AnimatePresence>
+        return (
+          <UniversalLightboxModal
+            isOpen={lightboxOpen}
+            onClose={() => setLightboxOpen(false)}
+            images={galleryList}
+            initialIndex={lightboxIndex}
+            title={journey?.name ? `${journey.name} — Journey Gallery` : "Journey Gallery"}
+          />
+        );
+      })()}
 
       {/* 🎥 Trip Videos & Reels */}
       {(() => {
