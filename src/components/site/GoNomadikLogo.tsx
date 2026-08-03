@@ -42,7 +42,10 @@ export function GoNomadikLogo({
 
       {/* Brand Wordmark: go (Navy/White) + noma (Gold) + dik (Navy/White) + . (Gold) */}
       <div className="flex flex-col text-left">
-        <span className={cn("font-display font-bold tracking-tight leading-none", textSizes[size])}>
+        <span
+          className={cn("font-bold tracking-[-0.03em] leading-none", textSizes[size])}
+          style={{ fontFamily: "'Outfit', 'Plus Jakarta Sans', 'Manrope', sans-serif" }}
+        >
           <span className={primaryTextColor}>go</span>
           <span className="text-[#C8A96A]">noma</span>
           <span className={primaryTextColor}>dik</span>

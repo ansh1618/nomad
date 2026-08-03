@@ -73,7 +73,10 @@ export function GoNomadikLoadingScreen({
     const part4 = str.slice(9, 10); // "." -> Gold
 
     return (
-      <span className="font-display font-bold text-3xl sm:text-4xl tracking-tight select-none">
+      <span
+        className="font-bold text-3xl sm:text-4xl tracking-[-0.03em] select-none"
+        style={{ fontFamily: "'Outfit', 'Plus Jakarta Sans', 'Manrope', sans-serif" }}
+      >
         {part1 && <span className="text-[#0A2540]">{part1}</span>}
         {part2 && <span className="text-[#C8A96A]">{part2}</span>}
         {part3 && <span className="text-[#0A2540]">{part3}</span>}
