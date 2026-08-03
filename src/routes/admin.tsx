@@ -3,7 +3,7 @@ import { AdminAuthProvider, useAdminAuth } from "@/hooks/use-admin-auth";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import { Loader2 } from "lucide-react";
+import { GoNomadikLoadingScreen } from "@/components/site/GoNomadikLoadingScreen";
 import { useEffect } from "react";
 
 export const Route = createFileRoute("/admin")({
@@ -38,16 +38,9 @@ function AdminLayoutGate() {
     }
   }, [loading, isAdmin, currentPath, navigate]);
 
-  // Show loading spinner while checking auth
+  // Show loading screen while checking auth
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground font-poppins">Loading admin panel...</p>
-        </div>
-      </div>
-    );
+    return <GoNomadikLoadingScreen fullPage={true} statusText="Loading admin panel" />;
   }
 
   // Not authenticated or not an admin → show login page outlet

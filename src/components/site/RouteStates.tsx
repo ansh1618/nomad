@@ -1,20 +1,10 @@
-import { Compass, AlertTriangle, RefreshCw, Home } from "lucide-react";
+import { AlertTriangle, RefreshCw, Home } from "lucide-react";
 import { Link, useRouter } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
+import { GoNomadikLoadingScreen } from "./GoNomadikLoadingScreen";
 
 export function RouteLoadingState() {
-  return (
-    <>
-      {/* Top Gold Progress Bar (Non-blocking, instant visual feedback) */}
-      <div className="fixed top-0 inset-x-0 z-[100] h-1 bg-gradient-to-r from-amber-500 via-[#C8A96A] to-amber-600 animate-pulse pointer-events-none" />
-
-      {/* Non-Blocking Floating Pill Indicator (Never blocks viewport clicks) */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[90] bg-[#102A43]/95 text-white px-5 py-2.5 rounded-full shadow-2xl border border-amber-500/30 backdrop-blur-md flex items-center gap-3 font-poppins text-xs font-bold pointer-events-none animate-bounce">
-        <Compass className="h-4 w-4 text-amber-400 animate-spin" />
-        <span>Loading Journey Data...</span>
-      </div>
-    </>
-  );
+  return <GoNomadikLoadingScreen fullPage={true} statusText="Loading journeys" />;
 }
 
 interface RouteErrorStateProps {

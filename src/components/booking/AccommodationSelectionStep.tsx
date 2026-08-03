@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Hotel, Users, CheckCircle2, BedDouble, Loader2 } from "lucide-react";
+import { Hotel, Users, CheckCircle2, BedDouble } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
+import { GoNomadikLoadingScreen } from "@/components/site/GoNomadikLoadingScreen";
 
 export function AccommodationSelectionStep({ data, updateData, onNext, onPrev, journey, isSidebar = false }: any) {
   const [rooms, setRooms] = useState<any[]>([]);
@@ -101,10 +102,7 @@ export function AccommodationSelectionStep({ data, updateData, onNext, onPrev, j
       </div>
       
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-12 text-muted-foreground bg-white border border-border rounded-2xl">
-          <Loader2 className="h-8 w-8 animate-spin mb-4 text-accent" />
-          <p>Finding available rooms...</p>
-        </div>
+        <GoNomadikLoadingScreen fullPage={false} statusText="Finding available rooms" />
       ) : rooms.length === 0 ? (
         <div className="py-16 text-center text-muted-foreground bg-white border border-border rounded-2xl">
           <Hotel className="h-10 w-10 mx-auto text-muted-foreground/50 mb-3" />
