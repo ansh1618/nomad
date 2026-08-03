@@ -117,9 +117,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:site", content: "@gonomadik" },
     ],
     links: [
-      { rel: "icon", type: "image/jpeg", href: "/assets/logo.jpg" },
-      { rel: "apple-touch-icon", href: "/assets/logo.jpg" },
-      { rel: "shortcut icon", href: "/assets/logo.jpg" },
+      { rel: "icon", type: "image/png", href: "/favicon.png" },
+      { rel: "apple-touch-icon", href: "/favicon.png" },
+      { rel: "shortcut icon", href: "/favicon.png" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
