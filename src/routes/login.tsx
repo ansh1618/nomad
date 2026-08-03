@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Eye, EyeOff, Mail, Lock, Compass, ArrowRight } from "lucide-react";
 import { Link as TLink } from "@tanstack/react-router";
 import logoFallback from "@/assets/logo.jpg";
+import { GoNomadikLogo } from "@/components/site/GoNomadikLogo";
 
 export const Route = createFileRoute("/login")({
   validateSearch: (search: Record<string, unknown>): { returnTo?: string } => ({
@@ -82,12 +83,8 @@ function LoginPage() {
           <div className="absolute bottom-[-10%] left-[-5%] w-80 h-80 rounded-full bg-white/5 blur-3xl" />
         </div>
 
-        <Link to="/" className="relative flex items-center gap-3">
-          <img src={logoFallback} alt="Nomadik" className="h-12 w-12 rounded-xl object-cover border border-white/20" />
-          <div>
-            <p className="font-poppins text-xl font-bold text-white uppercase tracking-wider leading-none">Nomadik</p>
-            <p className="text-[10px] text-gold font-poppins font-bold tracking-widest uppercase mt-1">Premium Road Trips</p>
-          </div>
+        <Link to="/" className="relative inline-block">
+          <GoNomadikLogo variant="dark" size="lg" />
         </Link>
 
         <div className="relative space-y-6">
@@ -118,7 +115,7 @@ function LoginPage() {
           {/* Mobile logo */}
           <div className="lg:hidden flex justify-center">
             <Link to="/">
-              <img src={logoFallback} alt="Nomadik" className="h-14 w-14 rounded-xl object-cover" />
+              <GoNomadikLogo variant="light" size="lg" />
             </Link>
           </div>
 

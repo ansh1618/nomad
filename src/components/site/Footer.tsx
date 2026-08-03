@@ -6,6 +6,7 @@ import { BRAND } from "@/config/brand";
 import { useQuery } from "@tanstack/react-query";
 import { getSiteSettings, getFooterSections } from "@/lib/queries/cms";
 import { getDestinations } from "@/lib/queries/destinations";
+import { GoNomadikLogo } from "./GoNomadikLogo";
 
 export function Footer() {
   const [email, setEmail] = useState("");
@@ -158,7 +159,7 @@ export function Footer() {
           {/* Brand column */}
           <div className="space-y-5 lg:col-span-1">
             <Link to="/" className="inline-block">
-              <img src={logoUrl} alt="Nomadik" className="h-14 w-auto rounded-lg object-contain" />
+              <GoNomadikLogo variant="dark" size="lg" />
             </Link>
             <p className="text-xs text-white/60 leading-relaxed max-w-xs">
               Premium curated road trips across India. We don't sell destinations — we create memories, 

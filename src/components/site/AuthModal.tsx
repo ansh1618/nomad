@@ -164,7 +164,7 @@ export function AuthModal() {
           <DialogHeader>
             <DialogTitle className="font-display text-2xl font-bold tracking-wide text-white">
               {mode === "login" && "Welcome Back"}
-              {mode === "signup" && "Join Nomadik"}
+              {mode === "signup" && "Join GoNomadik"}
               {mode === "forgot" && "Reset Password"}
             </DialogTitle>
             <DialogDescription className="text-white/80 font-sans text-xs mt-1">

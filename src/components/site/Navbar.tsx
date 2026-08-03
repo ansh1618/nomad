@@ -9,6 +9,7 @@ import logoFallback from "@/assets/logo.jpg";
 import { useQuery } from "@tanstack/react-query";
 import { getSiteSettings, getNavItems } from "@/lib/queries/cms";
 import { BRAND } from "@/config/brand";
+import { GoNomadikLogo } from "./GoNomadikLogo";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -79,23 +80,8 @@ export function Navbar() {
     >
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-5">
         {/* Brand Logo Lockup */}
-        <Link to="/" className="flex items-center gap-3 group">
-          <div className="relative h-12 w-12 overflow-hidden rounded-xl border border-white/20 shadow-soft transition-transform duration-300 group-hover:scale-105">
-            <img src={logoUrl} alt="Nomadik Logo Mark" className="h-full w-full object-cover" />
-          </div>
-          <div className="flex flex-col text-left">
-            <span
-              className={cn(
-                "font-poppins text-xl font-bold tracking-wider uppercase leading-none transition-colors",
-                scrolled ? "text-primary" : "text-white",
-              )}
-            >
-              {companyName}
-            </span>
-            <span className="text-[9px] font-sans font-bold tracking-widest uppercase leading-none mt-1.5 text-accent">
-              {companyFullName}
-            </span>
-          </div>
+        <Link to="/">
+          <GoNomadikLogo variant={scrolled ? "light" : "dark"} size="md" />
         </Link>
 
         {/* Desktop Links */}

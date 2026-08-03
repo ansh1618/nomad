@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Eye, EyeOff, Mail, Lock, Phone, User, ArrowRight, CheckCircle2 } from "lucide-react";
 import logoFallback from "@/assets/logo.jpg";
+import { GoNomadikLogo } from "@/components/site/GoNomadikLogo";
 
 export const Route = createFileRoute("/signup")({
   validateSearch: (search: Record<string, unknown>): { returnTo?: string } => ({
@@ -160,12 +161,8 @@ function SignupPage() {
           <div className="absolute bottom-[10%] right-[-10%] w-64 h-64 rounded-full bg-white/5 blur-3xl" />
         </div>
 
-        <Link to="/" className="relative flex items-center gap-3">
-          <img src={logoFallback} alt="Nomadik" className="h-12 w-12 rounded-xl object-cover border border-white/20" />
-          <div>
-            <p className="font-poppins text-xl font-bold text-white uppercase tracking-wider leading-none">Nomadik</p>
-            <p className="text-[10px] text-gold font-poppins font-bold tracking-widest uppercase mt-1">Premium Road Trips</p>
-          </div>
+        <Link to="/" className="relative inline-block">
+          <GoNomadikLogo variant="dark" size="lg" />
         </Link>
 
         <div className="relative space-y-5">
@@ -196,7 +193,7 @@ function SignupPage() {
       <div className="flex-1 flex items-start justify-center px-6 py-10 bg-background overflow-y-auto">
         <div className="w-full max-w-md space-y-6">
           <div className="lg:hidden flex justify-center pt-4">
-            <Link to="/"><img src={logoFallback} alt="Nomadik" className="h-14 w-14 rounded-xl object-cover" /></Link>
+            <Link to="/"><GoNomadikLogo variant="light" size="lg" /></Link>
           </div>
 
           <div className="space-y-1">

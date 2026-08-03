@@ -1,6 +1,6 @@
 export const BRAND = {
-  name: "Nomadik",
-  fullName: "The Nomadik Traveller",
+  name: "gonomadik.",
+  fullName: "GoNomadik Road Trips",
   website: "https://nomadik.co.in",
   email: "support.nomadik@gmail.com",
   phones: [

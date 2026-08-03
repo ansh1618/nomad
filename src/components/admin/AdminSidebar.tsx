@@ -1,4 +1,5 @@
 import { Link, useLocation } from "@tanstack/react-router";
+import { GoNomadikLogo } from "@/components/site/GoNomadikLogo";
 import {
   Sidebar,
   SidebarContent,
@@ -145,14 +146,9 @@ export function AdminSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       <SidebarHeader className="p-4">
-        <Link to="/admin" className="flex items-center gap-3 group">
-          <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shadow-md group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:h-8">
-            <Mountain className="h-5 w-5 text-primary-foreground" />
-          </div>
-          <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-            <span className="text-sm font-bold font-poppins tracking-tight text-sidebar-foreground">Nomadik</span>
-            <span className="text-[10px] text-sidebar-foreground/50 uppercase tracking-widest font-semibold">Admin</span>
-          </div>
+        <Link to="/admin" className="flex items-center gap-2 group">
+          <GoNomadikLogo variant="light" size="sm" />
+          <span className="text-[10px] text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider group-data-[collapsible=icon]:hidden">Admin</span>
         </Link>
       </SidebarHeader>
 
