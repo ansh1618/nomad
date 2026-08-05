@@ -578,3 +578,311 @@ export async function bulkDeleteDepartures(ids: string[]): Promise<void> {
   const { error } = await supabase.from('departures').delete().in('id', ids)
   if (error) throw new Error(error.message)
 }
+
+// ==========================================
+// RECURRING GENERATOR TYPES & ENGINE
+// ==========================================
+export interface RecurringConfig {
+  journeyId: string
+  startDate: string
+  endDate: string
+  repeatPattern: 'EVERY_DAY' | 'EVERY_WEEK' | 'THURSDAY' | 'FRIDAY' | 'THURSDAY_FRIDAY' | 'SATURDAY_SUNDAY' | 'CUSTOM'
+  customDays?: number[]
+  price: number
+  totalSeats: number
+  tripCaptainId?: string | null
+  busId?: string | null
+  hotelId?: string | null
+  status?: string
+  isVisible?: boolean
+  bookingOpensDays?: number
+  bookingClosesHours?: number
+}
+
+export interface DryRunItem {
+  date: string
+  dayName: string
+  returnDate: string
+  status: 'TO_CREATE' | 'SKIPPED_EXISTING'
+  existingId?: string
+}
+
+export interface DryRunResult {
+  items: DryRunItem[]
+  willCreateCount: number
+  willSkipCount: number
+  journeyName: string
+}
+
+export async function dryRunRecurringDepartures(config: RecurringConfig): Promise<DryRunResult> {
+  const { journeyId, startDate, endDate, repeatPattern, customDays = [] } = config
+
+  const { data: journey } = await supabase
+    .from('journeys')
+    .select('id, name, duration_days')
+    .eq('id', journeyId)
+    .single()
+
+  const journeyName = journey?.name || 'Journey'
+  const durationDays = journey?.duration_days || 4
+
+  const { data: existingDeps } = await supabase
+    .from('departures')
+    .select('id, departure_date')
+    .eq('journey_id', journeyId)
+    .gte('departure_date', startDate)
+    .lte('departure_date', endDate)
+
+  const existingDatesMap = new Map<string, string>()
+  ;(existingDeps || []).forEach((d) => {
+    if (d.departure_date) {
+      const formatted = d.departure_date.split('T')[0]
+      existingDatesMap.set(formatted, d.id)
+    }
+  })
+
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+  const start = new Date(startDate)
+  const end = new Date(endDate)
+  const items: DryRunItem[] = []
+
+  let willCreateCount = 0
+  let willSkipCount = 0
+  const curr = new Date(start)
+  let safetyLimit = 0
+
+  while (curr <= end && safetyLimit < 400) {
+    safetyLimit++
+    const dateStr = curr.toISOString().split('T')[0]
+    const dayOfWeek = curr.getDay()
+
+    let matches = false
+    switch (repeatPattern) {
+      case 'EVERY_DAY':
+        matches = true
+        break
+      case 'THURSDAY':
+        matches = dayOfWeek === 4
+        break
+      case 'FRIDAY':
+        matches = dayOfWeek === 5
+        break
+      case 'THURSDAY_FRIDAY':
+        matches = dayOfWeek === 4 || dayOfWeek === 5
+        break
+      case 'SATURDAY_SUNDAY':
+        matches = dayOfWeek === 6 || dayOfWeek === 0
+        break
+      case 'EVERY_WEEK':
+        matches = dayOfWeek === start.getDay()
+        break
+      case 'CUSTOM':
+        matches = customDays.includes(dayOfWeek)
+        break
+    }
+
+    if (matches) {
+      const retDateObj = new Date(curr)
+      retDateObj.setDate(retDateObj.getDate() + Math.max(1, durationDays - 1))
+      const returnDateStr = retDateObj.toISOString().split('T')[0]
+
+      const existingId = existingDatesMap.get(dateStr)
+      if (existingId) {
+        items.push({
+          date: dateStr,
+          dayName: dayNames[dayOfWeek],
+          returnDate: returnDateStr,
+          status: 'SKIPPED_EXISTING',
+          existingId,
+        })
+        willSkipCount++
+      } else {
+        items.push({
+          date: dateStr,
+          dayName: dayNames[dayOfWeek],
+          returnDate: returnDateStr,
+          status: 'TO_CREATE',
+        })
+        willCreateCount++
+      }
+    }
+
+    curr.setDate(curr.getDate() + 1)
+  }
+
+  return {
+    items,
+    willCreateCount,
+    willSkipCount,
+    journeyName,
+  }
+}
+
+export async function executeRecurringDeparturesBatch(
+  config: RecurringConfig,
+  dryRunItems: DryRunItem[]
+): Promise<{ batchId: string; createdCount: number; skippedCount: number }> {
+  const toCreate = dryRunItems.filter((i) => i.status === 'TO_CREATE')
+  const batchId = `gen_batch_${Date.now()}`
+
+  if (toCreate.length === 0) {
+    return { batchId, createdCount: 0, skippedCount: dryRunItems.length }
+  }
+
+  const payloadArray = toCreate.map((item) => ({
+    journey_id: config.journeyId,
+    departure_date: item.date,
+    return_date: item.returnDate,
+    base_price: config.price,
+    dynamic_price: config.price,
+    total_seats: config.totalSeats,
+    available_seats: config.totalSeats,
+    booked_seats: 0,
+    trip_captain_id: config.tripCaptainId || null,
+    bus_id: config.busId || null,
+    hotel_id: config.hotelId || null,
+    status: config.status || 'UPCOMING',
+    is_visible: config.isVisible ?? true,
+    is_closed: false,
+    is_cancelled: false,
+    is_sold_out: false,
+    generation_batch_id: batchId,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  }))
+
+  const { data: createdRecords, error } = await supabase
+    .from('departures')
+    .insert(payloadArray as any)
+    .select('id, bus_id')
+
+  if (error) {
+    throw new Error(`Failed to generate departures batch: ${error.message}`)
+  }
+
+  const createdList = (createdRecords ?? []) as { id: string; bus_id?: string | null }[]
+
+  if (config.busId && createdList.length > 0) {
+    for (const dep of createdList) {
+      try {
+        await generateSeatInventory(dep.id, config.busId).catch(() => null)
+      } catch (invErr) {
+        console.warn(`[Auto Inventory] Failed for departure ${dep.id}:`, invErr)
+      }
+    }
+  }
+
+  return {
+    batchId,
+    createdCount: createdList.length,
+    skippedCount: dryRunItems.length - toCreate.length,
+  }
+}
+
+export async function getLastGenerationBatchInfo(): Promise<{ batchId: string; count: number; dateRange: string } | null> {
+  const { data } = await supabase
+    .from('departures')
+    .select('generation_batch_id, departure_date')
+    .not('generation_batch_id', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(50)
+
+  if (!data || data.length === 0) return null
+
+  const lastBatchId = data[0].generation_batch_id
+  if (!lastBatchId) return null
+
+  const batchDeps = data.filter((d) => d.generation_batch_id === lastBatchId)
+  const dates = batchDeps.map((d) => d.departure_date).sort()
+  const dateRange = dates.length > 1 ? `${dates[0]} → ${dates[dates.length - 1]}` : dates[0] || ''
+
+  return {
+    batchId: lastBatchId,
+    count: batchDeps.length,
+    dateRange,
+  }
+}
+
+export async function undoLastGenerationBatch(batchId: string): Promise<{ deletedCount: number }> {
+  if (!batchId) throw new Error('Batch ID required for rollback')
+
+  const { data: targetDeps } = await supabase
+    .from('departures')
+    .select('id, booked_seats')
+    .eq('generation_batch_id', batchId)
+
+  if (!targetDeps || targetDeps.length === 0) {
+    throw new Error('No departures found for this batch')
+  }
+
+  const safeToDeleteIds = targetDeps.filter((d) => (d.booked_seats || 0) === 0).map((d) => d.id)
+
+  if (safeToDeleteIds.length === 0) {
+    throw new Error('All departures in this batch already have active bookings and cannot be undone.')
+  }
+
+  await supabase
+    .from('departure_inventory')
+    .delete()
+    .in('departure_id', safeToDeleteIds)
+
+  const { error } = await supabase
+    .from('departures')
+    .delete()
+    .in('id', safeToDeleteIds)
+
+  if (error) throw new Error(error.message)
+
+  return { deletedCount: safeToDeleteIds.length }
+}
+
+export async function bulkUpdateDepartures(
+  ids: string[],
+  updates: {
+    base_price?: number
+    total_seats?: number
+    trip_captain_id?: string | null
+    bus_id?: string | null
+    hotel_id?: string | null
+    status?: string
+    is_visible?: boolean
+  }
+): Promise<number> {
+  if (!ids || ids.length === 0) return 0
+
+  const payload: any = { updated_at: new Date().toISOString() }
+
+  if (typeof updates.base_price === 'number') {
+    payload.base_price = updates.base_price
+    payload.dynamic_price = updates.base_price
+  }
+  if (typeof updates.total_seats === 'number') {
+    payload.total_seats = updates.total_seats
+    payload.available_seats = updates.total_seats
+  }
+  if (updates.trip_captain_id !== undefined) payload.trip_captain_id = updates.trip_captain_id
+  if (updates.bus_id !== undefined) payload.bus_id = updates.bus_id
+  if (updates.hotel_id !== undefined) payload.hotel_id = updates.hotel_id
+  if (updates.status) payload.status = updates.status
+  if (updates.is_visible !== undefined) payload.is_visible = updates.is_visible
+
+  const { error } = await supabase
+    .from('departures')
+    .update(payload)
+    .in('id', ids)
+
+  if (error) throw new Error(error.message)
+  return ids.length
+}
+
+export async function bulkChangeVisibilityDepartures(ids: string[], isVisible: boolean): Promise<number> {
+  if (!ids || ids.length === 0) return 0
+  const { error } = await supabase
+    .from('departures')
+    .update({ is_visible: isVisible, updated_at: new Date().toISOString() })
+    .in('id', ids)
+
+  if (error) throw new Error(error.message)
+  return ids.length
+}
+

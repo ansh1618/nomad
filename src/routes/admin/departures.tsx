@@ -20,8 +20,10 @@ import {
   cancelDeparture,
   closeDeparture,
   bulkDeleteDepartures,
+  bulkChangeVisibilityDepartures,
+  getLastGenerationBatchInfo,
+  undoLastGenerationBatch,
 } from '@/lib/queries/departures'
-import { getPublishedDestinations } from '@/lib/queries/destinations'
 import type { Departure } from '@/types/supabase'
 import { toast } from 'sonner'
 import {
@@ -29,12 +31,18 @@ import {
   MoreHorizontal,
   Pencil,
   Trash2,
-  Calendar,
+  Calendar as CalendarIcon,
   Eye,
   XCircle,
   CheckCircle,
   Loader2,
   Users,
+  Zap,
+  RotateCcw,
+  LayoutGrid,
+  Table as TableIcon,
+  EyeOff,
+  Edit3,
 } from 'lucide-react'
 import {
   AlertDialog,
@@ -49,6 +57,9 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
+import { RecurringDepartureModal } from '@/components/admin/RecurringDepartureModal'
+import { DepartureCalendarView } from '@/components/admin/DepartureCalendarView'
+import { BulkEditDeparturesModal } from '@/components/admin/BulkEditDeparturesModal'
 
 export const Route = createFileRoute('/admin/departures')({
   component: DeparturesPage,
@@ -72,6 +83,7 @@ type DepartureWithJoins = Departure & {
 
 function DeparturesPage() {
   const qc = useQueryClient()
+  const [viewMode, setViewMode] = useState<'TABLE' | 'CALENDAR'>('TABLE')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
   const [search, setSearch] = useState('')
@@ -82,6 +94,12 @@ function DeparturesPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [cancelId, setCancelId] = useState<string | null>(null)
   const [cancelReason, setCancelReason] = useState('')
+
+  // Modals state
+  const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false)
+  const [isBulkEditModalOpen, setIsBulkEditModalOpen] = useState(false)
+  const [selectedBulkIds, setSelectedBulkIds] = useState<string[]>([])
+  const [isUndoConfirmOpen, setIsUndoConfirmOpen] = useState(false)
 
   const { data: result, isLoading } = useQuery({
     queryKey: ['departures_list', page, pageSize, search, sortBy, sortDir, statusFilter, journeyFilter],
@@ -98,11 +116,16 @@ function DeparturesPage() {
     placeholderData: (prev) => prev,
   })
 
+  const { data: lastBatch, refetch: refetchLastBatch } = useQuery({
+    queryKey: ['last_generation_batch'],
+    queryFn: getLastGenerationBatchInfo,
+  })
+
   const { data: journeys = [] } = useQuery({
     queryKey: ['journeys_dropdown'],
     queryFn: async () => {
       const { supabase } = await import('@/lib/supabase')
-      const { data } = await supabase.from('journeys').select('id, name')
+      const { data } = await supabase.from('journeys').select('id, name').order('name')
       return data ?? []
     },
   })
@@ -148,6 +171,20 @@ function DeparturesPage() {
     onError: (err: Error) => toast.error(err.message),
   })
 
+  const undoBatchMutation = useMutation({
+    mutationFn: async () => {
+      if (!lastBatch?.batchId) throw new Error('No recent generation batch found to undo')
+      return undoLastGenerationBatch(lastBatch.batchId)
+    },
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ['departures_list'] })
+      refetchLastBatch()
+      toast.success(`Successfully rolled back last batch (${res.deletedCount} new departures removed).`)
+      setIsUndoConfirmOpen(false)
+    },
+    onError: (err: Error) => toast.error(err.message),
+  })
+
   const handleSort = useCallback((by: string, dir: 'asc' | 'desc') => {
     setSortBy(by)
     setSortDir(dir)
@@ -179,7 +216,7 @@ function DeparturesPage() {
         const d = row.original
         return (
           <div className="flex items-center gap-3">
-            <Calendar className="h-4 w-4 text-primary shrink-0" />
+            <CalendarIcon className="h-4 w-4 text-primary shrink-0" />
             <div>
               <p className="font-semibold text-sm">
                 {new Date(d.departure_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
@@ -223,7 +260,7 @@ function DeparturesPage() {
             <div className="w-24 h-1.5 bg-muted rounded-full overflow-hidden">
               <div
                 className="h-full bg-primary"
-                style={{ width: `${Math.min((booked / total) * 100, 100)}%` }}
+                style={{ width: `${Math.min((booked / Math.max(1, total)) * 100, 100)}%` }}
               />
             </div>
           </div>
@@ -270,7 +307,7 @@ function DeparturesPage() {
             <DropdownMenuContent align="end" className="w-44">
               <DropdownMenuItem asChild>
                 <Link to="/admin/departures/$id" params={{ id: d.id }}>
-                  <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
+                  <Pencil className="h-3.5 w-3.5 mr-2" /> Edit Details
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
@@ -306,10 +343,10 @@ function DeparturesPage() {
   const filters = (
     <div className="flex items-center gap-2">
       <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v === 'ALL' ? '' : v); setPage(1) }}>
-        <SelectTrigger className="w-36 h-9">
+        <SelectTrigger className="w-36 h-9 rounded-xl">
           <SelectValue placeholder="All Status" />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="rounded-xl">
           <SelectItem value="ALL">All Status</SelectItem>
           <SelectItem value="UPCOMING">Upcoming</SelectItem>
           <SelectItem value="ONGOING">Ongoing</SelectItem>
@@ -321,10 +358,10 @@ function DeparturesPage() {
       </Select>
 
       <Select value={journeyFilter} onValueChange={(v) => { setJourneyFilter(v === 'ALL' ? '' : v); setPage(1) }}>
-        <SelectTrigger className="w-44 h-9">
+        <SelectTrigger className="w-44 h-9 rounded-xl">
           <SelectValue placeholder="All Packages" />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="rounded-xl">
           <SelectItem value="ALL">All Packages</SelectItem>
           {journeys.map((j) => (
             <SelectItem key={j.id} value={j.id}>{j.name}</SelectItem>
@@ -336,75 +373,211 @@ function DeparturesPage() {
 
   return (
     <div className="space-y-6">
+      {/* Header & CRM Controls */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between"
+        className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-white p-5 rounded-3xl border border-border shadow-xs"
       >
         <div>
-          <h1 className="text-2xl font-bold font-poppins">Departures</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            {result?.total ?? 0} scheduled departure{(result?.total ?? 0) !== 1 ? 's' : ''} total
+          <h1 className="text-2xl font-bold font-poppins text-foreground flex items-center gap-2">
+            Departures Management
+          </h1>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {result?.total ?? 0} scheduled departures total across active packages
           </p>
         </div>
-        <Link to="/admin/departures/$id" params={{ id: 'new' }}>
-          <Button className="gap-1.5">
-            <Plus className="h-4 w-4" /> Add Departure
+
+        <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
+          {/* View Mode Switcher */}
+          <div className="flex items-center bg-muted/40 p-1 rounded-xl border border-border">
+            <Button
+              type="button"
+              variant={viewMode === 'TABLE' ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('TABLE')}
+              className="h-8 px-3 rounded-lg text-xs font-semibold"
+            >
+              <TableIcon className="h-3.5 w-3.5 mr-1.5" /> Table
+            </Button>
+            <Button
+              type="button"
+              variant={viewMode === 'CALENDAR' ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('CALENDAR')}
+              className="h-8 px-3 rounded-lg text-xs font-semibold"
+            >
+              <LayoutGrid className="h-3.5 w-3.5 mr-1.5" /> Calendar
+            </Button>
+          </div>
+
+          {/* Undo Last Batch (Rollback) Button */}
+          {lastBatch && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsUndoConfirmOpen(true)}
+              className="h-9 rounded-xl border-amber-300 bg-amber-50/50 text-amber-800 hover:bg-amber-100 text-xs font-bold"
+              title={`Undo last generation batch: ${lastBatch.count} departures (${lastBatch.dateRange})`}
+            >
+              <RotateCcw className="h-3.5 w-3.5 mr-1.5 text-amber-600" /> Undo Last Batch ({lastBatch.count})
+            </Button>
+          )}
+
+          {/* Generate Recurring Departures Modal Trigger */}
+          <Button
+            type="button"
+            onClick={() => setIsRecurringModalOpen(true)}
+            className="bg-amber-500 hover:bg-amber-600 text-white font-bold h-9 px-4 rounded-xl shadow-xs text-xs"
+          >
+            <Zap className="h-3.5 w-3.5 mr-1.5" /> Generate Departures
           </Button>
-        </Link>
+
+          {/* Add Single Departure */}
+          <Link to="/admin/departures/$id" params={{ id: 'new' }}>
+            <Button className="h-9 px-4 rounded-xl text-xs gap-1.5 bg-primary text-white">
+              <Plus className="h-3.5 w-3.5" /> Single Date
+            </Button>
+          </Link>
+        </div>
       </motion.div>
 
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
-        <DataTable
-          data={departures}
-          columns={columns}
-          total={result?.total ?? 0}
-          page={page}
-          pageSize={pageSize}
-          totalPages={result?.totalPages ?? 1}
-          isLoading={isLoading}
-          searchPlaceholder="Search locations..."
-          onPageChange={setPage}
-          onPageSizeChange={(s) => { setPageSize(s); setPage(1) }}
-          onSearch={(s) => { setSearch(s); setPage(1) }}
-          onSort={handleSort}
-          onRefresh={() => qc.invalidateQueries({ queryKey: ['departures_list'] })}
-          onExportCSV={handleExport}
-          filterComponent={filters}
-          emptyMessage="No departures found."
-          bulkActions={[
-            {
-              label: 'Delete',
-              icon: <Trash2 className="h-3.5 w-3.5 mr-1.5" />,
-              variant: 'destructive',
-              onClick: (ids) => bulkDeleteMutation.mutateAsync(ids),
-            },
-          ]}
-        />
-      </motion.div>
+      {/* Main View Area */}
+      {viewMode === 'TABLE' ? (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
+          <DataTable
+            data={departures}
+            columns={columns}
+            total={result?.total ?? 0}
+            page={page}
+            pageSize={pageSize}
+            totalPages={result?.totalPages ?? 1}
+            isLoading={isLoading}
+            searchPlaceholder="Search locations..."
+            onPageChange={setPage}
+            onPageSizeChange={(s) => { setPageSize(s); setPage(1) }}
+            onSearch={(s) => { setSearch(s); setPage(1) }}
+            onSort={handleSort}
+            onRefresh={() => {
+              qc.invalidateQueries({ queryKey: ['departures_list'] })
+              refetchLastBatch()
+            }}
+            onExportCSV={handleExport}
+            filterComponent={filters}
+            emptyMessage="No departures found."
+            bulkActions={[
+              {
+                label: 'Bulk Edit',
+                icon: <Edit3 className="h-3.5 w-3.5 mr-1.5" />,
+                onClick: (ids) => {
+                  setSelectedBulkIds(ids)
+                  setIsBulkEditModalOpen(true)
+                },
+              },
+              {
+                label: 'Publish (Make Visible)',
+                icon: <Eye className="h-3.5 w-3.5 mr-1.5 text-emerald-600" />,
+                onClick: async (ids) => {
+                  await bulkChangeVisibilityDepartures(ids, true)
+                  qc.invalidateQueries({ queryKey: ['departures_list'] })
+                  toast.success(`Published ${ids.length} selected departures!`)
+                },
+              },
+              {
+                label: 'Hide (Make Draft)',
+                icon: <EyeOff className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />,
+                onClick: async (ids) => {
+                  await bulkChangeVisibilityDepartures(ids, false)
+                  qc.invalidateQueries({ queryKey: ['departures_list'] })
+                  toast.success(`Hidden ${ids.length} selected departures!`)
+                },
+              },
+              {
+                label: 'Delete Selected',
+                icon: <Trash2 className="h-3.5 w-3.5 mr-1.5" />,
+                variant: 'destructive',
+                onClick: (ids) => bulkDeleteMutation.mutateAsync(ids),
+              },
+            ]}
+          />
+        </motion.div>
+      ) : (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <DepartureCalendarView />
+        </motion.div>
+      )}
 
-      {/* Cancel Dialog */}
+      {/* RECURRING GENERATOR MODAL */}
+      <RecurringDepartureModal
+        isOpen={isRecurringModalOpen}
+        onClose={() => setIsRecurringModalOpen(false)}
+        onSuccess={() => {
+          qc.invalidateQueries({ queryKey: ['departures_list'] })
+          refetchLastBatch()
+        }}
+      />
+
+      {/* BULK EDIT MODAL */}
+      <BulkEditDeparturesModal
+        isOpen={isBulkEditModalOpen}
+        selectedIds={selectedBulkIds}
+        onClose={() => setIsBulkEditModalOpen(false)}
+        onSuccess={() => {
+          qc.invalidateQueries({ queryKey: ['departures_list'] })
+          setSelectedBulkIds([])
+        }}
+      />
+
+      {/* UNDO LAST BATCH CONFIRMATION DIALOG */}
+      <AlertDialog open={isUndoConfirmOpen} onOpenChange={setIsUndoConfirmOpen}>
+        <AlertDialogContent className="rounded-3xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-xl font-bold font-display flex items-center gap-2">
+              <RotateCcw className="h-5 w-5 text-amber-600" /> Undo Last Generation Batch?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-xs text-muted-foreground leading-relaxed pt-2">
+              This will safely remove the <strong className="text-foreground">{lastBatch?.count} newly generated departures</strong> from batch <code className="bg-muted px-1.5 py-0.5 rounded font-mono">{lastBatch?.batchId}</code> ({lastBatch?.dateRange}).
+              <br /><br />
+              <strong className="text-emerald-700">100% Data Safety:</strong> Pre-existing departures, active bookings, and customer data are completely untouched.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="pt-4">
+            <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl"
+              onClick={() => undoBatchMutation.mutate()}
+              disabled={undoBatchMutation.isPending}
+            >
+              {undoBatchMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Confirm Rollback
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Cancel Trip Dialog */}
       <AlertDialog open={!!cancelId} onOpenChange={() => setCancelId(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-3xl">
           <AlertDialogHeader>
             <AlertDialogTitle>Cancel Trip Departure?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to cancel this trip? This will release all booked seats/rooms and notify customers.
+              Are you sure you want to cancel this trip? This will mark status as CANCELLED and release seat inventory.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="py-2">
-            <Label>Cancellation Reason</Label>
+            <Label className="text-xs uppercase font-semibold text-muted-foreground">Cancellation Reason</Label>
             <Input
               value={cancelReason}
               onChange={(e) => setCancelReason(e.target.value)}
               placeholder="e.g. Inclement weather / low registration"
-              className="mt-1.5"
+              className="mt-1.5 rounded-xl h-11"
             />
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel>Keep Trip</AlertDialogCancel>
+            <AlertDialogCancel className="rounded-xl">Keep Trip</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive hover:bg-destructive/90"
+              className="bg-destructive hover:bg-destructive/90 text-white rounded-xl"
               onClick={() => cancelMutation.mutate()}
               disabled={cancelMutation.isPending || !cancelReason.trim()}
             >
@@ -415,19 +588,19 @@ function DeparturesPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Delete Dialog */}
+      {/* Delete Single Departure Dialog */}
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-3xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Departure?</AlertDialogTitle>
+            <AlertDialogTitle>Delete Departure Date?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete the departure date. Customers who booked this departure may lose their booking data. This cannot be undone.
+              This will permanently delete this specific departure date row. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive hover:bg-destructive/90"
+              className="bg-destructive hover:bg-destructive/90 text-white rounded-xl"
               onClick={() => deleteId && deleteMutation.mutate(deleteId)}
               disabled={deleteMutation.isPending}
             >
