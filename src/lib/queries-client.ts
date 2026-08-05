@@ -295,16 +295,16 @@ export async function getJourneyBySlug(slug: string) {
       : (Array.isArray(it) && it.length > 0 
           ? it.map((day: any) => day?.title || "").filter(Boolean).slice(0, 4)
           : []),
-    hotel: data.hotels || null,
+    hotel: data.hotels || data.accommodation || null,
     food: data.food,
     dayByDay: it,
-    stayInfo: data.hotels?.name || "",
+    stayInfo: data.hotels?.name || (Array.isArray(data.accommodation) ? data.accommodation[0]?.hotel_name : data.accommodation?.hotel_name) || data.hotel || "",
     foodInfo: data.food || "",
     transportDetails: data.transport || "",
     inclusions: data.inclusions || [],
     exclusions: data.exclusions || [],
     packingList: data.packing_list || [],
-    accommodation: data.hotels || null
+    accommodation: data.accommodation || data.hotels || null
   };
 }
 
