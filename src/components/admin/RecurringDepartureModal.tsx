@@ -65,11 +65,28 @@ export function RecurringDepartureModal({ isOpen, onClose, onSuccess }: Recurrin
   const [dryRunData, setDryRunData] = useState<DryRunResult | null>(null)
 
   // Fetch dropdown data
-  const { data: journeys = [] } = useQuery({
+  const { data: journeys = [], isLoading: isLoadingJourneys } = useQuery({
     queryKey: ['journeys_dropdown_modal'],
     queryFn: async () => {
-      const { data } = await supabase.from('journeys').select('id, name, starting_price, duration_days').order('name')
-      return data ?? []
+      try {
+        const { data, error } = await supabase
+          .from('journeys')
+          .select('id, name, slug, starting_price, price, duration, duration_days, destination_id')
+          .order('name')
+
+        if (error) {
+          console.error('[RecurringDepartureModal] Error fetching journeys from Supabase:', error.message)
+          const { data: fallbackData } = await supabase
+            .from('journeys')
+            .select('id, name, slug, price, duration, destination_id')
+            .order('name')
+          return fallbackData ?? []
+        }
+        return data ?? []
+      } catch (err) {
+        console.error('[RecurringDepartureModal] Exception fetching journeys:', err)
+        return []
+      }
     },
     enabled: isOpen,
   })
@@ -104,9 +121,10 @@ export function RecurringDepartureModal({ isOpen, onClose, onSuccess }: Recurrin
   // Auto-fill price when journey changes
   const handleJourneyChange = (val: string) => {
     setJourneyId(val)
-    const selected = journeys.find((j) => j.id === val)
-    if (selected?.starting_price) {
-      setPrice(String(selected.starting_price))
+    const selected = journeys.find((j: any) => j.id === val)
+    const selectedPrice = selected?.starting_price ?? selected?.price
+    if (selectedPrice) {
+      setPrice(String(selectedPrice))
     }
   }
 
@@ -208,14 +226,35 @@ export function RecurringDepartureModal({ isOpen, onClose, onSuccess }: Recurrin
               </Label>
               <Select value={journeyId} onValueChange={handleJourneyChange}>
                 <SelectTrigger className="rounded-xl h-11 border-border">
-                  <SelectValue placeholder="Select target package..." />
+                  <SelectValue placeholder={isLoadingJourneys ? "Loading packages..." : "Select target package..."} />
                 </SelectTrigger>
-                <SelectContent className="rounded-xl">
-                  {journeys.map((j) => (
-                    <SelectItem key={j.id} value={j.id}>
-                      {j.name} {j.starting_price ? `(Base ₹${j.starting_price.toLocaleString()})` : ''}
-                    </SelectItem>
-                  ))}
+                <SelectContent className="rounded-xl max-h-[300px]">
+                  {isLoadingJourneys ? (
+                    <div className="p-3 text-xs text-muted-foreground flex items-center justify-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin text-primary" /> Loading journeys...
+                    </div>
+                  ) : journeys.length === 0 ? (
+                    <div className="p-3 text-xs text-muted-foreground text-center">No journeys found in database</div>
+                  ) : (
+                    journeys.map((j: any) => {
+                      const displayPrice = j.starting_price ?? j.price
+                      const priceText = displayPrice ? `₹${Number(displayPrice).toLocaleString('en-IN')}` : ''
+                      const durationText = j.duration || (j.duration_days ? `${j.duration_days} Days` : '')
+
+                      return (
+                        <SelectItem key={j.id} value={j.id}>
+                          <div className="flex flex-col text-left py-1">
+                            <span className="font-bold text-sm text-foreground">{j.name}</span>
+                            {(durationText || priceText) && (
+                              <span className="text-[11px] font-medium text-muted-foreground mt-0.5">
+                                {durationText}{durationText && priceText ? ' • ' : ''}{priceText}
+                              </span>
+                            )}
+                          </div>
+                        </SelectItem>
+                      )
+                    })
+                  )}
                 </SelectContent>
               </Select>
             </div>

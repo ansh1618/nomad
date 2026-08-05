@@ -619,12 +619,17 @@ export async function dryRunRecurringDepartures(config: RecurringConfig): Promis
 
   const { data: journey } = await supabase
     .from('journeys')
-    .select('id, name, duration_days')
+    .select('id, name, starting_price, price, duration, duration_days')
     .eq('id', journeyId)
-    .single()
+    .maybeSingle()
 
   const journeyName = journey?.name || 'Journey'
-  const durationDays = journey?.duration_days || 4
+  let durationDays = journey?.duration_days
+  if (!durationDays && journey?.duration) {
+    const match = journey.duration.match(/(\d+)\s*Days?/i)
+    if (match) durationDays = parseInt(match[1], 10)
+  }
+  if (!durationDays) durationDays = 4
 
   const { data: existingDeps } = await supabase
     .from('departures')
