@@ -91,6 +91,36 @@ export function generateScheduledDepartures(
   const journeyName = (journey.name || '').toLowerCase();
   const journeySlug = (journey.slug || '').toLowerCase();
 
+  // Special case for Udaipur Royal Weekend: return ONLY the real deduplicated DB departures (Thursdays & Fridays)
+  if (journeySlug === 'udaipur-weekend' || journeyName.includes('udaipur')) {
+    const uniqueMap = new Map<string, Departure>();
+    existingDepartures.forEach((d) => {
+      const key = d.departure_date ? d.departure_date.split('T')[0] : d.id;
+      if (!uniqueMap.has(key)) {
+        uniqueMap.set(key, d);
+      }
+    });
+    return Array.from(uniqueMap.values()).sort((a, b) =>
+      (a.departure_date || '') > (b.departure_date || '') ? 1 : -1
+    );
+  }
+
+  // Deduplicate existing departures first
+  const existingMap = new Map<string, Departure>();
+  existingDepartures.forEach((d) => {
+    const key = d.departure_date ? d.departure_date.split('T')[0] : d.id;
+    if (!existingMap.has(key)) {
+      existingMap.set(key, d);
+    }
+  });
+
+  const existingDatesSet = new Set(Array.from(existingMap.keys()));
+  const generatedList: Departure[] = Array.from(existingMap.values());
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() + 1); // Start from tomorrow
+
+  const totalDaysToGenerate = 90;
+
   // Daily availability for Chopta, Tungnath, and Manali trips
   const isDaily =
     journeyName.includes('chopta') ||
@@ -99,18 +129,6 @@ export function generateScheduledDepartures(
     journeySlug.includes('chopta') ||
     journeySlug.includes('tungnath') ||
     journeySlug.includes('manali');
-
-  const existingDatesSet = new Set(
-    existingDepartures
-      .map((d) => (d.departure_date ? d.departure_date.split('T')[0] : ''))
-      .filter(Boolean)
-  );
-
-  const generatedList: Departure[] = [...existingDepartures];
-  const startDate = new Date();
-  startDate.setDate(startDate.getDate() + 1); // Start from tomorrow
-
-  const totalDaysToGenerate = 90;
 
   for (let i = 0; i < totalDaysToGenerate; i++) {
     const currentDate = new Date(startDate);
