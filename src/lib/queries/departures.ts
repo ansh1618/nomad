@@ -750,6 +750,23 @@ export async function executeRecurringDeparturesBatch(
     return { createdCount: 0, skippedCount: dryRunItems.length }
   }
 
+  // Fetch parent journey defaults for hotel_id, trip_captain_id, bus_id
+  let journeyDefaults: { hotel_id?: string | null; trip_captain_id?: string | null; bus_id?: string | null } = {}
+  try {
+    const { data: jData } = await supabase
+      .from('journeys')
+      .select('hotel_id, trip_captain_id, bus_id')
+      .eq('id', config.journeyId)
+      .maybeSingle()
+    if (jData) journeyDefaults = jData as any
+  } catch (jErr) {
+    console.warn('[executeRecurringDeparturesBatch] Could not fetch journey defaults:', jErr)
+  }
+
+  const effectiveHotelId = config.hotelId || journeyDefaults.hotel_id || null
+  const effectiveCaptainId = config.tripCaptainId || journeyDefaults.trip_captain_id || null
+  const effectiveBusId = config.busId || journeyDefaults.bus_id || null
+
   const payloadArray = toCreate.map((item) => ({
     journey_id: config.journeyId,
     departure_date: item.date,
@@ -759,9 +776,9 @@ export async function executeRecurringDeparturesBatch(
     total_seats: config.totalSeats,
     available_seats: config.totalSeats,
     booked_seats: 0,
-    trip_captain_id: config.tripCaptainId || null,
-    bus_id: config.busId || null,
-    hotel_id: config.hotelId || null,
+    trip_captain_id: effectiveCaptainId,
+    bus_id: effectiveBusId,
+    hotel_id: effectiveHotelId,
     status: config.status || 'UPCOMING',
     is_visible: config.isVisible ?? true,
     is_closed: false,

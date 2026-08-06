@@ -370,6 +370,12 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
   })();
 
   const rawStayItem = (() => {
+    if (departureOrJourneyHotel) {
+      return departureOrJourneyHotel;
+    }
+    if ((selectedDeparture as any)?.hotel) {
+      return (selectedDeparture as any).hotel;
+    }
     if (Array.isArray(journey.accommodation) && journey.accommodation.length > 0) {
       return journey.accommodation[0];
     }
