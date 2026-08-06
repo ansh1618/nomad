@@ -160,7 +160,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (newSession?.user) {
           setTimeout(async () => {
-            const p = await fetchProfileFromDB(newSession.user.id);
+            let p = await fetchProfileFromDB(newSession.user.id);
+            if (!p) {
+              const meta = newSession.user.user_metadata;
+              const fullName = meta?.full_name || meta?.name || newSession.user.email?.split("@")[0] || "Explorer";
+              const avatarUrl = meta?.avatar_url || meta?.picture || null;
+              
+              const profilePayload = {
+                id: newSession.user.id,
+                full_name: fullName,
+                email: newSession.user.email ?? null,
+                avatar_url: avatarUrl,
+                phone: newSession.user.phone || "",
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              };
+
+              try {
+                await supabase.from("profiles").upsert(profilePayload, { onConflict: "id" });
+                p = profilePayload as UserProfile;
+              } catch (e) {
+                console.warn("[Auth] Auto profile creation fallback warning:", e);
+              }
+            }
             if (p) setProfile(p);
             if (event === "SIGNED_IN" && newSession.user.email) {
               mergeGuestBookings(newSession.user.email, newSession.user.id).catch(() => {});

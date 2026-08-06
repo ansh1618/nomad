@@ -129,11 +129,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
         console.log("[Auth] Checking admin");
         fetchAdminRole(session.user.id, session.user.email ?? "")
           .then((adminResult) => {
-            if (!adminResult) {
-              console.warn("[Auth] User is not authorized admin — signing out");
-              supabase.auth.signOut();
-              setSession(null);
-              setUser(null);
+            if (!adminResult && isMounted) {
               setAdmin(null);
             }
           })
@@ -160,15 +156,9 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
           console.log("[Auth] Checking admin");
           setTimeout(async () => {
             const adminResult = await fetchAdminRole(newSession.user.id, newSession.user.email ?? "");
-            if (!adminResult) {
-              console.warn("[Auth] Access denied — signing out unauthorized user");
-              await supabase.auth.signOut();
-              if (isMounted) {
-                setSession(null);
-                setUser(null);
-                setAdmin(null);
-              }
-            } else {
+            if (!adminResult && isMounted) {
+              setAdmin(null);
+            } else if (adminResult) {
               console.log("[Auth] Admin verified");
             }
             if (isMounted) setLoading(false);
