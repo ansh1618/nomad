@@ -18,6 +18,7 @@ import {
   getDepartures,
   deleteDeparture,
   cancelDeparture,
+  closeDeparture,
   bulkDeleteDepartures,
   bulkChangeVisibilityDepartures,
 } from '@/lib/queries/departures'
