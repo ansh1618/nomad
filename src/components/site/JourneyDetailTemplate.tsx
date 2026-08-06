@@ -280,6 +280,31 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
     enabled: !!journey?.id && !!journey?.destination_id,
   });
 
+  const selectedDeparture =
+    departures.find((d: any) => d.id === selectedDepartureId) ?? departures[0] ?? null;
+
+  // Accommodation resolution: 1. selectedDeparture.hotel_id -> 2. journey.hotel_id
+  const effectiveHotelId = (selectedDeparture as any)?.hotel_id || (journey as any)?.hotel_id || null;
+
+  const { data: departureOrJourneyHotel } = useQuery({
+    queryKey: ["hotel_by_id", effectiveHotelId],
+    queryFn: async () => {
+      if (!effectiveHotelId) return null;
+      try {
+        const { data, error } = await supabase
+          .from("hotels")
+          .select("*, hotel_rooms(*)")
+          .eq("id", effectiveHotelId)
+          .maybeSingle();
+        if (!error && data) return data;
+      } catch (err) {
+        console.warn("[JourneyDetailTemplate] Failed to fetch hotel by ID:", err);
+      }
+      return null;
+    },
+    enabled: !!effectiveHotelId,
+  });
+
   // Automatically select the first departure
   useEffect(() => {
     if (departures.length > 0 && !selectedDepartureId) {
@@ -314,9 +339,6 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
       </div>
     );
   }
-
-  const selectedDeparture =
-    departures.find((d) => d.id === selectedDepartureId) ?? departures[0] ?? null;
 
   // Calculate price dynamics using shared pricing logic
   const pricing = resolveBookingPricing({
