@@ -619,17 +619,16 @@ export async function dryRunRecurringDepartures(config: RecurringConfig): Promis
 
   const { data: journey } = await supabase
     .from('journeys')
-    .select('id, name, starting_price, price, duration, duration_days')
+    .select('id, name, starting_price, price, duration')
     .eq('id', journeyId)
     .maybeSingle()
 
   const journeyName = journey?.name || 'Journey'
-  let durationDays = journey?.duration_days
-  if (!durationDays && journey?.duration) {
+  let durationDays = 4
+  if (journey?.duration) {
     const match = journey.duration.match(/(\d+)\s*Days?/i)
     if (match) durationDays = parseInt(match[1], 10)
   }
-  if (!durationDays) durationDays = 4
 
   const { data: existingDeps } = await supabase
     .from('departures')
@@ -726,12 +725,11 @@ export async function dryRunRecurringDepartures(config: RecurringConfig): Promis
 export async function executeRecurringDeparturesBatch(
   config: RecurringConfig,
   dryRunItems: DryRunItem[]
-): Promise<{ batchId: string; createdCount: number; skippedCount: number }> {
+): Promise<{ createdCount: number; skippedCount: number }> {
   const toCreate = dryRunItems.filter((i) => i.status === 'TO_CREATE')
-  const batchId = `gen_batch_${Date.now()}`
 
   if (toCreate.length === 0) {
-    return { batchId, createdCount: 0, skippedCount: dryRunItems.length }
+    return { createdCount: 0, skippedCount: dryRunItems.length }
   }
 
   const payloadArray = toCreate.map((item) => ({
@@ -751,7 +749,6 @@ export async function executeRecurringDeparturesBatch(
     is_closed: false,
     is_cancelled: false,
     is_sold_out: false,
-    generation_batch_id: batchId,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   }))
@@ -778,67 +775,9 @@ export async function executeRecurringDeparturesBatch(
   }
 
   return {
-    batchId,
     createdCount: createdList.length,
     skippedCount: dryRunItems.length - toCreate.length,
   }
-}
-
-export async function getLastGenerationBatchInfo(): Promise<{ batchId: string; count: number; dateRange: string } | null> {
-  const { data } = await supabase
-    .from('departures')
-    .select('generation_batch_id, departure_date')
-    .not('generation_batch_id', 'is', null)
-    .order('created_at', { ascending: false })
-    .limit(50)
-
-  if (!data || data.length === 0) return null
-
-  const lastBatchId = data[0].generation_batch_id
-  if (!lastBatchId) return null
-
-  const batchDeps = data.filter((d) => d.generation_batch_id === lastBatchId)
-  const dates = batchDeps.map((d) => d.departure_date).sort()
-  const dateRange = dates.length > 1 ? `${dates[0]} → ${dates[dates.length - 1]}` : dates[0] || ''
-
-  return {
-    batchId: lastBatchId,
-    count: batchDeps.length,
-    dateRange,
-  }
-}
-
-export async function undoLastGenerationBatch(batchId: string): Promise<{ deletedCount: number }> {
-  if (!batchId) throw new Error('Batch ID required for rollback')
-
-  const { data: targetDeps } = await supabase
-    .from('departures')
-    .select('id, booked_seats')
-    .eq('generation_batch_id', batchId)
-
-  if (!targetDeps || targetDeps.length === 0) {
-    throw new Error('No departures found for this batch')
-  }
-
-  const safeToDeleteIds = targetDeps.filter((d) => (d.booked_seats || 0) === 0).map((d) => d.id)
-
-  if (safeToDeleteIds.length === 0) {
-    throw new Error('All departures in this batch already have active bookings and cannot be undone.')
-  }
-
-  await supabase
-    .from('departure_inventory')
-    .delete()
-    .in('departure_id', safeToDeleteIds)
-
-  const { error } = await supabase
-    .from('departures')
-    .delete()
-    .in('id', safeToDeleteIds)
-
-  if (error) throw new Error(error.message)
-
-  return { deletedCount: safeToDeleteIds.length }
 }
 
 export async function bulkUpdateDepartures(

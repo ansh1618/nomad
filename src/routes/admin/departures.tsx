@@ -18,11 +18,8 @@ import {
   getDepartures,
   deleteDeparture,
   cancelDeparture,
-  closeDeparture,
   bulkDeleteDepartures,
   bulkChangeVisibilityDepartures,
-  getLastGenerationBatchInfo,
-  undoLastGenerationBatch,
 } from '@/lib/queries/departures'
 import type { Departure } from '@/types/supabase'
 import { toast } from 'sonner'
@@ -38,7 +35,6 @@ import {
   Loader2,
   Users,
   Zap,
-  RotateCcw,
   LayoutGrid,
   Table as TableIcon,
   EyeOff,
@@ -99,7 +95,6 @@ function DeparturesPage() {
   const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false)
   const [isBulkEditModalOpen, setIsBulkEditModalOpen] = useState(false)
   const [selectedBulkIds, setSelectedBulkIds] = useState<string[]>([])
-  const [isUndoConfirmOpen, setIsUndoConfirmOpen] = useState(false)
 
   const { data: result, isLoading } = useQuery({
     queryKey: ['departures_list', page, pageSize, search, sortBy, sortDir, statusFilter, journeyFilter],
@@ -114,11 +109,6 @@ function DeparturesPage() {
         journeyId: journeyFilter || undefined,
       }),
     placeholderData: (prev) => prev,
-  })
-
-  const { data: lastBatch, refetch: refetchLastBatch } = useQuery({
-    queryKey: ['last_generation_batch'],
-    queryFn: getLastGenerationBatchInfo,
   })
 
   const { data: journeys = [] } = useQuery({
@@ -410,20 +400,6 @@ function DeparturesPage() {
               <LayoutGrid className="h-3.5 w-3.5 mr-1.5" /> Calendar
             </Button>
           </div>
-
-          {/* Undo Last Batch (Rollback) Button */}
-          {lastBatch && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setIsUndoConfirmOpen(true)}
-              className="h-9 rounded-xl border-amber-300 bg-amber-50/50 text-amber-800 hover:bg-amber-100 text-xs font-bold"
-              title={`Undo last generation batch: ${lastBatch.count} departures (${lastBatch.dateRange})`}
-            >
-              <RotateCcw className="h-3.5 w-3.5 mr-1.5 text-amber-600" /> Undo Last Batch ({lastBatch.count})
-            </Button>
-          )}
 
           {/* Generate Recurring Departures Modal Trigger */}
           <Button
