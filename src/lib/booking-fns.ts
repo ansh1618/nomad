@@ -269,7 +269,7 @@ export const createBookingFn = createServerFn({ method: "POST" })
       const serverPricing = resolveBookingPricing({
         journey,
         departure: dep,
-        room: null,
+        room: { sharing_type: (data as any).roomSharing || (data as any).sharingType || "Quad" },
         travellers: data.travellers,
         addons: data.addons || [],
         coupon: null,

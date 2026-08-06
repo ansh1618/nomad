@@ -1,47 +1,22 @@
-import { createClient } from "@supabase/supabase-js";
+import { supabaseAdmin } from "../src/lib/supabase-admin";
+import { getPackageDocumentBySlug } from "../src/server/itinerary-pdf";
 
-const supabaseUrl = "https://sgeffapbsrppzrgqfpec.supabase.co";
-const supabaseServiceKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNnZWZmYXBic3JwcHpyZ3FmcGVjIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MjkyNjYwOSwiZXhwIjoyMDk4NTAyNjA5fQ.2AEOZXKpsRxvG1jZjCwwpd0emdwVmqOVhx2P_Se_vhA";
+async function inspectDbAndStorage() {
+  console.log("=== INSPECTING DB AND STORAGE FOR UDAIPUR ===");
 
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  const res1 = await getPackageDocumentBySlug("udaipur", "ITINERARY");
+  console.log("\n1. Result for slug 'udaipur':", JSON.stringify(res1, null, 2));
 
-async function inspectExactDbRow() {
-  console.log("=== INSPECTING EXACT DB ROW & STORAGE PATH ===");
+  const res2 = await getPackageDocumentBySlug("udaipur-weekend", "ITINERARY");
+  console.log("\n2. Result for slug 'udaipur-weekend':", JSON.stringify(res2, null, 2));
 
-  const { data: docs } = await supabase.from("package_documents").select("*");
-  console.log("Database package_documents count:", docs?.length || 0);
+  // Check journey_documents
+  const { data: jDocs, error: jErr } = await supabaseAdmin.from("journey_documents").select("*");
+  console.log("\n3. journey_documents count:", jDocs?.length, "error:", jErr?.message);
 
-  if (docs && docs.length > 0) {
-    for (const d of docs) {
-      console.log("--- DB RECORD ---");
-      console.log("ID:", d.id);
-      console.log("package_id:", d.package_id);
-      console.log("file_url stored:", d.file_url);
-
-      const rawPath = d.file_url;
-      const cleanPath = rawPath.replace(/^itineraries\//, "");
-      const { data: pubData } = supabase.storage.from("itineraries").getPublicUrl(cleanPath);
-
-      console.log("Clean storage path:", cleanPath);
-      console.log("Generated public URL:", pubData.publicUrl);
-    }
-  } else {
-    console.log("No records in package_documents table. Scanning storage bucket for actual files...");
-    const { data: journeys } = await supabase.from("journeys").select("id, name, slug");
-    if (journeys) {
-      for (const j of journeys) {
-        // Search for folders under itineraries bucket
-        const { data: files } = await supabase.storage.from("itineraries").list(`${j.slug}/itinerary`);
-        if (files && files.length > 0) {
-          console.log(`Found object in bucket under folder '${j.slug}/itinerary':`, files[0].name);
-          const exactStoragePath = `${j.slug}/itinerary/${files[0].name}`;
-          const { data: pubUrl } = supabase.storage.from("itineraries").getPublicUrl(exactStoragePath);
-          console.log("Exact Storage Path:", exactStoragePath);
-          console.log("Generated Public URL:", pubUrl.publicUrl);
-        }
-      }
-    }
-  }
+  // Check package_documents
+  const { data: pDocs, error: pErr } = await supabaseAdmin.from("package_documents").select("*");
+  console.log("\n4. package_documents count:", pDocs?.length, "error:", pErr?.message, "data:", pDocs);
 }
 
-inspectExactDbRow().catch(console.error);
+inspectDbAndStorage().catch(console.error);

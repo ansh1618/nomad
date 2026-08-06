@@ -201,13 +201,22 @@ function bookingReducer(state: BookingState, action: BookingAction): BookingStat
       return { ...state, isSolo: action.isSolo };
 
     case "SET_ROOM_SHARING": {
-      // Recalculate total after discount
-      const newTotal = Math.max(0, state.baseAmount - state.discountAmount);
+      let roomMod = 0;
+      const st = String(action.roomSharing).toLowerCase();
+      if (st.includes("double")) roomMod = 2000;
+      else if (st.includes("triple")) roomMod = 1000;
+      else if (st.includes("quad")) roomMod = 0;
+
+      const basePrice = state.baseAmount > 0 ? state.baseAmount : 6499;
+      const newAccommodationPrice = basePrice + roomMod;
+      const newTotal = Math.max(0, newAccommodationPrice - state.discountAmount);
+
       return {
         ...state,
         roomSharing: action.roomSharing,
         totalPayable: newTotal,
-        balanceDue: newTotal - state.depositAmount,
+        depositAmount: state.paymentSchedule === "Book Slot" ? state.depositAmount || 2000 : newTotal,
+        balanceDue: state.paymentSchedule === "Book Slot" ? Math.max(0, newTotal - (state.depositAmount || 2000)) : 0,
       };
     }
 

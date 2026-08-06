@@ -1,26 +1,16 @@
-import { createClient } from "@supabase/supabase-js";
+import { supabaseAdmin } from "../src/lib/supabase-admin";
 
-const supabaseUrl = "https://sgeffapbsrppzrgqfpec.supabase.co";
-const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNnZWZmYXBic3JwcHpyZ3FmcGVjIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MjkyNjYwOSwiZXhwIjoyMDk4NTAyNjA5fQ.2AEOZXKpsRxvG1jZjCwwpd0emdwVmqOVhx2P_Se_vhA";
+async function checkAllJourneys() {
+  console.log("=== CHECKING ALL JOURNEYS IN DATABASE ===");
+  const { data: journeys, error } = await supabaseAdmin
+    .from("journeys")
+    .select("id, name, slug, destination");
 
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-async function testDb() {
-  console.log("Checking Supabase tables...");
-
-  const { data: docs, error: docErr } = await supabase.from("package_documents").select("*");
-  if (docErr) {
-    console.log("package_documents error:", docErr.message);
+  if (error) {
+    console.error("Error querying journeys:", error.message);
   } else {
-    console.log(`✓ package_documents table exists! Count: ${docs?.length}`);
-  }
-
-  const { data: leads, error: leadErr } = await supabase.from("itinerary_leads").select("*");
-  if (leadErr) {
-    console.log("itinerary_leads error:", leadErr.message);
-  } else {
-    console.log(`✓ itinerary_leads table exists! Count: ${leads?.length}`);
+    console.log("All Journeys in DB:", JSON.stringify(journeys, null, 2));
   }
 }
 
-testDb().catch(console.error);
+checkAllJourneys().catch(console.error);

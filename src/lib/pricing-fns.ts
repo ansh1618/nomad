@@ -23,7 +23,7 @@ export function resolveBookingPricing({
 }: {
   journey: any;
   departure: any;
-  room: any; // Room object from db or mapped object
+  room: any; // Room object from db or mapped object or string
   travellers: any[];
   addons: any[];
   coupon: any | null;
@@ -39,31 +39,43 @@ export function resolveBookingPricing({
     }
   }
 
-  // 2. Room Modifier
+  // 2. Room Modifier / Accommodation Price calculation
   let roomModifier = 0;
   if (room) {
-    // If it's the mapped object with priceModifier
-    if (typeof room.priceModifier === "number") {
-      roomModifier = room.priceModifier;
+    // Check if absolute price specified on room object
+    const directPrice = parseRupeeAmount(room.price ?? room.totalPrice ?? room.accommodationPrice);
+    if (directPrice > 0) {
+      roomModifier = Math.max(0, directPrice - effectiveBasePrice);
     } 
-    // If it's the raw DB object
-    else if (room.sharing_type) {
-      const st = String(room.sharing_type ?? "").toLowerCase();
-      if (st.includes("double")) roomModifier = 800;
-      else if (st.includes("triple")) roomModifier = 500;
+    // Check numeric modifiers
+    else if (typeof room.priceModifier === "number") {
+      roomModifier = room.priceModifier;
+    } else if (typeof room.price_modifier === "number") {
+      roomModifier = room.price_modifier;
+    } else if (typeof room.pricePerPerson === "number") {
+      roomModifier = room.pricePerPerson;
+    } 
+    // Fallback based on sharing_type / room_type / type string
+    else {
+      const st = String(room.sharing_type || room.room_type || room.type || room.sharingType || room || "").toLowerCase();
+      if (st.includes("double")) {
+        roomModifier = 2000;
+      } else if (st.includes("triple")) {
+        roomModifier = 1000;
+      } else if (st.includes("quad")) {
+        roomModifier = 0;
+      }
     }
   }
 
-  // 3. Travellers
+  const accommodationPrice = effectiveBasePrice + roomModifier;
   const travellersCount = Math.max(1, travellers?.length || 1);
-
-  // 4. Addons
   const addonsTotal = (addons || []).reduce((sum: number, a: any) => sum + (Number(a.price) || 0), 0);
 
-  // 5. Subtotal
-  const subtotal = (effectiveBasePrice + roomModifier) * travellersCount + addonsTotal;
+  // Subtotal before coupon
+  const subtotal = accommodationPrice * travellersCount + addonsTotal;
 
-  // 6. Coupon Discount
+  // Coupon Discount
   let couponDiscount = 0;
   if (coupon) {
     if (coupon.discount_type === "PERCENTAGE" || coupon.discountType === "PERCENTAGE") {
@@ -76,35 +88,31 @@ export function resolveBookingPricing({
     } else if (coupon.discount_type === "FIXED" || coupon.discountType === "FIXED") {
       couponDiscount = Number(coupon.discount_value || coupon.discountValue || 0);
     } else if (typeof coupon.discount === "number") {
-      // Legacy mapped coupon object
       couponDiscount = coupon.discount;
     }
   }
 
-  // Cap discount to subtotal
   couponDiscount = Math.min(couponDiscount, subtotal);
+  const payableBeforeGst = Math.max(0, subtotal - couponDiscount);
+  const gst = Math.round(payableBeforeGst * 0.05);
+  const total = payableBeforeGst;
 
-  // 7. GST (5% on taxable amount)
-  const taxableAmount = Math.max(0, subtotal - couponDiscount);
-  const gst = Math.round(taxableAmount * 0.05); // 5% GST
-
-  // 8. Total
-  const total = taxableAmount + gst;
-
-  // 9. Deposit
   const deposit = 2000 * travellersCount;
   const remaining = Math.max(0, total - deposit);
 
   return {
     effectiveBasePrice,
-    travellersCount,
+    basePrice: effectiveBasePrice,
     roomModifier,
+    roomSurcharge: roomModifier,
+    accommodationPrice,
+    travellersCount,
     addonsTotal,
     couponDiscount,
-    subtotal,        // pre-coupon, pre-GST
-    payableBeforeGst: taxableAmount, // post-coupon, pre-GST — this is what the user pays (before GST)
+    subtotal,        // pre-coupon subtotal (accommodationPrice + addons)
+    payableBeforeGst, // post-coupon payable total
     gst,
-    total,           // post-coupon, post-GST — this is what Razorpay charges
+    total: payableBeforeGst, // post-coupon final payable amount
     deposit,
     remaining
   };

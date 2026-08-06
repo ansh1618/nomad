@@ -58,14 +58,26 @@ export function AccommodationSelectionStep({ data, updateData, onNext, onPrev, j
               const hotel = r.hotels;
               const galleryList = (hotel?.gallery as any[])?.map((item: any) => typeof item === 'string' ? item : item.url).filter(Boolean) || [];
               const fallbackUrl = 'https://images.unsplash.com/photo-1551882547-ff40c0d5fc4f?w=400&q=80';
-              
+              const sharingTypeStr = r.sharing_type || r.room_type || "";
+              const stLower = String(sharingTypeStr).toLowerCase();
+
+              let modifier = Number(r.price_modifier || 0);
+              if (modifier === 0) {
+                if (stLower.includes("double")) modifier = 2000;
+                else if (stLower.includes("triple")) modifier = 1000;
+                else if (stLower.includes("quad")) modifier = 0;
+              }
+
               return {
                 id: r.id,
                 type: r.room_type || `${r.sharing_type} Sharing`,
+                sharing_type: sharingTypeStr,
                 hotel: hotel?.name || "Premium Stay",
-                pricePerPerson: Number(r.price_modifier || 0),
+                pricePerPerson: modifier,
+                priceModifier: modifier,
+                price_modifier: modifier,
                 image: galleryList[0] || fallbackUrl,
-                description: `Comfortable ${r.room_type || r.sharing_type} stay at ${hotel?.name || 'verified property'} in ${hotel?.city || 'the mountains'}.`,
+                description: `Comfortable ${r.room_type || r.sharing_type || 'stay'} at ${hotel?.name || 'verified property'} in ${hotel?.city || 'the mountains'}.`,
                 capacity: r.capacity || 2,
               };
             });
@@ -78,8 +90,50 @@ export function AccommodationSelectionStep({ data, updateData, onNext, onPrev, j
         console.warn("Failed to fetch dynamic accommodation rooms:", err);
       }
 
-      // No accommodation found
-      setRooms([]);
+      // Default room choices fallback (Quad = 6499, Triple = 7499, Double = 8499)
+      const basePrice = Number(data.basePrice || journey?.starting_price || 6499);
+      const defaultRooms = [
+        {
+          id: "room-quad",
+          type: "Quad Sharing",
+          sharing_type: "Quad",
+          hotel: "Verified Stay",
+          pricePerPerson: 0,
+          priceModifier: 0,
+          price_modifier: 0,
+          price: basePrice,
+          image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&q=80",
+          description: "Budget-friendly shared room for 4 travelers with private bath.",
+          capacity: 4
+        },
+        {
+          id: "room-triple",
+          type: "Triple Sharing",
+          sharing_type: "Triple",
+          hotel: "Verified Stay",
+          pricePerPerson: 1000,
+          priceModifier: 1000,
+          price_modifier: 1000,
+          price: basePrice + 1000,
+          image: "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=400&q=80",
+          description: "Comfortable room for 3 travelers with premium amenities.",
+          capacity: 3
+        },
+        {
+          id: "room-double",
+          type: "Double Sharing",
+          sharing_type: "Double",
+          hotel: "Verified Stay",
+          pricePerPerson: 2000,
+          priceModifier: 2000,
+          price_modifier: 2000,
+          price: basePrice + 2000,
+          image: "https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=400&q=80",
+          description: "Private room for couples or pairs with king/twin beds.",
+          capacity: 2
+        }
+      ];
+      setRooms(defaultRooms);
       setIsLoading(false);
     }
     fetchRooms();
@@ -87,10 +141,18 @@ export function AccommodationSelectionStep({ data, updateData, onNext, onPrev, j
 
   const selectRoom = (roomId: string, priceModifier: number) => {
     const selectedObj = rooms.find(r => r.id === roomId);
+    if (!selectedObj) return;
+
     updateData((prev: any) => ({
       ...prev,
       selectedRooms: [roomId],
-      selectedRoomObj: selectedObj
+      selectedRoomObj: {
+        ...selectedObj,
+        priceModifier,
+        price_modifier: priceModifier,
+        sharing_type: selectedObj.sharing_type || selectedObj.type,
+      },
+      roomSharing: selectedObj.sharing_type || selectedObj.type,
     }));
   };
 
@@ -140,7 +202,11 @@ export function AccommodationSelectionStep({ data, updateData, onNext, onPrev, j
                   <div className="flex justify-between items-center border-t border-border pt-3">
                     <div className="flex items-center gap-1.5 text-xs font-semibold text-primary">
                       <BedDouble className="h-4 w-4 text-accent" />
-                      <span>{room.pricePerPerson === 0 ? "Included" : `+ ₹${room.pricePerPerson}/head`}</span>
+                      <span>
+                        {typeof room.price === 'number' && room.price > 0
+                          ? `₹${room.price.toLocaleString('en-IN')}`
+                          : `₹${(Number(data.basePrice || journey?.starting_price || 6499) + room.pricePerPerson).toLocaleString('en-IN')}`}
+                      </span>
                     </div>
                   </div>
                 </div>

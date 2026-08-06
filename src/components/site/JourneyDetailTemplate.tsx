@@ -350,8 +350,8 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
     coupon: { discount: discountAmount }
   });
 
-  const finalPrice = pricing.subtotal;
-  const priceBeforeDiscount = (pricing.basePrice || 6499) + (pricing.roomSurcharge || 0) + (pricing.addonsTotal || 0);
+  const priceBeforeDiscount = pricing.subtotal;
+  const finalPrice = pricing.total;
 
   // Payment schedule dynamic amounts
   const payableNow = paymentSchedule === "full" ? finalPrice : pricing.deposit;

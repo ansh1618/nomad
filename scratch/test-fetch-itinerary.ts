@@ -1,21 +1,22 @@
-import { createClient } from "@supabase/supabase-js";
+import { supabaseAdmin } from "../src/lib/supabase-admin";
 
-const supabaseUrl = "https://sgeffapbsrppzrgqfpec.supabase.co";
-const supabaseServiceKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNnZWZmYXBic3JwcHpyZ3FmcGVjIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MjkyNjYwOSwiZXhwIjoyMDk4NTAyNjA5fQ.2AEOZXKpsRxvG1jZjCwwpd0emdwVmqOVhx2P_Se_vhA";
+async function testFixedQuery() {
+  console.log("=== TESTING FIXED JOURNEYS QUERY ===");
 
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  const slug = "udaipur";
 
-async function testFetch() {
-  console.log("Checking package_documents table records...");
-  const { data: docs, error } = await supabase.from("package_documents").select("*");
-  console.log("Documents in DB:", docs?.map(d => ({ id: d.id, title: d.title, file_url: d.file_url })));
+  const { data: pkg, error } = await supabaseAdmin
+    .from("journeys")
+    .select("id, name, slug, hero_banner")
+    .or(`slug.ilike.%${slug}%,name.ilike.%${slug}%`)
+    .limit(1)
+    .maybeSingle();
 
-  if (docs && docs.length > 0) {
-    const testDoc = docs[0];
-    console.log("Testing fetch for file_url:", testDoc.file_url);
-    const res = await fetch(testDoc.file_url, { method: "HEAD" });
-    console.log("File fetch HTTP status:", res.status, res.statusText);
+  if (error) {
+    console.error("Query Error:", error.message);
+  } else {
+    console.log("✓ Successfully found journey record:", pkg);
   }
 }
 
-testFetch().catch(console.error);
+testFixedQuery().catch(console.error);
