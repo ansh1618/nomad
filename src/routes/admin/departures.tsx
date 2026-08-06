@@ -506,32 +506,6 @@ function DeparturesPage() {
         }}
       />
 
-      {/* UNDO LAST BATCH CONFIRMATION DIALOG */}
-      <AlertDialog open={isUndoConfirmOpen} onOpenChange={setIsUndoConfirmOpen}>
-        <AlertDialogContent className="rounded-3xl">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-xl font-bold font-display flex items-center gap-2">
-              <RotateCcw className="h-5 w-5 text-amber-600" /> Undo Last Generation Batch?
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-xs text-muted-foreground leading-relaxed pt-2">
-              This will safely remove the <strong className="text-foreground">{lastBatch?.count} newly generated departures</strong> from batch <code className="bg-muted px-1.5 py-0.5 rounded font-mono">{lastBatch?.batchId}</code> ({lastBatch?.dateRange}).
-              <br /><br />
-              <strong className="text-emerald-700">100% Data Safety:</strong> Pre-existing departures, active bookings, and customer data are completely untouched.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="pt-4">
-            <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl"
-              onClick={() => undoBatchMutation.mutate()}
-              disabled={undoBatchMutation.isPending}
-            >
-              {undoBatchMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              Confirm Rollback
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* Cancel Trip Dialog */}
       <AlertDialog open={!!cancelId} onOpenChange={() => setCancelId(null)}>
