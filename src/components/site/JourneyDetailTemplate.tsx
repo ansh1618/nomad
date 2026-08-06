@@ -386,77 +386,51 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
   })();
 
   const stay = (() => {
-    if (rawStayItem) {
-      const hotelName = rawStayItem.hotel_name || rawStayItem.name || rawStayItem.title;
-      const hotelCat = rawStayItem.hotel_category || (rawStayItem.star_rating ? `${rawStayItem.star_rating} Star Stay` : "3 Star Luxury Stay");
-      const loc = rawStayItem.location || (rawStayItem.city ? `${rawStayItem.city}${rawStayItem.state ? `, ${rawStayItem.state}` : ""}` : rawStayItem.address || "Udaipur, Rajasthan");
-      const maps = rawStayItem.google_maps || rawStayItem.website || null;
-      const checkIn = rawStayItem.check_in || rawStayItem.check_in_time || "12:00 PM";
-      const checkOut = rawStayItem.check_out || rawStayItem.check_out_time || "11:00 AM";
-      const coverImg =
-        rawStayItem.cover_image ||
-        (Array.isArray(rawStayItem.gallery) && rawStayItem.gallery[0]?.url) ||
-        (Array.isArray(rawStayItem.gallery) && typeof rawStayItem.gallery[0] === "string" ? rawStayItem.gallery[0] : null) ||
-        "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80";
+    if (!rawStayItem) return null;
 
-      const galleryList = Array.isArray(rawStayItem.gallery)
-        ? rawStayItem.gallery.map((img: any) => (typeof img === "string" ? img : img.url)).filter(Boolean)
-        : Array.isArray(rawStayItem.images)
-        ? rawStayItem.images.map((img: any) => (typeof img === "string" ? img : img.url)).filter(Boolean)
-        : [];
+    const hotelName = rawStayItem.hotel_name || rawStayItem.name || rawStayItem.title;
+    if (!hotelName) return null;
 
-      const roomTypesList = Array.isArray(rawStayItem.hotel_rooms)
-        ? rawStayItem.hotel_rooms.map((r: any) => r.room_type || r.sharing_type).filter(Boolean)
-        : Array.isArray(rawStayItem.room_types)
-        ? rawStayItem.room_types
-        : ["Double Sharing", "Triple Sharing", "Quad Sharing"];
+    const hotelCat = rawStayItem.hotel_category || (rawStayItem.star_rating ? `${rawStayItem.star_rating} Star Stay` : null);
+    const loc = rawStayItem.location || (rawStayItem.city ? `${rawStayItem.city}${rawStayItem.state ? `, ${rawStayItem.state}` : ""}` : rawStayItem.address || null);
+    const maps = rawStayItem.google_maps || rawStayItem.website || null;
+    const checkIn = rawStayItem.check_in || rawStayItem.check_in_time || "14:00";
+    const checkOut = rawStayItem.check_out || rawStayItem.check_out_time || "11:00";
+    const coverImg =
+      rawStayItem.cover_image ||
+      (Array.isArray(rawStayItem.gallery) && (rawStayItem.gallery[0]?.url || (typeof rawStayItem.gallery[0] === "string" ? rawStayItem.gallery[0] : null))) ||
+      null;
 
-      const amenitiesList = Array.isArray(rawStayItem.amenities) && rawStayItem.amenities.length > 0
-        ? rawStayItem.amenities
-        : ["High-Speed Wi-Fi", "Daily Housekeeping", "24/7 Hot Water", "In-house Dining", "Lake/Mountain Views", "Air Conditioning"];
+    const galleryList = Array.isArray(rawStayItem.gallery)
+      ? rawStayItem.gallery.map((img: any) => (typeof img === "string" ? img : img?.url)).filter(Boolean)
+      : Array.isArray(rawStayItem.images)
+      ? rawStayItem.images.map((img: any) => (typeof img === "string" ? img : img?.url)).filter(Boolean)
+      : [];
 
-      return {
-        hotel_name: hotelName || "Lake-View Heritage Hotels & Stays",
-        hotel_category: hotelCat,
-        location: loc,
-        google_maps: maps,
-        check_in: checkIn,
-        check_out: checkOut,
-        cover_image: coverImg,
-        gallery: galleryList.length > 0 ? galleryList : [
-          "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80",
-          "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80",
-          "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80"
-        ],
-        room_types: roomTypesList,
-        amenities: amenitiesList,
-        is_verified: true,
-      };
-    }
+    const roomTypesList = Array.isArray(rawStayItem.hotel_rooms)
+      ? rawStayItem.hotel_rooms.map((r: any) => r.room_type || r.sharing_type || r.name).filter(Boolean)
+      : Array.isArray(rawStayItem.room_types)
+      ? rawStayItem.room_types
+      : [];
 
-    // Fallback: Check if journey has hotel / stayInfo string (e.g. "Lake-View Heritage Hotels")
-    const fallbackHotelName = journey.stayInfo || (journey as any).hotel || "Lake-View Heritage Hotels";
-    if (fallbackHotelName) {
-      return {
-        hotel_name: typeof fallbackHotelName === "string" ? fallbackHotelName : "Lake-View Heritage Hotels",
-        hotel_category: "3 Star Heritage Stay",
-        location: "Udaipur, Rajasthan",
-        google_maps: null,
-        check_in: "12:00 PM",
-        check_out: "11:00 AM",
-        cover_image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80",
-        gallery: [
-          "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80",
-          "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80",
-          "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80"
-        ],
-        room_types: ["Double Sharing", "Triple Sharing", "Quad Sharing"],
-        amenities: ["Air Conditioning", "In-house Restaurant", "24/7 Hot Water", "Daily Housekeeping", "Scenic Lake Views"],
-        is_verified: true,
-      };
-    }
+    const amenitiesList = Array.isArray(rawStayItem.amenities)
+      ? rawStayItem.amenities
+      : [];
 
-    return null;
+    return {
+      hotel_name: hotelName,
+      hotel_category: hotelCat,
+      location: loc,
+      google_maps: maps,
+      check_in: checkIn,
+      check_out: checkOut,
+      cover_image: coverImg,
+      gallery: galleryList,
+      room_types: roomTypesList,
+      amenities: amenitiesList,
+      description: rawStayItem.description || null,
+      is_verified: rawStayItem.is_verified || false,
+    };
   })();
   // Combine mapped library FAQs and custom FAQs, fallback to journeys.faqs JSONB array
   const packageFaqsList =
