@@ -244,12 +244,9 @@ export function BookingWizard({
                 ₹{(pricing.payableBeforeGst ?? pricing.subtotal).toLocaleString('en-IN')}
               </span>
             </div>
-            {bookingData.travellers.length > 0 && (
-              <div className="text-[10px] text-muted-foreground flex justify-between font-medium">
-                <span>{bookingData.travellers.length} Explorer{bookingData.travellers.length > 1 ? 's' : ''} x ₹{pricing.effectiveBasePrice.toLocaleString('en-IN')}</span>
-                {pricing.roomModifier > 0 && <span>+ Room Extra</span>}
-              </div>
-            )}
+            <div className="text-[10px] text-muted-foreground flex justify-between font-medium">
+              <span>{Math.max(bookingData.travellers.length, 1)} Explorer{bookingData.travellers.length > 1 ? 's' : ''} x ₹{pricing.accommodationPrice.toLocaleString('en-IN')}</span>
+            </div>
           </div>
         )}
       </div>

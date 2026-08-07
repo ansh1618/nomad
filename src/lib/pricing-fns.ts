@@ -28,47 +28,54 @@ export function resolveBookingPricing({
   addons: any[];
   coupon: any | null;
 }) {
-  // 1. Determine effective base price in whole Rupees
-  const journeyPrice = parseRupeeAmount(journey?.starting_price ?? journey?.price) || 6499;
-  let effectiveBasePrice = journeyPrice;
+  // 1. Determine base journey/departure price in whole Rupees
+  const journeyPrice = parseRupeeAmount(journey?.starting_price ?? journey?.price) || 6500;
+  let journeyBase = journeyPrice;
 
   if (departure) {
     const depPrice = parseRupeeAmount(departure.dynamic_price ?? departure.base_price ?? departure.basePrice ?? departure.price);
     if (depPrice > 0) {
-      effectiveBasePrice = depPrice;
+      journeyBase = depPrice;
     }
   }
 
-  // 2. Room Modifier / Accommodation Price calculation
+  // 2. Determine per-person accommodation price (absolute total package price for selected tier)
+  let accommodationPrice = journeyBase;
   let roomModifier = 0;
+
   if (room) {
-    // Check if absolute price specified on room object
     const directPrice = parseRupeeAmount(room.price ?? room.totalPrice ?? room.accommodationPrice);
-    if (directPrice > 0) {
-      roomModifier = Math.max(0, directPrice - effectiveBasePrice);
-    } 
-    // Check numeric modifiers
-    else if (typeof room.priceModifier === "number") {
-      roomModifier = room.priceModifier;
-    } else if (typeof room.price_modifier === "number") {
-      roomModifier = room.price_modifier;
-    } else if (typeof room.pricePerPerson === "number") {
-      roomModifier = room.pricePerPerson;
-    } 
-    // Fallback based on sharing_type / room_type / type string
-    else {
+    const modPrice = parseRupeeAmount(room.priceModifier ?? room.price_modifier ?? room.pricePerPerson);
+
+    if (directPrice >= 3000) {
+      // Direct absolute per-person price (e.g. 6500, 7500, 8500)
+      accommodationPrice = directPrice;
+      roomModifier = Math.max(0, directPrice - journeyBase);
+    } else if (modPrice >= 3000) {
+      // Direct absolute price stored in price_modifier column
+      accommodationPrice = modPrice;
+      roomModifier = Math.max(0, modPrice - journeyBase);
+    } else if (modPrice > 0 && modPrice < 3000) {
+      // Relative delta modifier (e.g. +1000, +2000)
+      roomModifier = modPrice;
+      accommodationPrice = journeyBase + modPrice;
+    } else {
+      // Sharing type fallback (Quad = 6500, Triple = 7500, Double = 8500 for standard 2N/3D)
       const st = String(room.sharing_type || room.room_type || room.type || room.sharingType || room || "").toLowerCase();
       if (st.includes("double")) {
-        roomModifier = 2000;
+        accommodationPrice = Math.max(8500, journeyBase === 6499 ? 8500 : journeyBase + 2000);
+        roomModifier = accommodationPrice - journeyBase;
       } else if (st.includes("triple")) {
-        roomModifier = 1000;
+        accommodationPrice = Math.max(7500, journeyBase === 6499 ? 7500 : journeyBase + 1000);
+        roomModifier = accommodationPrice - journeyBase;
       } else if (st.includes("quad")) {
-        roomModifier = 0;
+        accommodationPrice = Math.max(6500, journeyBase === 6499 ? 6500 : journeyBase);
+        roomModifier = accommodationPrice - journeyBase;
       }
     }
   }
 
-  const accommodationPrice = effectiveBasePrice + roomModifier;
+  const effectiveBasePrice = accommodationPrice;
   const travellersCount = Math.max(1, travellers?.length || 1);
   const addonsTotal = (addons || []).reduce((sum: number, a: any) => sum + (Number(a.price) || 0), 0);
 
