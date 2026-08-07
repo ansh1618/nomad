@@ -56,7 +56,7 @@ import { createGuestBookingFn } from "@/lib/booking-fns";
 import { useAuth } from "./AuthContext";
 import { getPackageDocumentBySlugFn } from "@/lib/itinerary-pdf-fns";
 import { getRealDestinationImage, getJourneyBySlug } from "@/lib/queries-client";
-import { resolveJourneyHero } from "@/lib/media-resolver";
+import { resolveJourneyHero, isValidMediaUrl } from "@/lib/media-resolver";
 import { resolveBookingPricing } from "@/lib/pricing-fns";
 
 const getFallbackTransport = (slug: string) => {
@@ -1381,105 +1381,148 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
 
       {/* 📸 Trip Gallery (Real Photos) */}
       {(() => {
-        const galleryList = (journey.gallery ?? []).map((item: any) =>
-          typeof item === "string" ? { url: item, caption: "", day: null } : item,
-        );
-        if (galleryList.length === 0) return null;
+        const rawGallery = journey.gallery ?? [];
+        const galleryList = (Array.isArray(rawGallery) ? rawGallery : [])
+          .map((item: any) => {
+            if (!item) return null;
+            let rawUrl = "";
+            let caption = "";
+            let day = null;
+
+            if (typeof item === "string") {
+              rawUrl = item;
+            } else if (typeof item === "object") {
+              rawUrl = item.url || item.image_url || item.src || item.image || item.path || "";
+              caption = item.caption || item.alt || item.title || "";
+              day = item.day || item.day_number || null;
+            }
+
+            if (!rawUrl || typeof rawUrl !== "string") return null;
+
+            let finalUrl = rawUrl.trim();
+            // Handle relative storage paths or missing domain
+            if (!finalUrl.startsWith("http://") && !finalUrl.startsWith("https://") && !finalUrl.startsWith("/")) {
+              const supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL || "https://ydpxxwnmfxghvypwuvrr.supabase.co";
+              const cleanPath = finalUrl.startsWith("media-assets/") ? finalUrl : `media-assets/${finalUrl}`;
+              finalUrl = `${supabaseUrl}/storage/v1/object/public/${cleanPath}`;
+            }
+
+            if (!isValidMediaUrl(finalUrl)) return null;
+
+            return {
+              url: finalUrl,
+              src: finalUrl,
+              caption,
+              day,
+            };
+          })
+          .filter((item): item is { url: string; src: string; caption: string; day: number | null } => item !== null);
+
+        if (galleryList.length === 0) {
+          return (
+            <section className="max-w-7xl mx-auto px-5 py-16 border-t border-[#E4E2DA]">
+              <div className="flex items-end justify-between mb-8">
+                <div>
+                  <span className="text-xs font-poppins font-bold uppercase tracking-[0.2em] text-accent">
+                    Vibe Check
+                  </span>
+                  <h2 className="text-3xl font-display font-bold text-primary mt-1">
+                    📸 Real Traveler Gallery
+                  </h2>
+                </div>
+              </div>
+              <div className="bg-white border border-dashed border-[#E4E2DA] rounded-2xl p-12 text-center text-muted-foreground font-poppins text-sm">
+                No gallery images available.
+              </div>
+            </section>
+          );
+        }
 
         const displayItems = galleryList.slice(0, 5);
         return (
-          <section className="max-w-7xl mx-auto px-5 py-16 border-t border-[#E4E2DA]">
-            <div className="flex items-end justify-between mb-8">
-              <div>
-                <span className="text-xs font-poppins font-bold uppercase tracking-[0.2em] text-accent">
-                  Vibe Check
-                </span>
-                <h2 className="text-3xl font-display font-bold text-primary mt-1">
-                  📸 Real Traveler Gallery
-                </h2>
-              </div>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setLightboxIndex(0);
-                  setLightboxDayFilter(null);
-                  setLightboxOpen(true);
-                }}
-                className="font-poppins font-semibold text-xs border-[#E4E2DA]"
-              >
-                View All {galleryList.length} Photos
-              </Button>
-            </div>
-
-            {/* Airbnb-style Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 h-[450px] overflow-hidden rounded-2xl border border-[#E4E2DA] shadow-soft">
-              {displayItems[0] && (
-                <div
-                  className="md:col-span-2 relative h-full group overflow-hidden cursor-pointer bg-muted"
+          <>
+            <section className="max-w-7xl mx-auto px-5 py-16 border-t border-[#E4E2DA]">
+              <div className="flex items-end justify-between mb-8">
+                <div>
+                  <span className="text-xs font-poppins font-bold uppercase tracking-[0.2em] text-accent">
+                    Vibe Check
+                  </span>
+                  <h2 className="text-3xl font-display font-bold text-primary mt-1">
+                    📸 Real Traveler Gallery
+                  </h2>
+                </div>
+                <Button
+                  variant="outline"
                   onClick={() => {
                     setLightboxIndex(0);
+                    setLightboxDayFilter(null);
                     setLightboxOpen(true);
                   }}
+                  className="font-poppins font-semibold text-xs border-[#E4E2DA]"
                 >
-                  <img
-                    src={displayItems[0].url}
-                    alt=""
-                    className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
-                  />
-                  <div className="absolute inset-0 bg-black/10 group-hover:bg-black/30 transition-all" />
-                  {displayItems[0].caption && (
-                    <span className="absolute bottom-4 left-4 bg-black/60 text-white text-[10px] px-3 py-1 rounded-full backdrop-blur-sm font-poppins">
-                      {displayItems[0].caption}
-                    </span>
-                  )}
-                </div>
-              )}
+                  View All {galleryList.length} Photos
+                </Button>
+              </div>
 
-              <div className="md:col-span-2 grid grid-cols-2 gap-3 h-full">
-                {displayItems.slice(1, 5).map((img: any, idx: number) => (
+              {/* Airbnb-style Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3 h-[450px] overflow-hidden rounded-2xl border border-[#E4E2DA] shadow-soft">
+                {displayItems[0] && (
                   <div
-                    key={idx}
-                    className="relative h-full group overflow-hidden cursor-pointer bg-muted"
+                    className="md:col-span-2 relative h-full group overflow-hidden cursor-pointer bg-muted"
                     onClick={() => {
-                      setLightboxIndex(idx + 1);
+                      setLightboxIndex(0);
                       setLightboxOpen(true);
                     }}
                   >
                     <img
-                      src={img.url}
-                      alt=""
+                      src={displayItems[0].url}
+                      alt={displayItems[0].caption || "Gallery photo"}
                       className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
                     />
                     <div className="absolute inset-0 bg-black/10 group-hover:bg-black/30 transition-all" />
-                    {img.caption && (
-                      <span className="absolute bottom-3 left-3 bg-black/60 text-white text-[9px] px-2 py-0.5 rounded-full backdrop-blur-sm font-poppins truncate max-w-[85%]">
-                        {img.caption}
+                    {displayItems[0].caption && (
+                      <span className="absolute bottom-4 left-4 bg-black/60 text-white text-[10px] px-3 py-1 rounded-full backdrop-blur-sm font-poppins">
+                        {displayItems[0].caption}
                       </span>
                     )}
                   </div>
-                ))}
+                )}
+
+                <div className="md:col-span-2 grid grid-cols-2 gap-3 h-full">
+                  {displayItems.slice(1, 5).map((img: any, idx: number) => (
+                    <div
+                      key={idx}
+                      className="relative h-full group overflow-hidden cursor-pointer bg-muted"
+                      onClick={() => {
+                        setLightboxIndex(idx + 1);
+                        setLightboxOpen(true);
+                      }}
+                    >
+                      <img
+                        src={img.url}
+                        alt={img.caption || `Gallery photo ${idx + 2}`}
+                        className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
+                      />
+                      <div className="absolute inset-0 bg-black/10 group-hover:bg-black/30 transition-all" />
+                      {img.caption && (
+                        <span className="absolute bottom-3 left-3 bg-black/60 text-white text-[9px] px-2 py-0.5 rounded-full backdrop-blur-sm font-poppins truncate max-w-[85%]">
+                          {img.caption}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          </section>
-        );
-      })()}
+            </section>
 
-      {/* Lightbox Modal */}
-      {(() => {
-        const galleryList = (journey.gallery ?? []).map((item: any) =>
-          typeof item === "string"
-            ? { src: item, caption: "" }
-            : { src: item.url || item.src, caption: item.caption || "" }
-        );
-
-        return (
-          <UniversalLightboxModal
-            isOpen={lightboxOpen}
-            onClose={() => setLightboxOpen(false)}
-            images={galleryList}
-            initialIndex={lightboxIndex}
-            title={journey?.name ? `${journey.name} — Journey Gallery` : "Journey Gallery"}
-          />
+            <UniversalLightboxModal
+              isOpen={lightboxOpen}
+              onClose={() => setLightboxOpen(false)}
+              images={galleryList}
+              initialIndex={lightboxIndex}
+              title={journey?.name ? `${journey.name} — Journey Gallery` : "Journey Gallery"}
+            />
+          </>
         );
       })()}
 

@@ -304,7 +304,11 @@ export async function getJourneyBySlug(slug: string) {
     inclusions: data.inclusions || [],
     exclusions: data.exclusions || [],
     packingList: data.packing_list || [],
-    accommodation: data.accommodation || data.hotels || null
+    accommodation: data.accommodation || data.hotels || null,
+    gallery: data.gallery || [],
+    hero_banner: data.hero_banner || null,
+    videos: data.videos || [],
+    reels: data.reels || []
   };
 }
 
