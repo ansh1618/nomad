@@ -9,11 +9,8 @@ export function ReviewSummaryStep({ data, updateData, onNext, onPrev, journey, i
   };
 
   const travellersCount = data?.travellers?.length || 1;
-  const effectiveBasePrice = pricing?.effectiveBasePrice ?? 0;
-  const roomModifier = pricing?.roomModifier ?? 0;
-  const travellersTotalBase = effectiveBasePrice * (pricing?.travellersCount ?? travellersCount);
-  const totalRoomModifier = roomModifier * (pricing?.travellersCount ?? travellersCount);
-  const payableAmount = pricing?.payableBeforeGst ?? pricing?.subtotal ?? 0;
+  const effectiveBasePrice = pricing?.effectiveBasePrice ?? pricing?.accommodationPrice ?? 0;
+  const payableAmount = pricing?.grandTotal ?? pricing?.total ?? 0;
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-fade-in w-full max-w-full overflow-hidden box-border">
