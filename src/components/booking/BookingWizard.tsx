@@ -237,15 +237,36 @@ export function BookingWizard({
 
         {/* Sidebar Mini Summary Accordion (only visible before completion) */}
         {currentStep < 5 && (
-          <div className="bg-muted/10 border border-border rounded-2xl p-3 space-y-2 font-sans">
-            <div className="flex justify-between items-center text-xs font-bold text-primary">
-              <span>Total (Excl. GST)</span>
-              <span className="text-sm text-accent">
-                ₹{(pricing.payableBeforeGst ?? pricing.subtotal).toLocaleString('en-IN')}
-              </span>
-            </div>
+          <div className="bg-muted/10 border border-border rounded-2xl p-3 space-y-1.5 font-sans">
             <div className="text-[10px] text-muted-foreground flex justify-between font-medium">
               <span>{Math.max(bookingData.travellers.length, 1)} Explorer{bookingData.travellers.length > 1 ? 's' : ''} x ₹{pricing.accommodationPrice.toLocaleString('en-IN')}</span>
+              <span>₹{(pricing.accommodationPrice * Math.max(bookingData.travellers.length, 1)).toLocaleString('en-IN')}</span>
+            </div>
+            {pricing.addonsTotal > 0 && (
+              <div className="text-[10px] text-muted-foreground flex justify-between font-medium">
+                <span>Add-ons</span>
+                <span>+ ₹{pricing.addonsTotal.toLocaleString('en-IN')}</span>
+              </div>
+            )}
+            {pricing.couponDiscount > 0 && (
+              <div className="text-[10px] text-emerald-700 flex justify-between font-semibold">
+                <span>Coupon Discount</span>
+                <span>- ₹{pricing.couponDiscount.toLocaleString('en-IN')}</span>
+              </div>
+            )}
+            <div className="text-[10px] text-muted-foreground flex justify-between font-medium pt-1 border-t border-border/50">
+              <span>Subtotal</span>
+              <span>₹{pricing.subtotal.toLocaleString('en-IN')}</span>
+            </div>
+            <div className="text-[10px] text-muted-foreground flex justify-between font-medium">
+              <span>GST (5%)</span>
+              <span>₹{pricing.gstAmount.toLocaleString('en-IN')}</span>
+            </div>
+            <div className="flex justify-between items-center text-xs font-bold text-primary pt-1 border-t border-border">
+              <span>Grand Total</span>
+              <span className="text-sm text-accent">
+                ₹{pricing.grandTotal.toLocaleString('en-IN')}
+              </span>
             </div>
           </div>
         )}
@@ -435,17 +456,25 @@ export function BookingWizard({
                   )}
                 </div>
 
-                <div className="pt-4 border-t border-border">
-                  <div className="flex justify-between items-end">
+                <div className="pt-4 border-t border-border space-y-2">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-muted-foreground font-medium">Subtotal</span>
+                    <span className="font-semibold text-foreground">₹{pricing.subtotal.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-muted-foreground font-medium">GST (5%)</span>
+                    <span className="font-semibold text-foreground">₹{pricing.gstAmount.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="flex justify-between items-end pt-2 border-t border-border">
                     <span className="text-xs text-muted-foreground font-semibold">
-                      {currentStep < 3 ? "Subtotal (Excl. GST)" : "Total Amount Due"}
+                      Grand Total
                     </span>
                     <span className="text-2xl font-display font-bold text-primary">
-                      ₹{(currentStep < 3 ? pricing.subtotal : pricing.total).toLocaleString('en-IN')}
+                      ₹{pricing.grandTotal.toLocaleString('en-IN')}
                     </span>
                   </div>
-                  <span className="text-[9px] text-muted-foreground block text-right mt-1 font-poppins">
-                    {currentStep < 3 ? "+ 5% GST added at review step" : "Includes all taxes and fees"}
+                  <span className="text-[9px] text-muted-foreground block text-right font-poppins">
+                    Includes 5% GST & all taxes
                   </span>
                 </div>
 

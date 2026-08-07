@@ -297,10 +297,10 @@ export const createBookingFn = createServerFn({ method: "POST" })
         }
       }
 
-      const addonAmount = Number(data.addonAmount) || 0;
-      const taxableAmount = Math.max(0, serverPricing.subtotal + addonAmount - serverDiscount);
-      const gstAmount = Math.round(taxableAmount * 0.05);
-      const totalAmount = data.totalAmount > 0 ? data.totalAmount : taxableAmount + gstAmount;
+      const addonAmount = Number(data.addonAmount) || serverPricing.addonsTotal || 0;
+      const taxableAmount = serverPricing.subtotal;
+      const gstAmount = serverPricing.gstAmount;
+      const totalAmount = serverPricing.grandTotal;
 
       const primaryTraveller = data.travellers[0] || {};
       const rawName = (primaryTraveller.fullName || primaryTraveller.name || primaryTraveller.full_name || "").trim();

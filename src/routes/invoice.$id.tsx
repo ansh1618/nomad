@@ -45,6 +45,12 @@ export const getInvoiceDetailsFn = createServerFn({ method: "GET" })
           }
         }
 
+        const baseSubtotal = Number(booking.amount || 0);
+        const discountVal = Number(booking.discount_amount || booking.coupon_discount || 0);
+        const subtotalVal = Math.max(0, (baseSubtotal > 0 ? baseSubtotal : Number(booking.total_amount || 0)) - discountVal);
+        const calculatedGst = booking.gst_amount > 0 ? booking.gst_amount : Math.round(subtotalVal * 0.05);
+        const calculatedTotal = booking.total_amount > 0 ? booking.total_amount : subtotalVal + calculatedGst;
+
         invoice = {
           invoice_number: `NM-INV-${booking.booking_id || booking.id.slice(0, 8)}`,
           customer_name: booking.customer_name || "Explorer",
@@ -53,14 +59,15 @@ export const getInvoiceDetailsFn = createServerFn({ method: "GET" })
           customer_address: "Delhi/NCR",
           trip_name: tripName,
           departure_date: departureDate,
-          amount: booking.amount || booking.total_amount || 0,
-          discount_amount: booking.discount_amount || booking.coupon_discount || 0,
+          subtotal: subtotalVal,
+          amount: subtotalVal,
+          discount_amount: discountVal,
           gst_rate: booking.gst_rate || 5,
-          gst_amount: booking.gst_amount || 0,
-          total_amount: booking.total_amount || 0,
-          amount_paid: booking.amount_paid || 0,
-          balance_due: Math.max(0, (booking.total_amount ?? 0) - (booking.amount_paid ?? 0)),
-          status: booking.amount_paid > 0 ? "PAID" : "ISSUED",
+          gst_amount: calculatedGst,
+          total_amount: calculatedTotal,
+          amount_paid: booking.amount_paid || calculatedTotal,
+          balance_due: Math.max(0, calculatedTotal - (booking.amount_paid ?? calculatedTotal)),
+          status: (booking.amount_paid || 0) > 0 ? "PAID" : "ISSUED",
           issued_at: new Date().toISOString(),
           created_at: new Date().toISOString(),
         } as any;

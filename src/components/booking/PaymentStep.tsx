@@ -217,8 +217,8 @@ export function PaymentStep({
       })
     : null;
 
-  // Display the pre-GST amount (post-coupon) — GST only inside Razorpay
-  const displayAmount = pricing?.payableBeforeGst ?? pricing?.subtotal ?? 0;
+  // Display the GST-inclusive Grand Total amount
+  const displayAmount = pricing?.grandTotal ?? pricing?.total ?? 0;
 
   return (
     <div className="w-full max-w-xl mx-auto space-y-6 animate-fade-in py-2 px-1 box-border">
@@ -249,16 +249,16 @@ export function PaymentStep({
 
       {/* ── PAYMENT SUMMARY CARD ── */}
       <div className="w-full bg-white border border-border/80 p-6 sm:p-7 rounded-[20px] shadow-soft space-y-6 box-border">
-        {/* Total Amount — show subtotal (no GST) */}
+        {/* Total Amount — show Grand Total (incl. GST) */}
         <div className="bg-muted/30 border border-border/60 p-5 rounded-[16px] space-y-1">
           <span className="text-[11px] font-poppins font-bold uppercase tracking-wider text-muted-foreground block">
-            Total Payable
+            Grand Total Payable (Incl. 5% GST)
           </span>
           <div className="text-3xl sm:text-4xl font-display font-bold text-primary tracking-tight">
             ₹{displayAmount.toLocaleString("en-IN")}
           </div>
           <p className="text-[11px] text-muted-foreground font-poppins">
-            Taxes will be calculated securely during checkout.
+            Includes 5% GST (₹{(pricing?.gstAmount ?? 0).toLocaleString("en-IN")}) & all applicable taxes.
           </p>
         </div>
 
@@ -324,6 +324,24 @@ export function PaymentStep({
               </span>
             </div>
           )}
+
+          <div className="flex justify-between items-center gap-4 pt-2 border-t border-dashed">
+            <span className="text-[11px] uppercase font-semibold text-muted-foreground tracking-wider">
+              Subtotal
+            </span>
+            <span className="font-semibold text-foreground text-right">
+              ₹{(pricing?.subtotal ?? 0).toLocaleString("en-IN")}
+            </span>
+          </div>
+
+          <div className="flex justify-between items-center gap-4">
+            <span className="text-[11px] uppercase font-semibold text-muted-foreground tracking-wider">
+              GST (5%)
+            </span>
+            <span className="font-semibold text-foreground text-right">
+              ₹{(pricing?.gstAmount ?? 0).toLocaleString("en-IN")}
+            </span>
+          </div>
         </div>
 
         {/* Security Badges */}

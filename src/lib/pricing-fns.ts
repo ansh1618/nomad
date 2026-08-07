@@ -77,17 +77,18 @@ export function resolveBookingPricing({
 
   const effectiveBasePrice = accommodationPrice;
   const travellersCount = Math.max(1, travellers?.length || 1);
+  const roomTotal = accommodationPrice * travellersCount;
   const addonsTotal = (addons || []).reduce((sum: number, a: any) => sum + (Number(a.price) || 0), 0);
 
-  // Subtotal before coupon
-  const subtotal = accommodationPrice * travellersCount + addonsTotal;
+  // Gross total before coupon discount
+  const grossSubtotal = roomTotal + addonsTotal;
 
   // Coupon Discount
   let couponDiscount = 0;
   if (coupon) {
     if (coupon.discount_type === "PERCENTAGE" || coupon.discountType === "PERCENTAGE") {
       const discountVal = Number(coupon.discount_value || coupon.discountValue || 0);
-      couponDiscount = Math.round((subtotal * discountVal) / 100);
+      couponDiscount = Math.round((grossSubtotal * discountVal) / 100);
       const maxDiscount = Number(coupon.max_discount_amount || coupon.maxDiscountAmount || 0);
       if (maxDiscount > 0 && couponDiscount > maxDiscount) {
         couponDiscount = maxDiscount;
@@ -99,27 +100,39 @@ export function resolveBookingPricing({
     }
   }
 
-  couponDiscount = Math.min(couponDiscount, subtotal);
-  const payableBeforeGst = Math.max(0, subtotal - couponDiscount);
-  const gst = Math.round(payableBeforeGst * 0.05);
-  const total = payableBeforeGst;
+  couponDiscount = Math.min(couponDiscount, grossSubtotal);
+
+  // Subtotal (post discount, before GST)
+  const subtotal = Math.max(0, grossSubtotal - couponDiscount);
+
+  // 5% GST applied to post-discount subtotal
+  const gstRate = 5;
+  const gstAmount = Math.round((subtotal * gstRate) / 100);
+
+  // Grand Total (Subtotal + GST)
+  const grandTotal = subtotal + gstAmount;
 
   const deposit = 2000 * travellersCount;
-  const remaining = Math.max(0, total - deposit);
+  const remaining = Math.max(0, grandTotal - deposit);
 
   return {
+    roomPrice: accommodationPrice,
     effectiveBasePrice,
     basePrice: effectiveBasePrice,
     roomModifier,
     roomSurcharge: roomModifier,
     accommodationPrice,
     travellersCount,
+    roomTotal,
     addonsTotal,
     couponDiscount,
-    subtotal,        // pre-coupon subtotal (accommodationPrice + addons)
-    payableBeforeGst, // post-coupon payable total
-    gst,
-    total: payableBeforeGst, // post-coupon final payable amount
+    subtotal,         // post-discount subtotal (Room * Travellers + Addons - Coupon)
+    payableBeforeGst: subtotal,
+    gstRate,
+    gstAmount,        // 5% of subtotal
+    gst: gstAmount,   // alias
+    grandTotal,       // subtotal + gstAmount
+    total: grandTotal, // post-GST final payable total (passed to Razorpay)
     deposit,
     remaining
   };
