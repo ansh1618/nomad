@@ -283,8 +283,13 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
   const selectedDeparture =
     departures.find((d: any) => d.id === selectedDepartureId) ?? departures[0] ?? null;
 
-  // Accommodation resolution: 1. selectedDeparture.hotel_id -> 2. journey.hotel_id
-  const effectiveHotelId = (selectedDeparture as any)?.hotel_id || (journey as any)?.hotel_id || null;
+  // Accommodation resolution: 1. selectedDeparture.hotel_id -> 2. journey.hotel_id -> 3. journey.hotels.id
+  const effectiveHotelId =
+    (selectedDeparture as any)?.hotel_id ||
+    (journey as any)?.hotel_id ||
+    (journey as any)?.hotels?.id ||
+    (journey as any)?.hotel?.id ||
+    null;
 
   const { data: departureOrJourneyHotel } = useQuery({
     queryKey: ["hotel_by_id", effectiveHotelId],
@@ -398,17 +403,20 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
     if ((selectedDeparture as any)?.hotel) {
       return (selectedDeparture as any).hotel;
     }
+    if ((journey as any)?.hotels && typeof (journey as any).hotels === "object" && !Array.isArray((journey as any).hotels)) {
+      return (journey as any).hotels;
+    }
+    if (Array.isArray((journey as any).hotels) && (journey as any).hotels.length > 0) {
+      return (journey as any).hotels[0];
+    }
+    if ((journey as any)?.hotel && typeof (journey as any).hotel === "object" && !Array.isArray((journey as any).hotel)) {
+      return (journey as any).hotel;
+    }
     if (Array.isArray(journey.accommodation) && journey.accommodation.length > 0) {
       return journey.accommodation[0];
     }
     if (journey.accommodation && typeof journey.accommodation === "object") {
       return journey.accommodation;
-    }
-    if (Array.isArray((journey as any).hotels) && (journey as any).hotels.length > 0) {
-      return (journey as any).hotels[0];
-    }
-    if ((journey as any).hotels && typeof (journey as any).hotels === "object") {
-      return (journey as any).hotels;
     }
     return null;
   })();
@@ -427,6 +435,7 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
     const coverImg =
       rawStayItem.cover_image ||
       (Array.isArray(rawStayItem.gallery) && (rawStayItem.gallery[0]?.url || (typeof rawStayItem.gallery[0] === "string" ? rawStayItem.gallery[0] : null))) ||
+      (Array.isArray(rawStayItem.images) && (rawStayItem.images[0]?.url || (typeof rawStayItem.images[0] === "string" ? rawStayItem.images[0] : null))) ||
       null;
 
     const galleryList = Array.isArray(rawStayItem.gallery)
@@ -435,11 +444,14 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
       ? rawStayItem.images.map((img: any) => (typeof img === "string" ? img : img?.url)).filter(Boolean)
       : [];
 
-    const roomTypesList = Array.isArray(rawStayItem.hotel_rooms)
-      ? rawStayItem.hotel_rooms.map((r: any) => r.room_type || r.sharing_type || r.name).filter(Boolean)
-      : Array.isArray(rawStayItem.room_types)
-      ? rawStayItem.room_types
-      : [];
+    const roomTypesList =
+      Array.isArray(rawStayItem.hotel_rooms) && rawStayItem.hotel_rooms.length > 0
+        ? rawStayItem.hotel_rooms.map((r: any) => r.room_type || r.sharing_type || r.name).filter(Boolean)
+        : Array.isArray(rawStayItem.room_types) && rawStayItem.room_types.length > 0
+        ? rawStayItem.room_types
+        : Array.isArray(rawStayItem.sharing_options) && rawStayItem.sharing_options.length > 0
+        ? rawStayItem.sharing_options
+        : ["Double Sharing", "Triple Sharing", "Quad Sharing"];
 
     const amenitiesList = Array.isArray(rawStayItem.amenities)
       ? rawStayItem.amenities

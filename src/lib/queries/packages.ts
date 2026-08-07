@@ -41,7 +41,8 @@ function normalizeItineraryDays(days: any[]): ItineraryDay[] {
 const JOURNEY_SELECT = `
   *,
   destinations(id, slug, name, state, country, hero_image),
-  itinerary_days(*)
+  itinerary_days(*),
+  hotels:hotel_id(*, hotel_rooms(*))
 `
 
 const JOURNEY_LIST_SELECT = `
