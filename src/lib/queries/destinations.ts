@@ -140,6 +140,10 @@ export async function getDestinationBySlug(slug: any): Promise<Destination | nul
 
   return {
     ...data,
+    region: (data as any).region ?? null,
+    faqs: (data as any).faqs ?? [],
+    gallery: Array.isArray((data as any).gallery) ? (data as any).gallery : [],
+    things_to_do: Array.isArray((data as any).things_to_do) ? (data as any).things_to_do : [],
     status: (data as any).is_published ? 'PUBLISHED' : 'DRAFT',
     is_featured: false,
     priority: 0
@@ -150,21 +154,32 @@ export async function getDestinationBySlug(slug: any): Promise<Destination | nul
 // BY ID (admin)
 // ==========================================
 export async function getDestinationById(id: string): Promise<Destination | null> {
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from('destinations')
     .select('*')
     .eq('id', id)
     .single()
 
-  if (error) {
-    if (error.code === 'PGRST116') return null
-    throw new Error(error.message)
+  if (error && error.code !== 'PGRST116') {
+    console.warn('[getDestinationById] Select * failed, retrying core select:', error.message)
+    const { data: fallbackData } = await supabase
+      .from('destinations')
+      .select('id, name, slug, subtitle, description, hero_image, hero_video, gallery, things_to_do, country, state, is_published, created_at, updated_at')
+      .eq('id', id)
+      .maybeSingle()
+    if (fallbackData) {
+      data = fallbackData
+    }
   }
 
   if (!data) return null
 
   return {
     ...data,
+    region: (data as any).region ?? null,
+    faqs: (data as any).faqs ?? [],
+    gallery: Array.isArray((data as any).gallery) ? (data as any).gallery : [],
+    things_to_do: Array.isArray((data as any).things_to_do) ? (data as any).things_to_do : [],
     status: (data as any).is_published ? 'PUBLISHED' : 'DRAFT',
     is_featured: false,
     priority: 0
@@ -182,49 +197,37 @@ export async function createDestination(payload: DestinationInsert): Promise<Des
     subtitle: p.subtitle || null,
     country: p.country || 'India',
     state: p.state || null,
-    region: p.region || null,
     description: p.description || null,
     hero_image: p.hero_image || null,
     hero_video: p.hero_video || null,
-    gallery: p.gallery || [],
-    things_to_do: p.things_to_do || [],
-    faqs: p.faqs || [],
+    gallery: Array.isArray(p.gallery) ? p.gallery : [],
+    things_to_do: Array.isArray(p.things_to_do) ? p.things_to_do : [],
     is_published: (p.status || 'DRAFT').toString().toUpperCase().trim() === 'PUBLISHED',
   }
   if (p.created_by) fullPayload.created_by = p.created_by
   if (p.updated_by) fullPayload.updated_by = p.updated_by
 
-  // Tier 1: Full payload
   let res = await supabase
     .from('destinations')
     .insert(fullPayload)
     .select('*')
     .single()
 
-  // Tier 2: Without optional JSONB columns (faqs, things_to_do, gallery, hero_video)
-  if (res.error && (res.error.message?.includes('schema cache') || res.error.message?.includes('column'))) {
-    console.warn('[createDestination] Tier 1 failed, trying Tier 2 (no JSONB columns):', res.error.message)
-    const { faqs, things_to_do, gallery, hero_video, ...tier2Payload } = fullPayload
-    res = await supabase
-      .from('destinations')
-      .insert(tier2Payload)
-      .select('*')
-      .single()
-  }
-
-  // Tier 3: Core minimal columns
-  if (res.error && (res.error.message?.includes('schema cache') || res.error.message?.includes('column'))) {
-    console.warn('[createDestination] Tier 2 failed, trying Tier 3 (minimal core):', res.error.message)
-    const tier3Payload = {
+  if (res.error && (res.error.message?.includes('column') || res.error.message?.includes('schema cache'))) {
+    console.warn('[createDestination] Initial payload failed, retrying safe payload:', res.error.message)
+    const safePayload = {
       name: p.name,
       slug: p.slug,
       subtitle: p.subtitle || null,
       description: p.description || null,
+      hero_image: p.hero_image || null,
+      gallery: Array.isArray(p.gallery) ? p.gallery : [],
+      things_to_do: Array.isArray(p.things_to_do) ? p.things_to_do : [],
       is_published: (p.status || 'DRAFT').toString().toUpperCase().trim() === 'PUBLISHED',
     }
     res = await supabase
       .from('destinations')
-      .insert(tier3Payload)
+      .insert(safePayload)
       .select('*')
       .single()
   }
@@ -234,6 +237,10 @@ export async function createDestination(payload: DestinationInsert): Promise<Des
   const data = res.data
   return {
     ...data,
+    region: (data as any).region ?? null,
+    faqs: (data as any).faqs ?? [],
+    gallery: Array.isArray((data as any).gallery) ? (data as any).gallery : [],
+    things_to_do: Array.isArray((data as any).things_to_do) ? (data as any).things_to_do : [],
     status: (data as any).is_published ? 'PUBLISHED' : 'DRAFT',
     is_featured: false,
     priority: 0
@@ -251,19 +258,16 @@ export async function updateDestination(id: string, payload: DestinationUpdate):
     subtitle: p.subtitle || null,
     country: p.country || 'India',
     state: p.state || null,
-    region: p.region || null,
     description: p.description || null,
     hero_image: p.hero_image || null,
     hero_video: p.hero_video || null,
-    gallery: p.gallery || [],
-    things_to_do: p.things_to_do || [],
-    faqs: p.faqs || [],
+    gallery: Array.isArray(p.gallery) ? p.gallery : [],
+    things_to_do: Array.isArray(p.things_to_do) ? p.things_to_do : [],
     is_published: (p.status || 'DRAFT').toString().toUpperCase().trim() === 'PUBLISHED',
     updated_at: new Date().toISOString()
   }
   if (p.updated_by) fullPayload.updated_by = p.updated_by
 
-  // Tier 1: Full payload
   let res = await supabase
     .from('destinations')
     .update(fullPayload)
@@ -271,32 +275,22 @@ export async function updateDestination(id: string, payload: DestinationUpdate):
     .select('*')
     .single()
 
-  // Tier 2: Without optional JSONB columns (faqs, things_to_do, gallery, hero_video)
-  if (res.error && (res.error.message?.includes('schema cache') || res.error.message?.includes('column'))) {
-    console.warn('[updateDestination] Tier 1 failed, trying Tier 2 (no JSONB columns):', res.error.message)
-    const { faqs, things_to_do, gallery, hero_video, ...tier2Payload } = fullPayload
-    res = await supabase
-      .from('destinations')
-      .update(tier2Payload)
-      .eq('id', id)
-      .select('*')
-      .single()
-  }
-
-  // Tier 3: Core minimal columns
-  if (res.error && (res.error.message?.includes('schema cache') || res.error.message?.includes('column'))) {
-    console.warn('[updateDestination] Tier 2 failed, trying Tier 3 (minimal core):', res.error.message)
-    const tier3Payload = {
+  if (res.error && (res.error.message?.includes('column') || res.error.message?.includes('schema cache'))) {
+    console.warn('[updateDestination] Initial update failed, retrying safe payload:', res.error.message)
+    const safePayload = {
       name: p.name,
       slug: p.slug,
       subtitle: p.subtitle || null,
       description: p.description || null,
+      hero_image: p.hero_image || null,
+      gallery: Array.isArray(p.gallery) ? p.gallery : [],
+      things_to_do: Array.isArray(p.things_to_do) ? p.things_to_do : [],
       is_published: (p.status || 'DRAFT').toString().toUpperCase().trim() === 'PUBLISHED',
       updated_at: new Date().toISOString()
     }
     res = await supabase
       .from('destinations')
-      .update(tier3Payload)
+      .update(safePayload)
       .eq('id', id)
       .select('*')
       .single()
@@ -307,6 +301,10 @@ export async function updateDestination(id: string, payload: DestinationUpdate):
   const data = res.data
   return {
     ...data,
+    region: (data as any).region ?? null,
+    faqs: (data as any).faqs ?? [],
+    gallery: Array.isArray((data as any).gallery) ? (data as any).gallery : [],
+    things_to_do: Array.isArray((data as any).things_to_do) ? (data as any).things_to_do : [],
     status: (data as any).is_published ? 'PUBLISHED' : 'DRAFT',
     is_featured: false,
     priority: 0

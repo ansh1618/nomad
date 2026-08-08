@@ -49,6 +49,8 @@ export async function getDestinations() {
       howToReach: d.how_to_reach,
       bestTime: d.best_time_to_visit || d.best_time || "Best time to visit",
       topPlaces: d.things_to_do || d.highlights || [],
+      gallery: d.gallery || [],
+      region: d.region || null,
       faqs: d.faqs || [],
       reviews: []
     };
@@ -95,6 +97,8 @@ export async function getDestinationBySlug(slug: string) {
     howToReach: data.how_to_reach,
     bestTime: data.best_time_to_visit || data.best_time || "Best time to visit",
     topPlaces: data.things_to_do || data.highlights || [],
+    gallery: data.gallery || [],
+    region: data.region || null,
     faqs: data.faqs || [],
     reviews: reviewsList
   };

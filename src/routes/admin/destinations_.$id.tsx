@@ -157,7 +157,7 @@ function DestinationFormPage() {
 
   const saveMutation = useMutation({
     mutationFn: async (values: DestinationFormValues) => {
-      const { seo_title, seo_description, ...rest } = values
+      const { seo_title, seo_description, region, ...rest } = values
 
       const statusUpper = (values.status || 'DRAFT').toUpperCase().trim()
 
@@ -177,9 +177,11 @@ function DestinationFormPage() {
       }
       return updateDestination(id, payload as any)
     },
-    onSuccess: (dest) => {
-      qc.invalidateQueries({ queryKey: ['destinations'] })
-      qc.invalidateQueries({ queryKey: ['destination', id] })
+    onSuccess: async (dest) => {
+      const activeId = isNew ? dest.id : id
+      await qc.invalidateQueries({ queryKey: ['destinations'] })
+      await qc.invalidateQueries({ queryKey: ['destination', activeId] })
+      await qc.refetchQueries({ queryKey: ['destination', activeId] })
       toast.success(isNew ? 'Destination created successfully!' : 'Destination updated!')
       if (isNew) navigate({ to: '/admin/destinations/$id', params: { id: dest.id } })
     },
