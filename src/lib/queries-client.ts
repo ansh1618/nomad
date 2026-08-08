@@ -304,6 +304,8 @@ export async function getJourneyBySlug(slug: string) {
     stayInfo: data.hotels?.name || (Array.isArray(data.accommodation) ? data.accommodation[0]?.hotel_name : data.accommodation?.hotel_name) || (typeof data.hotel === 'string' ? data.hotel : data.hotel?.name) || "",
     foodInfo: data.food || "",
     transportDetails: data.transport || "",
+    destinations: data.destinations || null,
+    destination: data.destinations || null,
     inclusions: data.inclusions || [],
     exclusions: data.exclusions || [],
     packingList: data.packing_list || [],

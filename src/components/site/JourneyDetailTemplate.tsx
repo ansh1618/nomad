@@ -1393,7 +1393,16 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
 
       {/* 📸 Trip Gallery (Real Photos) */}
       {(() => {
-        const rawGallery = journey.gallery ?? [];
+        // Priority Fallback Order:
+        // 1. Destination Photo Gallery (Admin -> Destinations -> Media -> Photo Gallery)
+        // 2. Journey Gallery (Optional package-specific override)
+        // 3. Empty State
+        const destGallery = (journey as any)?.destinations?.gallery || (journey as any)?.destination?.gallery || [];
+        const journeyGallery = journey.gallery ?? [];
+        const rawGallery = Array.isArray(destGallery) && destGallery.length > 0
+          ? destGallery
+          : (Array.isArray(journeyGallery) ? journeyGallery : []);
+
         const galleryList = (Array.isArray(rawGallery) ? rawGallery : [])
           .map((item: any) => {
             if (!item) return null;
