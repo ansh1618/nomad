@@ -186,12 +186,39 @@ export async function getDestinationById(id: string): Promise<Destination | null
   } as Destination
 }
 
+const ALLOWED_DESTINATION_KEYS = new Set([
+  'name',
+  'slug',
+  'subtitle',
+  'description',
+  'hero_image',
+  'hero_video',
+  'gallery',
+  'country',
+  'state',
+  'is_published',
+  'updated_at',
+  'created_by',
+  'updated_by',
+  'is_deleted',
+]);
+
+function sanitizeDestinationPayload(input: Record<string, any>): Record<string, any> {
+  const clean: Record<string, any> = {};
+  for (const key of Object.keys(input)) {
+    if (ALLOWED_DESTINATION_KEYS.has(key) && input[key] !== undefined) {
+      clean[key] = input[key];
+    }
+  }
+  return clean;
+}
+
 // ==========================================
 // CREATE
 // ==========================================
 export async function createDestination(payload: DestinationInsert): Promise<Destination> {
   const p = payload as any
-  const fullPayload: any = {
+  const rawPayload: any = {
     name: p.name,
     slug: p.slug,
     subtitle: p.subtitle || null,
@@ -203,34 +230,29 @@ export async function createDestination(payload: DestinationInsert): Promise<Des
     gallery: Array.isArray(p.gallery) ? p.gallery : [],
     is_published: (p.status || 'DRAFT').toString().toUpperCase().trim() === 'PUBLISHED',
   }
-  if (p.created_by) fullPayload.created_by = p.created_by
-  if (p.updated_by) fullPayload.updated_by = p.updated_by
+  if (p.created_by) rawPayload.created_by = p.created_by
+  if (p.updated_by) rawPayload.updated_by = p.updated_by
+
+  const cleanPayload = sanitizeDestinationPayload(rawPayload);
 
   let res = await supabase
     .from('destinations')
-    .insert(fullPayload)
+    .insert(cleanPayload)
     .select('*')
     .single()
 
-  if (res.error && (res.error.message?.includes('column') || res.error.message?.includes('schema cache'))) {
-    console.warn('[createDestination] Initial payload failed, retrying safe payload:', res.error.message)
-    const safePayload = {
-      name: p.name,
-      slug: p.slug,
-      subtitle: p.subtitle || null,
-      description: p.description || null,
-      hero_image: p.hero_image || null,
-      gallery: Array.isArray(p.gallery) ? p.gallery : [],
-      is_published: (p.status || 'DRAFT').toString().toUpperCase().trim() === 'PUBLISHED',
-    }
-    res = await supabase
+  if (res.error) {
+    console.warn('[createDestination] Insert select failed, trying minimal insert:', res.error.message)
+    const { error: insertErr } = await supabase
       .from('destinations')
-      .insert(safePayload)
-      .select('*')
-      .single()
-  }
+      .insert(cleanPayload);
 
-  if (res.error) throw new Error(res.error.message)
+    if (insertErr) throw new Error(insertErr.message);
+
+    const reFetched = await getDestinationBySlug(p.slug);
+    if (reFetched) return reFetched;
+    throw new Error(res.error.message);
+  }
 
   const data = res.data
   return {
@@ -250,7 +272,7 @@ export async function createDestination(payload: DestinationInsert): Promise<Des
 // ==========================================
 export async function updateDestination(id: string, payload: DestinationUpdate): Promise<Destination> {
   const p = payload as any
-  const fullPayload: any = {
+  const rawPayload: any = {
     name: p.name,
     slug: p.slug,
     subtitle: p.subtitle || null,
@@ -263,36 +285,30 @@ export async function updateDestination(id: string, payload: DestinationUpdate):
     is_published: (p.status || 'DRAFT').toString().toUpperCase().trim() === 'PUBLISHED',
     updated_at: new Date().toISOString()
   }
-  if (p.updated_by) fullPayload.updated_by = p.updated_by
+  if (p.updated_by) rawPayload.updated_by = p.updated_by
+
+  const cleanPayload = sanitizeDestinationPayload(rawPayload);
 
   let res = await supabase
     .from('destinations')
-    .update(fullPayload)
+    .update(cleanPayload)
     .eq('id', id)
     .select('*')
     .single()
 
-  if (res.error && (res.error.message?.includes('column') || res.error.message?.includes('schema cache'))) {
-    console.warn('[updateDestination] Initial update failed, retrying safe payload:', res.error.message)
-    const safePayload = {
-      name: p.name,
-      slug: p.slug,
-      subtitle: p.subtitle || null,
-      description: p.description || null,
-      hero_image: p.hero_image || null,
-      gallery: Array.isArray(p.gallery) ? p.gallery : [],
-      is_published: (p.status || 'DRAFT').toString().toUpperCase().trim() === 'PUBLISHED',
-      updated_at: new Date().toISOString()
-    }
-    res = await supabase
+  if (res.error) {
+    console.warn('[updateDestination] Update select failed, executing clean update without select:', res.error.message)
+    const { error: updateErr } = await supabase
       .from('destinations')
-      .update(safePayload)
-      .eq('id', id)
-      .select('*')
-      .single()
-  }
+      .update(cleanPayload)
+      .eq('id', id);
 
-  if (res.error) throw new Error(res.error.message)
+    if (updateErr) throw new Error(updateErr.message);
+
+    const reFetched = await getDestinationById(id);
+    if (reFetched) return reFetched;
+    throw new Error(res.error.message);
+  }
 
   const data = res.data
   return {
