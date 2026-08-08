@@ -201,7 +201,6 @@ export async function createDestination(payload: DestinationInsert): Promise<Des
     hero_image: p.hero_image || null,
     hero_video: p.hero_video || null,
     gallery: Array.isArray(p.gallery) ? p.gallery : [],
-    things_to_do: Array.isArray(p.things_to_do) ? p.things_to_do : [],
     is_published: (p.status || 'DRAFT').toString().toUpperCase().trim() === 'PUBLISHED',
   }
   if (p.created_by) fullPayload.created_by = p.created_by
@@ -222,7 +221,6 @@ export async function createDestination(payload: DestinationInsert): Promise<Des
       description: p.description || null,
       hero_image: p.hero_image || null,
       gallery: Array.isArray(p.gallery) ? p.gallery : [],
-      things_to_do: Array.isArray(p.things_to_do) ? p.things_to_do : [],
       is_published: (p.status || 'DRAFT').toString().toUpperCase().trim() === 'PUBLISHED',
     }
     res = await supabase
@@ -262,7 +260,6 @@ export async function updateDestination(id: string, payload: DestinationUpdate):
     hero_image: p.hero_image || null,
     hero_video: p.hero_video || null,
     gallery: Array.isArray(p.gallery) ? p.gallery : [],
-    things_to_do: Array.isArray(p.things_to_do) ? p.things_to_do : [],
     is_published: (p.status || 'DRAFT').toString().toUpperCase().trim() === 'PUBLISHED',
     updated_at: new Date().toISOString()
   }
@@ -284,7 +281,6 @@ export async function updateDestination(id: string, payload: DestinationUpdate):
       description: p.description || null,
       hero_image: p.hero_image || null,
       gallery: Array.isArray(p.gallery) ? p.gallery : [],
-      things_to_do: Array.isArray(p.things_to_do) ? p.things_to_do : [],
       is_published: (p.status || 'DRAFT').toString().toUpperCase().trim() === 'PUBLISHED',
       updated_at: new Date().toISOString()
     }

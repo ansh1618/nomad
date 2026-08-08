@@ -164,8 +164,6 @@ function DestinationFormPage() {
       const payload = {
         ...rest,
         status: statusUpper,
-        things_to_do: things,
-        faqs,
         gallery: gallery.filter(g => g.url),
         seo: seo_title || seo_description ? { title: seo_title, description: seo_description } : null,
         created_by: admin?.id ?? null,
