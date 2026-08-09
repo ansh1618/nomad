@@ -37,6 +37,7 @@ import { Route as DestinationsSlugRouteImport } from './routes/destinations_.$sl
 import { Route as BookingSuccessRouteImport } from './routes/booking.success'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
 import { Route as AdminWebsiteRouteImport } from './routes/admin/website'
+import { Route as AdminTripCaptainsRouteImport } from './routes/admin/trip-captains'
 import { Route as AdminTripCalendarRouteImport } from './routes/admin/trip-calendar'
 import { Route as AdminSuperAdminRouteImport } from './routes/admin/super-admin'
 import { Route as AdminStoriesRouteImport } from './routes/admin/stories'
@@ -217,6 +218,11 @@ const AuthCallbackRoute = AuthCallbackRouteImport.update({
 const AdminWebsiteRoute = AdminWebsiteRouteImport.update({
   id: '/website',
   path: '/website',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminTripCaptainsRoute = AdminTripCaptainsRouteImport.update({
+  id: '/trip-captains',
+  path: '/trip-captains',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminTripCalendarRoute = AdminTripCalendarRouteImport.update({
@@ -476,6 +482,7 @@ export interface FileRoutesByFullPath {
   '/admin/stories': typeof AdminStoriesRoute
   '/admin/super-admin': typeof AdminSuperAdminRoute
   '/admin/trip-calendar': typeof AdminTripCalendarRoute
+  '/admin/trip-captains': typeof AdminTripCaptainsRoute
   '/admin/website': typeof AdminWebsiteRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/booking/success': typeof BookingSuccessRoute
@@ -546,6 +553,7 @@ export interface FileRoutesByTo {
   '/admin/stories': typeof AdminStoriesRoute
   '/admin/super-admin': typeof AdminSuperAdminRoute
   '/admin/trip-calendar': typeof AdminTripCalendarRoute
+  '/admin/trip-captains': typeof AdminTripCaptainsRoute
   '/admin/website': typeof AdminWebsiteRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/booking/success': typeof BookingSuccessRoute
@@ -618,6 +626,7 @@ export interface FileRoutesById {
   '/admin/stories': typeof AdminStoriesRoute
   '/admin/super-admin': typeof AdminSuperAdminRoute
   '/admin/trip-calendar': typeof AdminTripCalendarRoute
+  '/admin/trip-captains': typeof AdminTripCaptainsRoute
   '/admin/website': typeof AdminWebsiteRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/booking/success': typeof BookingSuccessRoute
@@ -691,6 +700,7 @@ export interface FileRouteTypes {
     | '/admin/stories'
     | '/admin/super-admin'
     | '/admin/trip-calendar'
+    | '/admin/trip-captains'
     | '/admin/website'
     | '/auth/callback'
     | '/booking/success'
@@ -761,6 +771,7 @@ export interface FileRouteTypes {
     | '/admin/stories'
     | '/admin/super-admin'
     | '/admin/trip-calendar'
+    | '/admin/trip-captains'
     | '/admin/website'
     | '/auth/callback'
     | '/booking/success'
@@ -832,6 +843,7 @@ export interface FileRouteTypes {
     | '/admin/stories'
     | '/admin/super-admin'
     | '/admin/trip-calendar'
+    | '/admin/trip-captains'
     | '/admin/website'
     | '/auth/callback'
     | '/booking/success'
@@ -1079,6 +1091,13 @@ declare module '@tanstack/react-router' {
       path: '/website'
       fullPath: '/admin/website'
       preLoaderRoute: typeof AdminWebsiteRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/trip-captains': {
+      id: '/admin/trip-captains'
+      path: '/trip-captains'
+      fullPath: '/admin/trip-captains'
+      preLoaderRoute: typeof AdminTripCaptainsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/trip-calendar': {
@@ -1403,6 +1422,7 @@ interface AdminRouteChildren {
   AdminStoriesRoute: typeof AdminStoriesRoute
   AdminSuperAdminRoute: typeof AdminSuperAdminRoute
   AdminTripCalendarRoute: typeof AdminTripCalendarRoute
+  AdminTripCaptainsRoute: typeof AdminTripCaptainsRoute
   AdminWebsiteRoute: typeof AdminWebsiteRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminBlogIdRoute: typeof AdminBlogIdRoute
@@ -1448,6 +1468,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminStoriesRoute: AdminStoriesRoute,
   AdminSuperAdminRoute: AdminSuperAdminRoute,
   AdminTripCalendarRoute: AdminTripCalendarRoute,
+  AdminTripCaptainsRoute: AdminTripCaptainsRoute,
   AdminWebsiteRoute: AdminWebsiteRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminBlogIdRoute: AdminBlogIdRoute,

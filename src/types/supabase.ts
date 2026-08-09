@@ -117,11 +117,12 @@ export interface TripCaptain {
   photo_url: string | null
   bio: string | null
   experience_years: number
-  specializations: string[] | null
-  languages: string[] | null
+  specializations: string[] | string | null
+  languages: string[] | string | null
   rating: number
   total_trips: number
   is_active: boolean
+  is_verified?: boolean
   created_at: string
   updated_at: string
 }

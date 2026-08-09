@@ -356,7 +356,7 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
   });
 
   const priceBeforeDiscount = pricing.subtotal;
-  const finalPrice = pricing.total;
+  const finalPrice = pricing.subtotal;
 
   // Payment schedule dynamic amounts
   const payableNow = paymentSchedule === "full" ? finalPrice : pricing.deposit;

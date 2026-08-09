@@ -294,7 +294,7 @@ export async function getTripCaptains(params: PaginationParams = {}): Promise<Pa
 
 export async function getAllTripCaptains(): Promise<TripCaptain[]> {
   const { data, error } = await supabase
-    .from('trip_captains').select('id, full_name, photo_url, phone, is_active, rating')
+    .from('trip_captains').select('*')
     .eq('is_active', true).order('full_name', { ascending: true })
   if (error) throw new Error(error.message)
   return (data ?? []) as TripCaptain[]

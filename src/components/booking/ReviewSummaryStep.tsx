@@ -106,16 +106,23 @@ export function ReviewSummaryStep({ data, updateData, onNext, onPrev, journey, i
             <div className="space-y-3 text-xs sm:text-sm font-poppins">
               <div className="flex justify-between items-center gap-2">
                 <span className="text-muted-foreground flex-1 truncate">
-                  Explorer Package <span className="text-[11px] text-muted-foreground/80">({travellersCount} x ₹{(pricing?.accommodationPrice ?? effectiveBasePrice).toLocaleString('en-IN')})</span>
+                  Package Price <span className="text-[11px] text-muted-foreground/80">({travellersCount} x ₹{(pricing?.accommodationPrice ?? effectiveBasePrice).toLocaleString('en-IN')})</span>
                 </span>
                 <span className="font-semibold text-right shrink-0">
                   ₹{((pricing?.accommodationPrice ?? effectiveBasePrice) * travellersCount).toLocaleString('en-IN')}
                 </span>
               </div>
+
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-muted-foreground flex-1 truncate">Accommodation</span>
+                <span className="font-semibold text-right text-emerald-700 shrink-0">
+                  {data.selectedRoomObj ? `Included (${data.selectedRoomObj.type || data.selectedRoomObj.sharing_type})` : "Included"}
+                </span>
+              </div>
               
               {data.addons?.map((a: any) => (
                 <div key={a.id} className="flex justify-between items-center gap-2">
-                  <span className="text-muted-foreground flex-1 truncate">Add-on: {a.name}</span>
+                  <span className="text-muted-foreground flex-1 truncate">Add-ons ({a.name})</span>
                   <span className="font-semibold text-right shrink-0">₹{a.price.toLocaleString('en-IN')}</span>
                 </div>
               ))}
@@ -123,7 +130,7 @@ export function ReviewSummaryStep({ data, updateData, onNext, onPrev, journey, i
               {data.coupon && (
                 <div className="flex justify-between items-center gap-2 text-emerald-700 font-semibold">
                   <span className="flex-1 truncate flex items-center gap-1">
-                    <Tag className="h-3 w-3 shrink-0" /> Discount ({data.coupon.code})
+                    <Tag className="h-3 w-3 shrink-0" /> Coupon ({data.coupon.code})
                   </span>
                   <span className="text-right shrink-0">
                     - ₹{(pricing?.couponDiscount ?? 0).toLocaleString('en-IN')}
@@ -152,11 +159,11 @@ export function ReviewSummaryStep({ data, updateData, onNext, onPrev, journey, i
             </div>
           </div>
 
-          {/* Total Payable Footer */}
+          {/* Grand Total Footer */}
           <div className="bg-muted/30 -mx-4 sm:-mx-6 -mb-4 sm:-mb-6 mt-6 p-4 sm:p-5 rounded-b-2xl border-t border-border/80">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
               <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Grand Total (Incl. GST)
+                Grand Total
               </span>
               <span className="text-2xl sm:text-3xl font-display font-bold text-primary tracking-tight truncate">
                 ₹{(pricing?.grandTotal ?? pricing?.total ?? 0).toLocaleString('en-IN')}

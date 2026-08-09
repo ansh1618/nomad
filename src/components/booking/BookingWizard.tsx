@@ -239,7 +239,7 @@ export function BookingWizard({
         {currentStep < 5 && (
           <div className="bg-muted/10 border border-border rounded-2xl p-3 space-y-1.5 font-sans">
             <div className="text-[10px] text-muted-foreground flex justify-between font-medium">
-              <span>{Math.max(bookingData.travellers.length, 1)} Explorer{bookingData.travellers.length > 1 ? 's' : ''} x ₹{pricing.accommodationPrice.toLocaleString('en-IN')}</span>
+              <span>Package Price ({Math.max(bookingData.travellers.length, 1)} Explorer{bookingData.travellers.length > 1 ? 's' : ''})</span>
               <span>₹{(pricing.accommodationPrice * Math.max(bookingData.travellers.length, 1)).toLocaleString('en-IN')}</span>
             </div>
             {pricing.addonsTotal > 0 && (
@@ -254,20 +254,52 @@ export function BookingWizard({
                 <span>- ₹{pricing.couponDiscount.toLocaleString('en-IN')}</span>
               </div>
             )}
-            <div className="text-[10px] text-muted-foreground flex justify-between font-medium pt-1 border-t border-border/50">
-              <span>Subtotal</span>
-              <span>₹{pricing.subtotal.toLocaleString('en-IN')}</span>
-            </div>
-            <div className="text-[10px] text-muted-foreground flex justify-between font-medium">
-              <span>GST (5%)</span>
-              <span>₹{pricing.gstAmount.toLocaleString('en-IN')}</span>
-            </div>
-            <div className="flex justify-between items-center text-xs font-bold text-primary pt-1 border-t border-border">
-              <span>Grand Total</span>
-              <span className="text-sm text-accent">
-                ₹{pricing.grandTotal.toLocaleString('en-IN')}
-              </span>
-            </div>
+
+            {currentStep < 3 ? (
+              /* Steps 0, 1, 2: Progressive Package Price / Current Total. No GST, No Grand Total */
+              <div className="flex justify-between items-center text-xs font-bold text-primary pt-1.5 border-t border-border">
+                <span>{pricing.addonsTotal > 0 || pricing.couponDiscount > 0 ? "Current Total" : "Package Price"}</span>
+                <span className="text-sm text-accent">
+                  ₹{pricing.subtotal.toLocaleString('en-IN')}
+                </span>
+              </div>
+            ) : currentStep === 3 ? (
+              /* Step 3: Final Review Summary (Subtotal, GST 5%, Grand Total) */
+              <>
+                <div className="text-[10px] text-muted-foreground flex justify-between font-medium pt-1 border-t border-border/50">
+                  <span>Subtotal</span>
+                  <span>₹{pricing.subtotal.toLocaleString('en-IN')}</span>
+                </div>
+                <div className="text-[10px] text-muted-foreground flex justify-between font-medium">
+                  <span>GST (5%)</span>
+                  <span>₹{pricing.gstAmount.toLocaleString('en-IN')}</span>
+                </div>
+                <div className="flex justify-between items-center text-xs font-bold text-primary pt-1 border-t border-border">
+                  <span>Grand Total</span>
+                  <span className="text-sm text-accent">
+                    ₹{pricing.grandTotal.toLocaleString('en-IN')}
+                  </span>
+                </div>
+              </>
+            ) : (
+              /* Step 4: Payment (Subtotal, GST 5%, Total Payable) */
+              <>
+                <div className="text-[10px] text-muted-foreground flex justify-between font-medium pt-1 border-t border-border/50">
+                  <span>Subtotal</span>
+                  <span>₹{pricing.subtotal.toLocaleString('en-IN')}</span>
+                </div>
+                <div className="text-[10px] text-muted-foreground flex justify-between font-medium">
+                  <span>GST (5%)</span>
+                  <span>₹{pricing.gstAmount.toLocaleString('en-IN')}</span>
+                </div>
+                <div className="flex justify-between items-center text-xs font-bold text-primary pt-1 border-t border-border">
+                  <span>Total Payable</span>
+                  <span className="text-sm text-accent">
+                    ₹{pricing.grandTotal.toLocaleString('en-IN')}
+                  </span>
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -456,27 +488,80 @@ export function BookingWizard({
                   )}
                 </div>
 
-                <div className="pt-4 border-t border-border space-y-2">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-muted-foreground font-medium">Subtotal</span>
-                    <span className="font-semibold text-foreground">₹{pricing.subtotal.toLocaleString('en-IN')}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-muted-foreground font-medium">GST (5%)</span>
-                    <span className="font-semibold text-foreground">₹{pricing.gstAmount.toLocaleString('en-IN')}</span>
-                  </div>
-                  <div className="flex justify-between items-end pt-2 border-t border-border">
-                    <span className="text-xs text-muted-foreground font-semibold">
-                      Grand Total
+                {currentStep < 3 ? (
+                  /* Steps 0, 1, 2: Progressive Package Price / Current Total (No GST, No Grand Total) */
+                  <div className="pt-4 border-t border-border space-y-2">
+                    {pricing.addonsTotal > 0 && (
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-muted-foreground font-medium">Add-ons Total</span>
+                        <span className="font-semibold text-foreground">+ ₹{pricing.addonsTotal.toLocaleString('en-IN')}</span>
+                      </div>
+                    )}
+                    {pricing.couponDiscount > 0 && (
+                      <div className="flex justify-between items-center text-xs text-emerald-700 font-medium">
+                        <span>Coupon Discount</span>
+                        <span className="font-semibold">- ₹{pricing.couponDiscount.toLocaleString('en-IN')}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between items-end pt-2 border-t border-border">
+                      <span className="text-xs text-muted-foreground font-semibold">
+                        {pricing.addonsTotal > 0 || pricing.couponDiscount > 0 ? "Current Total" : "Package Price"}
+                      </span>
+                      <span className="text-2xl font-display font-bold text-primary">
+                        ₹{pricing.subtotal.toLocaleString('en-IN')}
+                      </span>
+                    </div>
+                    <span className="text-[9px] text-muted-foreground block text-right font-poppins italic">
+                      GST (5%) added at final review stage
                     </span>
-                    <span className="text-2xl font-display font-bold text-primary">
-                      ₹{pricing.grandTotal.toLocaleString('en-IN')}
+                  </div>
+                ) : currentStep === 3 ? (
+                  /* Step 3: Final Review Summary (Subtotal, GST 5%, Grand Total) */
+                  <div className="pt-4 border-t border-border space-y-2">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-muted-foreground font-medium">Subtotal</span>
+                      <span className="font-semibold text-foreground">₹{pricing.subtotal.toLocaleString('en-IN')}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-muted-foreground font-medium">GST (5%)</span>
+                      <span className="font-semibold text-foreground">₹{pricing.gstAmount.toLocaleString('en-IN')}</span>
+                    </div>
+                    <div className="flex justify-between items-end pt-2 border-t border-border">
+                      <span className="text-xs text-muted-foreground font-semibold">
+                        Grand Total
+                      </span>
+                      <span className="text-2xl font-display font-bold text-primary">
+                        ₹{pricing.grandTotal.toLocaleString('en-IN')}
+                      </span>
+                    </div>
+                    <span className="text-[9px] text-muted-foreground block text-right font-poppins">
+                      Includes 5% GST & all taxes
                     </span>
                   </div>
-                  <span className="text-[9px] text-muted-foreground block text-right font-poppins">
-                    Includes 5% GST & all taxes
-                  </span>
-                </div>
+                ) : (
+                  /* Step 4: Payment (Subtotal, GST 5%, Total Payable) */
+                  <div className="pt-4 border-t border-border space-y-2">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-muted-foreground font-medium">Subtotal</span>
+                      <span className="font-semibold text-foreground">₹{pricing.subtotal.toLocaleString('en-IN')}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-muted-foreground font-medium">GST (5%)</span>
+                      <span className="font-semibold text-foreground">₹{pricing.gstAmount.toLocaleString('en-IN')}</span>
+                    </div>
+                    <div className="flex justify-between items-end pt-2 border-t border-border">
+                      <span className="text-xs text-muted-foreground font-semibold">
+                        Total Payable
+                      </span>
+                      <span className="text-2xl font-display font-bold text-primary">
+                        ₹{pricing.grandTotal.toLocaleString('en-IN')}
+                      </span>
+                    </div>
+                    <span className="text-[9px] text-muted-foreground block text-right font-poppins">
+                      Includes 5% GST & all taxes
+                    </span>
+                  </div>
+                )}
 
                 <div className="flex items-center gap-2 text-[10px] text-muted-foreground bg-emerald-50 border border-emerald-100 p-3 rounded-xl">
                   <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />

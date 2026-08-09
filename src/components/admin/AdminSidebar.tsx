@@ -113,6 +113,7 @@ const NAV_SECTIONS = [
   {
     label: "People",
     items: [
+      { title: "Trip Captains", href: "/admin/trip-captains", icon: ShieldCheck },
       { title: "Employees", href: "/admin/employees", icon: UserCog },
     ],
   },

@@ -330,32 +330,7 @@ export const SEED_REVIEWS: Review[] = [
 const sessionReviews: Review[] = [];
 
 // ==================== LEADERBOARDS ====================
-export const CAPTAIN_LEADERBOARD: CaptainLeaderboardItem[] = [
-  {
-    name: "Captain Rohit Kumar",
-    role: "Senior Himalayan Expedition Captain",
-    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&q=80",
-    rating: 4.98,
-    trips_count: 420,
-    top_compliment: "Extreme safety focus & high-altitude expertise",
-  },
-  {
-    name: "Captain Harsh Vardhan",
-    role: "Rajasthan Heritage Specialist",
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&q=80",
-    rating: 4.95,
-    trips_count: 310,
-    top_compliment: "Cultural stories & golden hour photography leader",
-  },
-  {
-    name: "Captain Tanya Mehta",
-    role: "Caravan & Solo Travel Specialist",
-    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&q=80",
-    rating: 4.92,
-    trips_count: 260,
-    top_compliment: "Super welcoming for first-time female solo travelers",
-  },
-];
+export const CAPTAIN_LEADERBOARD: CaptainLeaderboardItem[] = [];
 
 export const DESTINATION_LEADERBOARD: DestinationLeaderboardItem[] = [
   { rank: 1, name: "Udaipur", slug: "udaipur", rating: 4.95, reviews_count: 430, cover_image: "/images/udaipur-palace.png" },

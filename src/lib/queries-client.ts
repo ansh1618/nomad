@@ -4,6 +4,27 @@ import { getPublishedPackages, getPackageBySlug } from "./queries/packages";
 import { getApprovedReviews as sharedGetApprovedReviews } from "./queries/admin";
 import { resolveDestinationHero, resolveJourneyHero, isValidMediaUrl } from "./media-resolver";
 import { withTimeout } from "@/lib/promise-timeout";
+import type { TripCaptain } from "@/types/supabase";
+
+export async function getPublicTripCaptains(): Promise<TripCaptain[]> {
+  try {
+    const { data, error } = await supabase
+      .from("trip_captains")
+      .select("*")
+      .eq("is_active", true)
+      .order("rating", { ascending: false });
+
+    if (error) {
+      console.warn("[queries-client] Error fetching public trip captains:", error);
+      return [];
+    }
+
+    return (data || []) as TripCaptain[];
+  } catch (err) {
+    console.warn("[queries-client] Exception fetching public trip captains:", err);
+    return [];
+  }
+}
 
 export function formatPriceDisplay(price: any): string {
   if (price === null || price === undefined) return "₹6,499";

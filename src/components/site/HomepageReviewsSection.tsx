@@ -14,7 +14,9 @@ import {
 } from "lucide-react";
 import { ReviewCard } from "./ReviewCard";
 import { ReviewStarRating } from "./ReviewStarRating";
-import { SEED_REVIEWS, CAPTAIN_LEADERBOARD, DESTINATION_LEADERBOARD } from "@/lib/reviews-client";
+import { SEED_REVIEWS, DESTINATION_LEADERBOARD } from "@/lib/reviews-client";
+import { getPublicTripCaptains } from "@/lib/queries-client";
+import type { TripCaptain } from "@/types/supabase";
 import { Button } from "@/components/ui/button";
 import { motion } from "motion/react";
 
@@ -22,6 +24,9 @@ import { SectionErrorBoundary } from "./SectionErrorBoundary";
 
 function HomepageReviewsContent() {
   const [activeSlide, setActiveSlide] = useState(0);
+  const [captains, setCaptains] = useState<TripCaptain[]>([]);
+  const [loadingCaptains, setLoadingCaptains] = useState(true);
+
   const featuredReviews = SEED_REVIEWS.filter((r) => r.featured || r.is_featured);
 
   // Auto slide carousel
@@ -32,6 +37,21 @@ function HomepageReviewsContent() {
     }, 6000);
     return () => clearInterval(timer);
   }, [featuredReviews.length]);
+
+  // Fetch real trip captains dynamically from DB
+  useEffect(() => {
+    async function loadCaptains() {
+      try {
+        const data = await getPublicTripCaptains();
+        setCaptains(data);
+      } catch (err) {
+        console.warn("[HomepageReviewsSection] Failed to load trip captains:", err);
+      } finally {
+        setLoadingCaptains(false);
+      }
+    }
+    loadCaptains();
+  }, []);
 
   return (
     <section className="py-20 bg-gradient-to-b from-[#F8F7F3] via-white to-[#F8F7F3] font-poppins relative overflow-hidden">
@@ -158,46 +178,94 @@ function HomepageReviewsContent() {
 
           {/* Top Rated Trip Captains Leaderboard */}
           <div className="bg-white rounded-3xl p-6 sm:p-7 border border-[#E4E2DA] shadow-soft space-y-4 text-left">
-            <div className="flex items-center justify-between border-b pb-3">
-              <h3 className="font-display font-bold text-xl text-[#102A43] flex items-center gap-2">
-                <ShieldCheck className="h-5 w-5 text-emerald-600" /> Top Rated Trip Captains
-              </h3>
-              <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+            <div className="flex items-center justify-between border-b border-[#E4E2DA]/60 pb-3 flex-wrap gap-2">
+              <div>
+                <h3 className="font-display font-bold text-xl text-[#102A43] flex items-center gap-2">
+                  <ShieldCheck className="h-5 w-5 text-emerald-600" /> Top Rated Trip Captains
+                </h3>
+              </div>
+              <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200 shrink-0">
                 Verified Leaders
               </span>
             </div>
 
-            <div className="space-y-3">
-              {CAPTAIN_LEADERBOARD.map((capt) => (
-                <div
-                  key={capt.name}
-                  className="p-3.5 rounded-2xl border border-slate-100 bg-slate-50/60 flex items-center justify-between gap-3"
-                >
-                  <div className="flex items-center gap-3">
-                    <img
-                      src={capt.avatar}
-                      alt={capt.name}
-                      className="w-12 h-12 rounded-full object-cover border-2 border-emerald-500/30"
-                    />
-                    <div>
-                      <h4 className="font-bold text-sm text-[#102A43]">{capt.name}</h4>
-                      <span className="text-[10px] text-emerald-700 font-semibold block">
-                        {capt.top_compliment}
-                      </span>
-                    </div>
-                  </div>
+            {loadingCaptains ? (
+              <div className="py-12 text-center text-xs text-muted-foreground font-poppins">
+                Loading verified trip captains...
+              </div>
+            ) : captains.length === 0 ? (
+              <div className="bg-slate-50/80 rounded-2xl p-6 text-center border border-dashed border-slate-200 text-slate-500 space-y-2 my-2">
+                <ShieldCheck className="h-8 w-8 mx-auto text-slate-400 mb-1" />
+                <h4 className="font-bold text-sm text-[#102A43]">Our Trip Captains</h4>
+                <p className="text-xs text-muted-foreground max-w-md mx-auto">
+                  Meet the people who make every GoNomadik journey safer, smoother and more memorable. Captain profiles are currently being updated by operations.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {captains.map((capt) => {
+                  const displayName = capt.full_name.startsWith("Captain")
+                    ? capt.full_name
+                    : `Captain ${capt.full_name}`;
+                  const initials = capt.full_name
+                    ? capt.full_name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")
+                        .toUpperCase()
+                        .slice(0, 2)
+                    : "TC";
+                  return (
+                    <div
+                      key={capt.id}
+                      className="p-3.5 rounded-2xl border border-slate-200/80 bg-white hover:border-[#C8A96A]/40 transition-all flex items-center justify-between gap-3 shadow-xs"
+                    >
+                      <div className="flex items-center gap-3.5 min-w-0">
+                        {capt.photo_url ? (
+                          <img
+                            src={capt.photo_url}
+                            alt={capt.full_name}
+                            className="w-13 h-13 sm:w-14 sm:h-14 rounded-full object-cover border-2 border-slate-200 shadow-sm shrink-0"
+                          />
+                        ) : (
+                          <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-[#102A43] text-[#C8A96A] font-bold text-sm flex items-center justify-center border border-[#C8A96A]/30 shrink-0">
+                            {initials}
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <h4 className="font-bold text-sm text-[#102A43] truncate">{displayName}</h4>
+                            {capt.is_verified !== false && (
+                              <span className="text-[9px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 font-medium inline-flex items-center gap-0.5 shrink-0">
+                                ✓ Verified Captain
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-slate-500 font-medium line-clamp-1 mt-0.5">
+                            {capt.bio || (capt.experience_years ? `${capt.experience_years}+ years with GoNomadik` : "Trip Captain")}
+                          </p>
+                          {capt.experience_years && capt.bio && (
+                            <span className="text-[10px] text-muted-foreground block mt-0.5">
+                              {capt.experience_years}+ years with GoNomadik
+                            </span>
+                          )}
+                        </div>
+                      </div>
 
-                  <div className="text-right shrink-0">
-                    <span className="text-sm font-bold text-amber-600 block">
-                      {capt.rating} ★
-                    </span>
-                    <span className="text-[10px] text-muted-foreground">
-                      {capt.trips_count} Trips Completed
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
+                      <div className="text-right shrink-0 font-poppins">
+                        <div className="flex items-center justify-end gap-1 text-sm font-bold text-amber-600">
+                          <Star className="h-3.5 w-3.5 fill-current" />
+                          <span>{capt.rating ? capt.rating.toFixed(1) : "4.9"}</span>
+                        </div>
+                        <span className="text-[10px] text-muted-foreground block mt-0.5">
+                          {capt.total_trips ? `${capt.total_trips} trips completed` : "Verified Captain"}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
 
