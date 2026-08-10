@@ -82,15 +82,17 @@ export function resolveBookingPricing({
   // Coupon Discount
   let couponDiscount = 0;
   if (coupon) {
-    if (coupon.discount_type === "PERCENTAGE" || coupon.discountType === "PERCENTAGE") {
-      const discountVal = Number(coupon.discount_value || coupon.discountValue || 0);
-      couponDiscount = Math.round((grossSubtotal * discountVal) / 100);
+    const dt = String(coupon.discount_type || coupon.discountType || "").toUpperCase();
+    const val = Number(coupon.discount_value ?? coupon.discountValue ?? coupon.discount ?? 0);
+
+    if (dt === "PERCENTAGE" || dt === "PERCENT") {
+      couponDiscount = Math.round((grossSubtotal * val) / 100);
       const maxDiscount = Number(coupon.max_discount_amount || coupon.maxDiscountAmount || 0);
       if (maxDiscount > 0 && couponDiscount > maxDiscount) {
         couponDiscount = maxDiscount;
       }
-    } else if (coupon.discount_type === "FIXED" || coupon.discountType === "FIXED") {
-      couponDiscount = Number(coupon.discount_value || coupon.discountValue || 0);
+    } else if (dt === "FIXED" || dt === "FLAT" || val > 0) {
+      couponDiscount = val;
     } else if (typeof coupon.discount === "number") {
       couponDiscount = coupon.discount;
     }
