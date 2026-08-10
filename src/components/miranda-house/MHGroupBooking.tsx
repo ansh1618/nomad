@@ -23,7 +23,7 @@ export function MHGroupBooking() {
     },
   ];
 
-  const whatsappUrl = `https://wa.me/9199971046607?text=${encodeURIComponent(
+  const whatsappUrl = `https://wa.me/919971046607?text=${encodeURIComponent(
     "Hi GoNomadik! We are planning a group booking for the Miranda House Udaipur 2026 trip. Please guide us with group rates!"
   )}`;
 
