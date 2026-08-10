@@ -43,6 +43,7 @@ import {
   Receipt,
   Wallet,
   Shield,
+  ShieldCheck,
   TrendingDown,
   Globe,
   Megaphone,
