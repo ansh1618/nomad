@@ -17,6 +17,7 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PaymentDemoRouteImport } from './routes/payment-demo'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as GoNomadikXMhRouteImport } from './routes/go-nomadik-x-mh'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as ExplorerRouteImport } from './routes/explorer'
 import { Route as DestinationsRouteImport } from './routes/destinations'
@@ -118,6 +119,11 @@ const PaymentDemoRoute = PaymentDemoRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GoNomadikXMhRoute = GoNomadikXMhRouteImport.update({
+  id: '/go-nomadik-x-mh',
+  path: '/go-nomadik-x-mh',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
@@ -443,6 +449,7 @@ export interface FileRoutesByFullPath {
   '/destinations': typeof DestinationsRoute
   '/explorer': typeof ExplorerRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/go-nomadik-x-mh': typeof GoNomadikXMhRoute
   '/login': typeof LoginRoute
   '/payment-demo': typeof PaymentDemoRoute
   '/privacy': typeof PrivacyRoute
@@ -514,6 +521,7 @@ export interface FileRoutesByTo {
   '/destinations': typeof DestinationsRoute
   '/explorer': typeof ExplorerRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/go-nomadik-x-mh': typeof GoNomadikXMhRoute
   '/login': typeof LoginRoute
   '/payment-demo': typeof PaymentDemoRoute
   '/privacy': typeof PrivacyRoute
@@ -587,6 +595,7 @@ export interface FileRoutesById {
   '/destinations': typeof DestinationsRoute
   '/explorer': typeof ExplorerRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/go-nomadik-x-mh': typeof GoNomadikXMhRoute
   '/login': typeof LoginRoute
   '/payment-demo': typeof PaymentDemoRoute
   '/privacy': typeof PrivacyRoute
@@ -661,6 +670,7 @@ export interface FileRouteTypes {
     | '/destinations'
     | '/explorer'
     | '/forgot-password'
+    | '/go-nomadik-x-mh'
     | '/login'
     | '/payment-demo'
     | '/privacy'
@@ -732,6 +742,7 @@ export interface FileRouteTypes {
     | '/destinations'
     | '/explorer'
     | '/forgot-password'
+    | '/go-nomadik-x-mh'
     | '/login'
     | '/payment-demo'
     | '/privacy'
@@ -804,6 +815,7 @@ export interface FileRouteTypes {
     | '/destinations'
     | '/explorer'
     | '/forgot-password'
+    | '/go-nomadik-x-mh'
     | '/login'
     | '/payment-demo'
     | '/privacy'
@@ -877,6 +889,7 @@ export interface RootRouteChildren {
   DestinationsRoute: typeof DestinationsRoute
   ExplorerRoute: typeof ExplorerRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
+  GoNomadikXMhRoute: typeof GoNomadikXMhRoute
   LoginRoute: typeof LoginRoute
   PaymentDemoRoute: typeof PaymentDemoRoute
   PrivacyRoute: typeof PrivacyRoute
@@ -951,6 +964,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/go-nomadik-x-mh': {
+      id: '/go-nomadik-x-mh'
+      path: '/go-nomadik-x-mh'
+      fullPath: '/go-nomadik-x-mh'
+      preLoaderRoute: typeof GoNomadikXMhRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/forgot-password': {
@@ -1496,6 +1516,7 @@ const rootRouteChildren: RootRouteChildren = {
   DestinationsRoute: DestinationsRoute,
   ExplorerRoute: ExplorerRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
+  GoNomadikXMhRoute: GoNomadikXMhRoute,
   LoginRoute: LoginRoute,
   PaymentDemoRoute: PaymentDemoRoute,
   PrivacyRoute: PrivacyRoute,

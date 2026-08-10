@@ -4,6 +4,7 @@ import { Hero } from "@/components/site/Hero";
 import { PopularDestinations } from "@/components/site/PopularDestinations";
 import { TravelStats } from "@/components/site/TravelStats";
 import { NorthCampusSection } from "@/components/site/NorthCampusSection";
+import { MirandaHouseBanner } from "@/components/site/MirandaHouseBanner";
 import { WhyChooseUs } from "@/components/site/WhyChooseUs";
 import { MapSection } from "@/components/site/MapSection";
 import { WhyWeDontSellTrips } from "@/components/site/WhyWeDontSellTrips";
@@ -75,6 +76,8 @@ function Index() {
         <TravelStats />
         {/* Nomadik x North Campus Collaboration */}
         <NorthCampusSection />
+        {/* GoNomadik x Miranda House Special College Campaign */}
+        <MirandaHouseBanner />
         {/* 5. Why Nomadik — 6 brand pillars */}
         <WhyChooseUs />
         {/* 6. Interactive India road map */}
