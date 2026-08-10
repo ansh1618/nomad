@@ -4,6 +4,7 @@ import { supabase } from "./supabase";
 import { supabaseAdmin } from "./supabase-admin";
 import { z } from "zod";
 import { resolveBookingPricing } from "./pricing-fns";
+import { recordCouponUsage } from "./queries/admin";
 
 // Helper: Extract 3-letter destination code from slug/name
 function getDestinationCode(slugOrName: any = ""): string {
@@ -120,6 +121,8 @@ const createBookingSchema = z.object({
   gstAmount: z.number().default(0),
   totalAmount: z.number().default(0),
   couponId: z.string().nullable().optional(),
+  couponCode: z.string().nullable().optional(),
+  coupon: z.any().optional(),
   discountAmount: z.number().default(0),
   hotelId: z.string().nullable().optional(),
   roomSharing: z.string().nullable().optional(),
@@ -276,23 +279,31 @@ export const createBookingFn = createServerFn({ method: "POST" })
       });
 
       let serverDiscount = 0;
-      if (data.couponId) {
-        const { data: coupon } = await supabaseAdmin
-          .from("coupons")
-          .select("discount_type, discount_value, max_discount_amount, valid_until, is_active, max_redemptions, current_redemptions")
-          .eq("id", data.couponId)
-          .single();
+      let appliedCouponCode: string | null = data.couponCode || data.coupon?.code || null;
+      let appliedCouponId: string | null = data.couponId || data.coupon?.id || null;
 
-        if (coupon && coupon.is_active) {
-          const notExpired = !coupon.valid_until || new Date(coupon.valid_until) >= new Date();
-          const notExhausted = coupon.max_redemptions === null || coupon.current_redemptions < coupon.max_redemptions;
+      if (appliedCouponId || appliedCouponCode) {
+        let q = supabaseAdmin.from("coupons").select("*");
+        if (appliedCouponId) q = q.eq("id", appliedCouponId);
+        else q = q.eq("code", String(appliedCouponCode).toUpperCase().trim());
+
+        const { data: c } = await q.maybeSingle();
+
+        if (c && c.is_active) {
+          appliedCouponId = c.id;
+          appliedCouponCode = c.code;
+          const notExpired = (!c.valid_from || new Date(c.valid_from) <= new Date()) && (!c.valid_until || new Date(c.valid_until) >= new Date());
+          const maxUses = c.max_redemptions ?? c.max_uses;
+          const usedCount = c.current_redemptions ?? c.used_count ?? 0;
+          const notExhausted = !maxUses || usedCount < maxUses;
+
           if (notExpired && notExhausted) {
-            if (coupon.discount_type === "PERCENTAGE" || coupon.discount_type === "PERCENT") {
-              serverDiscount = Math.round((serverPricing.subtotal * coupon.discount_value) / 100);
+            if (c.discount_type === "PERCENTAGE" || c.discount_type === "PERCENT") {
+              serverDiscount = Math.round((serverPricing.subtotal * c.discount_value) / 100);
             } else {
-              serverDiscount = coupon.discount_value;
+              serverDiscount = c.discount_value || 500;
             }
-            if (coupon.max_discount_amount) serverDiscount = Math.min(serverDiscount, coupon.max_discount_amount);
+            if (c.max_discount_amount) serverDiscount = Math.min(serverDiscount, c.max_discount_amount);
           }
         }
       }
@@ -462,6 +473,28 @@ export const createBookingFn = createServerFn({ method: "POST" })
       const booking = res.data;
       const bookingDbId = booking.id;
       const returnedDisplayId = booking.booking_id || bookingRef;
+
+      if (serverDiscount > 0 && appliedCouponCode && bookingDbId) {
+        try {
+          await recordCouponUsage({
+            coupon_id: appliedCouponId,
+            coupon_code: appliedCouponCode,
+            booking_id: bookingDbId,
+            user_id: cleanUserId,
+            customer_name: customerName,
+            customer_phone: customerPhone,
+            customer_email: customerEmail,
+            journey_id: journey.id || null,
+            journey_name: journey.name || "GoNomadik Journey",
+            departure_date: dep?.departure_date || "Upcoming Batch",
+            original_amount: totalAmount + serverDiscount,
+            discount_amount: serverDiscount,
+            final_amount: totalAmount,
+          });
+        } catch (err) {
+          console.warn("[createBookingFn] Coupon usage record warning:", err);
+        }
+      }
 
       // Insert travellers
       const travellersToInsert = data.travellers.map((t: any, idx: number) => ({

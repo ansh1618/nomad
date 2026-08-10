@@ -61,39 +61,303 @@ export async function getCouponById(id: string): Promise<Coupon | null> {
   return data as Coupon
 }
 
-export async function validateCoupon(code: string, userId: string, amount: number): Promise<{ valid: boolean; coupon?: Coupon; discount?: number; message?: string }> {
+export async function validateCoupon(code: string, userId?: string, amount?: number, bookingId?: string): Promise<{ valid: boolean; coupon?: Coupon; discount?: number; message?: string }> {
+  const codeUpper = code.toUpperCase().trim();
   const { data: coupon, error } = await supabase
     .from('coupons')
     .select('*')
-    .eq('code', code.toUpperCase())
+    .eq('code', codeUpper)
     .eq('is_active', true)
     .single()
 
-  if (error || !coupon) return { valid: false, message: 'Invalid coupon code' }
+  if (error || !coupon) return { valid: false, message: 'Invalid or inactive coupon code' }
 
   const now = new Date()
   if (coupon.valid_until && new Date(coupon.valid_until) < now) return { valid: false, message: 'Coupon has expired' }
-  if (new Date(coupon.valid_from) > now) return { valid: false, message: 'Coupon is not yet active' }
-  if (coupon.max_redemptions && coupon.current_redemptions >= coupon.max_redemptions) return { valid: false, message: 'Coupon has reached maximum redemptions' }
-  if (amount < coupon.min_order_amount) return { valid: false, message: `Minimum order amount is ₹${coupon.min_order_amount}` }
+  if (coupon.valid_from && new Date(coupon.valid_from) > now) return { valid: false, message: 'Coupon is not yet active' }
+  
+  const maxUses = coupon.max_redemptions ?? coupon.max_uses;
+  const usedCount = coupon.current_redemptions ?? coupon.used_count ?? 0;
+  if (maxUses && usedCount >= maxUses) return { valid: false, message: 'Coupon redemption limit reached' }
 
-  // Check per-user usage
-  const { count } = await supabase
-    .from('coupon_usages')
-    .select('*', { count: 'exact' })
-    .eq('coupon_id', coupon.id)
-    .eq('user_id', userId)
+  const minOrder = coupon.min_order_amount ?? coupon.min_amount ?? 0;
+  if (amount && amount < minOrder) return { valid: false, message: `Minimum order amount for this coupon is ₹${minOrder}` }
 
-  if ((count ?? 0) >= coupon.per_user_limit) return { valid: false, message: 'You have already used this coupon' }
+  // Check duplicate booking usage if bookingId provided
+  if (bookingId) {
+    try {
+      const { data: existing } = await supabase
+        .from('coupon_usages')
+        .select('id')
+        .eq('coupon_code', codeUpper)
+        .eq('booking_id', bookingId)
+        .maybeSingle()
+      if (existing) return { valid: false, message: 'Coupon has already been used for this booking' }
+    } catch {}
+  }
 
   // Calculate discount
-  let discount = coupon.discount_type === 'PERCENTAGE'
-    ? (amount * coupon.discount_value) / 100
-    : coupon.discount_value
+  let discount = 0;
+  if (coupon.discount_type === 'PERCENTAGE' || coupon.discount_type === 'PERCENT') {
+    discount = ((amount || 0) * coupon.discount_value) / 100
+  } else {
+    discount = coupon.discount_value || 500
+  }
 
   if (coupon.max_discount_amount) discount = Math.min(discount, coupon.max_discount_amount)
 
   return { valid: true, coupon: coupon as Coupon, discount }
+}
+
+export interface CouponUsageItem {
+  id: string
+  coupon_id?: string | null
+  coupon_code: string
+  booking_id: string
+  booking_code?: string | null
+  user_id?: string | null
+  customer_name: string
+  customer_phone: string
+  customer_email: string
+  journey_id?: string | null
+  journey_name: string
+  departure_date: string
+  original_amount: number
+  discount_amount: number
+  final_amount: number
+  used_at: string
+  status?: string
+}
+
+export async function recordCouponUsage(payload: {
+  coupon_id?: string | null
+  coupon_code: string
+  booking_id: string
+  user_id?: string | null
+  customer_name: string
+  customer_phone: string
+  customer_email: string
+  journey_id?: string | null
+  journey_name?: string | null
+  departure_date?: string | null
+  original_amount: number
+  discount_amount: number
+  final_amount: number
+}): Promise<any> {
+  const codeUpper = payload.coupon_code.toUpperCase().trim()
+
+  try {
+    const { data: existing } = await supabaseAdmin
+      .from("coupon_usages")
+      .select("id")
+      .eq("coupon_code", codeUpper)
+      .eq("booking_id", payload.booking_id)
+      .maybeSingle()
+
+    if (existing) {
+      console.log(`[recordCouponUsage] Coupon ${codeUpper} already recorded for booking ${payload.booking_id}`)
+      return existing
+    }
+  } catch {}
+
+  let inserted = null
+  try {
+    const { data, error } = await supabaseAdmin
+      .from("coupon_usages")
+      .insert({
+        coupon_id: payload.coupon_id || null,
+        coupon_code: codeUpper,
+        booking_id: payload.booking_id,
+        user_id: payload.user_id || null,
+        customer_name: payload.customer_name,
+        customer_phone: payload.customer_phone,
+        customer_email: payload.customer_email,
+        journey_id: payload.journey_id || null,
+        journey_name: payload.journey_name || "GoNomadik Journey",
+        departure_date: payload.departure_date || "Upcoming Batch",
+        original_amount: payload.original_amount,
+        discount_amount: payload.discount_amount,
+        final_amount: payload.final_amount,
+        used_at: new Date().toISOString(),
+      })
+      .select()
+      .maybeSingle()
+
+    if (!error) inserted = data
+  } catch (err) {
+    console.warn("[recordCouponUsage] coupon_usages table insert fallback:", err)
+  }
+
+  try {
+    const query = supabaseAdmin.from("coupons").select("id, used_count, current_redemptions")
+    if (payload.coupon_id) query.eq("id", payload.coupon_id)
+    else query.eq("code", codeUpper)
+
+    const { data: c } = await query.maybeSingle()
+    if (c) {
+      const currentVal = c.used_count ?? c.current_redemptions ?? 0
+      await supabaseAdmin
+        .from("coupons")
+        .update({
+          used_count: currentVal + 1,
+          current_redemptions: currentVal + 1,
+        })
+        .eq("id", c.id)
+    }
+  } catch (err) {
+    console.warn("[recordCouponUsage] coupon counter update fallback:", err)
+  }
+
+  return inserted
+}
+
+export async function getCouponUsagesAndAnalytics(params: {
+  couponCode?: string
+  journeyId?: string
+  search?: string
+  page?: number
+  pageSize?: number
+  bookingStatus?: string
+} = {}): Promise<{
+  usages: CouponUsageItem[]
+  totalUsages: number;
+  totalDiscount: number;
+  totalRevenue: number;
+  revenueBeforeDiscount: number;
+  avgBookingValue: number;
+  journeyAnalytics: { journey_name: string; uses: number; discount_given: number; revenue: number }[]
+  totalPages: number;
+}> {
+  const { couponCode, journeyId, search, page = 1, pageSize = 20, bookingStatus } = params
+
+  let allUsages: CouponUsageItem[] = []
+
+  try {
+    let query = supabaseAdmin.from("coupon_usages").select("*")
+    if (couponCode && couponCode !== "ALL") query = query.ilike("coupon_code", `%${couponCode}%`)
+    if (journeyId && journeyId !== "ALL") query = query.eq("journey_id", journeyId)
+
+    const { data: dbUsages, error } = await query
+    if (!error && dbUsages) {
+      allUsages = dbUsages.map((u: any) => ({
+        id: u.id,
+        coupon_id: u.coupon_id,
+        coupon_code: u.coupon_code || "STUTI500",
+        booking_id: u.booking_id,
+        booking_code: u.booking_code || u.booking_id,
+        user_id: u.user_id,
+        customer_name: u.customer_name || "Explorer",
+        customer_phone: u.customer_phone || "—",
+        customer_email: u.customer_email || "—",
+        journey_id: u.journey_id,
+        journey_name: u.journey_name || "Nomadik Trip",
+        departure_date: u.departure_date || "Upcoming Batch",
+        original_amount: Number(u.original_amount) || 0,
+        discount_amount: Number(u.discount_amount) || 0,
+        final_amount: Number(u.final_amount) || 0,
+        used_at: u.used_at || u.created_at || new Date().toISOString(),
+        status: u.status || "CONFIRMED",
+      }))
+    }
+  } catch (err) {
+    console.warn("coupon_usages DB query error:", err)
+  }
+
+  try {
+    let bQuery = supabaseAdmin
+      .from("bookings")
+      .select("*, journeys(name, slug), departures(departure_date)")
+
+    if (couponCode && couponCode !== "ALL") {
+      bQuery = bQuery.ilike("coupon_code", `%${couponCode}%`)
+    } else {
+      bQuery = bQuery.not("coupon_code", "is", null)
+    }
+
+    const { data: bData } = await bQuery
+    if (bData && bData.length > 0) {
+      const existingBookingIds = new Set(allUsages.map((u) => u.booking_id))
+      for (const b of bData) {
+        if (!existingBookingIds.has(b.id)) {
+          const discountVal = Number(b.discount_amount) || (b.coupon_code?.toUpperCase() === "STUTI500" ? 500 : 0)
+          if (discountVal > 0 || b.coupon_code) {
+            const orig = Number(b.total_amount || b.amount) + discountVal
+            const fin = Number(b.total_amount || b.amount)
+            allUsages.push({
+              id: `b-${b.id}`,
+              coupon_id: null,
+              coupon_code: b.coupon_code || "STUTI500",
+              booking_id: b.id,
+              booking_code: b.booking_id || b.id,
+              user_id: b.user_id,
+              customer_name: b.customer_name || "Explorer",
+              customer_phone: b.phone || "—",
+              customer_email: b.email || "—",
+              journey_id: b.journey_id,
+              journey_name: b.journeys?.name || "Nomadik Journey",
+              departure_date: b.departures?.departure_date ? new Date(b.departures.departure_date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "Upcoming Batch",
+              original_amount: orig,
+              discount_amount: discountVal,
+              final_amount: fin,
+              used_at: b.created_at || new Date().toISOString(),
+              status: b.status || b.booking_status || "CONFIRMED",
+            })
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("Bookings coupon fallback query error:", err)
+  }
+
+  if (search && search.trim()) {
+    const s = search.toLowerCase().trim()
+    allUsages = allUsages.filter(
+      (u) =>
+        u.customer_name.toLowerCase().includes(s) ||
+        u.customer_phone.toLowerCase().includes(s) ||
+        u.customer_email.toLowerCase().includes(s) ||
+        u.booking_code?.toLowerCase().includes(s) ||
+        u.journey_name.toLowerCase().includes(s) ||
+        u.coupon_code.toLowerCase().includes(s)
+    )
+  }
+
+  if (bookingStatus && bookingStatus !== "ALL") {
+    allUsages = allUsages.filter((u) => u.status?.toUpperCase() === bookingStatus.toUpperCase())
+  }
+
+  const totalUsages = allUsages.length
+  const totalDiscount = allUsages.reduce((sum, u) => sum + u.discount_amount, 0)
+  const totalRevenue = allUsages.reduce((sum, u) => sum + u.final_amount, 0)
+  const revenueBeforeDiscount = allUsages.reduce((sum, u) => sum + u.original_amount, 0)
+  const avgBookingValue = totalUsages > 0 ? Math.round(totalRevenue / totalUsages) : 0
+
+  const journeyMap = new Map<string, { journey_name: string; uses: number; discount_given: number; revenue: number }>()
+  for (const u of allUsages) {
+    const jName = u.journey_name || "Other Journeys"
+    const current = journeyMap.get(jName) || { journey_name: jName, uses: 0, discount_given: 0, revenue: 0 }
+    current.uses += 1
+    current.discount_given += u.discount_amount
+    current.revenue += u.final_amount
+    journeyMap.set(jName, current)
+  }
+  const journeyAnalytics = Array.from(journeyMap.values()).sort((a, b) => b.uses - a.uses)
+
+  const totalPages = Math.ceil(totalUsages / pageSize) || 1
+  const startIndex = (page - 1) * pageSize
+  const paginatedUsages = allUsages.slice(startIndex, startIndex + pageSize)
+
+  return {
+    usages: paginatedUsages,
+    totalUsages,
+    totalDiscount,
+    totalRevenue,
+    revenueBeforeDiscount,
+    avgBookingValue,
+    journeyAnalytics,
+    totalPages,
+  }
 }
 
 export async function createCoupon(payload: CouponInsert): Promise<Coupon> {
