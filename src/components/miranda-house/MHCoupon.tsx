@@ -73,7 +73,8 @@ export function MHCoupon() {
           {/* Booking CTA Button */}
           <div className="pt-2">
             <Link
-              to="/packages/udaipur-weekend"
+              to="/destinations/$slug"
+              params={{ slug: "udaipur" }}
               className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl bg-gradient-to-r from-[#E05688] to-[#C8A96A] hover:from-[#c93c6e] hover:to-[#b89650] text-white font-bold text-sm sm:text-base shadow-xl shadow-rose-950/50 hover:scale-105 transition-all duration-300"
             >
               <span>BOOK WITH ₹500 OFF</span>

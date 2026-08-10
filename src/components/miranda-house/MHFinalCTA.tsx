@@ -66,7 +66,8 @@ export function MHFinalCTA() {
           className="pt-2"
         >
           <Link
-            to="/packages/udaipur-weekend"
+            to="/destinations/$slug"
+            params={{ slug: "udaipur" }}
             className="inline-flex items-center gap-3 px-10 py-5 rounded-2xl bg-gradient-to-r from-[#E05688] via-[#d6477b] to-[#C8A96A] hover:from-[#c93c6e] hover:to-[#b89650] text-white font-bold text-base sm:text-lg shadow-2xl shadow-rose-950/60 hover:scale-105 transition-all duration-300"
           >
             <span>BOOK YOUR SPOT NOW</span>

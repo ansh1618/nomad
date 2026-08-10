@@ -105,7 +105,8 @@ export function MHHero() {
           </button>
 
           <Link
-            to="/packages/udaipur-weekend"
+            to="/destinations/$slug"
+            params={{ slug: "udaipur" }}
             className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-[#E05688] via-[#d6477b] to-[#C8A96A] hover:from-[#c93c6e] hover:to-[#b89650] text-white font-bold text-sm shadow-xl shadow-rose-900/40 hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2"
           >
             <span>Book Your Spot</span>
