@@ -45,13 +45,19 @@ export function Navbar() {
   // Default navigation links
   const defaultNavLinks = [
     { label: "Destinations", href: "/destinations", is_external: false },
-    { label: "Journeys", href: "/journeys", is_external: false },
+    { label: "MH SPECIAL", href: "/go-nomadik-x-mh", is_external: false },
     { label: "Community", href: "/stories", is_external: false },
     { label: "About", href: "/about", is_external: false },
     { label: "Contact", href: "/contact", is_external: false },
   ];
 
-  const activeLinks = dbNavLinks.length > 0 ? dbNavLinks : defaultNavLinks;
+  const rawLinks = dbNavLinks.length > 0 ? dbNavLinks : defaultNavLinks;
+  const activeLinks = rawLinks.map((l) => {
+    if (l.label.toLowerCase() === "journeys") {
+      return { ...l, label: "MH SPECIAL", href: "/go-nomadik-x-mh" };
+    }
+    return l;
+  });
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
