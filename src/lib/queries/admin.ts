@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import type {
   Coupon,
   CouponInsert,
@@ -145,9 +146,10 @@ export async function recordCouponUsage(payload: {
   final_amount: number
 }): Promise<any> {
   const codeUpper = payload.coupon_code.toUpperCase().trim()
+  const dbClient = supabaseAdmin || supabase
 
   try {
-    const { data: existing } = await supabaseAdmin
+    const { data: existing } = await dbClient
       .from("coupon_usages")
       .select("id")
       .eq("coupon_code", codeUpper)
@@ -162,7 +164,7 @@ export async function recordCouponUsage(payload: {
 
   let inserted = null
   try {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await dbClient
       .from("coupon_usages")
       .insert({
         coupon_id: payload.coupon_id || null,
@@ -189,14 +191,14 @@ export async function recordCouponUsage(payload: {
   }
 
   try {
-    const query = supabaseAdmin.from("coupons").select("id, used_count, current_redemptions")
+    const query = dbClient.from("coupons").select("id, used_count, current_redemptions")
     if (payload.coupon_id) query.eq("id", payload.coupon_id)
     else query.eq("code", codeUpper)
 
     const { data: c } = await query.maybeSingle()
     if (c) {
       const currentVal = c.used_count ?? c.current_redemptions ?? 0
-      await supabaseAdmin
+      await dbClient
         .from("coupons")
         .update({
           used_count: currentVal + 1,
@@ -229,11 +231,12 @@ export async function getCouponUsagesAndAnalytics(params: {
   totalPages: number;
 }> {
   const { couponCode, journeyId, search, page = 1, pageSize = 20, bookingStatus } = params
+  const dbClient = supabaseAdmin || supabase
 
   let allUsages: CouponUsageItem[] = []
 
   try {
-    let query = supabaseAdmin.from("coupon_usages").select("*")
+    let query = dbClient.from("coupon_usages").select("*")
     if (couponCode && couponCode !== "ALL") query = query.ilike("coupon_code", `%${couponCode}%`)
     if (journeyId && journeyId !== "ALL") query = query.eq("journey_id", journeyId)
 
@@ -264,7 +267,7 @@ export async function getCouponUsagesAndAnalytics(params: {
   }
 
   try {
-    let bQuery = supabaseAdmin
+    let bQuery = dbClient
       .from("bookings")
       .select("*, journeys(name, slug), departures(departure_date)")
 
