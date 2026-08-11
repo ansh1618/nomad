@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle2, User, MapPin, Calendar, Users, Armchair, Tag, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export function ReviewSummaryStep({ data, updateData, onNext, onPrev, journey, isSidebar = false, pricing }: any) {
+export function ReviewSummaryStep({ data, updateData, onNext, onPrev, onGoToStep, journey, isSidebar = false, pricing }: any) {
   
   const handleNext = () => {
     onNext();
@@ -32,9 +32,19 @@ export function ReviewSummaryStep({ data, updateData, onNext, onPrev, journey, i
           
           {/* Journey Details Card */}
           <div className="bg-white border border-border p-4 sm:p-6 rounded-2xl shadow-soft space-y-4 w-full box-border">
-            <h3 className="font-poppins font-bold text-sm sm:text-base text-secondary border-b border-border pb-3 flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-accent shrink-0" />
-              Journey Details
+            <h3 className="font-poppins font-bold text-sm sm:text-base text-secondary border-b border-border pb-3 flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-accent shrink-0" />
+                Journey Details
+              </span>
+              {onGoToStep && (
+                <button 
+                  onClick={() => onGoToStep(0)} 
+                  className="text-xs font-bold text-accent hover:underline cursor-pointer"
+                >
+                  Edit Date
+                </button>
+              )}
             </h3>
             
             <div className="space-y-3 text-xs sm:text-sm font-poppins">
@@ -78,9 +88,19 @@ export function ReviewSummaryStep({ data, updateData, onNext, onPrev, journey, i
 
           {/* Travellers Card */}
           <div className="bg-white border border-border p-4 sm:p-6 rounded-2xl shadow-soft space-y-4 w-full box-border">
-            <h3 className="font-poppins font-bold text-sm sm:text-base text-secondary border-b border-border pb-3 flex items-center gap-2">
-              <User className="h-4 w-4 text-accent shrink-0" />
-              Travellers ({travellersCount})
+            <h3 className="font-poppins font-bold text-sm sm:text-base text-secondary border-b border-border pb-3 flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <User className="h-4 w-4 text-accent shrink-0" />
+                Travellers ({travellersCount})
+              </span>
+              {onGoToStep && (
+                <button 
+                  onClick={() => onGoToStep(0)} 
+                  className="text-xs font-bold text-accent hover:underline cursor-pointer"
+                >
+                  Edit Travellers
+                </button>
+              )}
             </h3>
             <div className="space-y-2.5 font-poppins">
               {data.travellers.map((t: any, i: number) => (

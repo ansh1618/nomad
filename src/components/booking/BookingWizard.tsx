@@ -229,9 +229,14 @@ export function BookingWizard({
     }));
   };
 
-  const nextStep = () => {
-    setCurrentStep((prev) => Math.min(prev + 1, STEPS.length - 1));
+  const goToStep = (stepIndex: number) => {
+    const target = Math.max(0, Math.min(stepIndex, STEPS.length - 1));
+    setCurrentStep(target);
     if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.set("book", "true");
+      url.searchParams.set("step", String(target + 1));
+      window.history.pushState({ step: target }, "", url.pathname + url.search);
       const card = document.getElementById("booking-sidebar-card");
       if (card) {
         card.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -239,13 +244,23 @@ export function BookingWizard({
     }
   };
 
+  const nextStep = () => {
+    goToStep(currentStep + 1);
+  };
+
   const prevStep = () => {
-    setCurrentStep((prev) => Math.max(prev - 1, 0));
-    if (typeof window !== "undefined") {
-      const card = document.getElementById("booking-sidebar-card");
-      if (card) {
-        card.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
+    if (currentStep > 0) {
+      goToStep(currentStep - 1);
+    } else if (onBack) {
+      onBack();
+    }
+  };
+
+  const handleHeaderBack = () => {
+    if (currentStep > 0) {
+      prevStep();
+    } else if (onBack) {
+      onBack();
     }
   };
 
@@ -257,8 +272,9 @@ export function BookingWizard({
           <div className="flex items-center gap-2">
             {onBack && (
               <button 
-                onClick={onBack} 
+                onClick={handleHeaderBack} 
                 className="p-1 hover:bg-muted rounded-full transition cursor-pointer"
+                title={currentStep > 0 ? "Previous Step" : "Close Booking"}
               >
                 <ArrowLeft className="h-4 w-4 text-muted-foreground" />
               </button>
@@ -338,7 +354,7 @@ export function BookingWizard({
           {currentStep === 0 && <TravellerDetailsStep data={bookingData} updateData={setBookingData} onNext={nextStep} isSidebar={isSidebar} pricing={pricing} departures={departures} />}
           {currentStep === 1 && <AccommodationSelectionStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} isSidebar={isSidebar} pricing={pricing} />}
           {currentStep === 2 && <AddonsAndCouponsStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} isSidebar={isSidebar} pricing={pricing} />}
-          {currentStep === 3 && <ReviewSummaryStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} isSidebar={isSidebar} pricing={pricing} />}
+          {currentStep === 3 && <ReviewSummaryStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} onGoToStep={goToStep} journey={journey} isSidebar={isSidebar} pricing={pricing} />}
           {currentStep === 4 && <PaymentStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} isSidebar={isSidebar} pricing={pricing} />}
           {currentStep === 5 && <SuccessConfirmationStep data={bookingData} journey={journey} isSidebar={isSidebar} pricing={pricing} />}
         </div>
@@ -424,7 +440,7 @@ export function BookingWizard({
         <div className="flex items-center justify-between border-b pb-4">
           <div className="flex items-center gap-4">
             {onBack ? (
-              <button onClick={onBack} className="p-2 bg-white rounded-full shadow-sm hover:bg-muted transition cursor-pointer">
+              <button onClick={handleHeaderBack} className="p-2 bg-white rounded-full shadow-sm hover:bg-muted transition cursor-pointer" title={currentStep > 0 ? "Previous Step" : "Back to Journey"}>
                 <ArrowLeft className="h-5 w-5 text-muted-foreground" />
               </button>
             ) : (
@@ -500,10 +516,18 @@ export function BookingWizard({
             const isPast = index < currentStep;
             return (
               <div key={step} className="flex items-center shrink-0">
-                <div className={`flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold transition-colors ${isActive ? "bg-accent text-white ring-4 ring-accent/20" : isPast ? "bg-secondary text-white" : "bg-muted text-muted-foreground"}`}>
+                <div 
+                  className={`flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold transition-colors ${isActive ? "bg-accent text-white ring-4 ring-accent/20" : isPast ? "bg-secondary text-white cursor-pointer hover:bg-accent" : "bg-muted text-muted-foreground"}`}
+                  onClick={() => isPast && goToStep(index)}
+                  title={isPast ? `Go to Step ${index + 1}` : undefined}
+                >
                   {isPast ? <Check className="h-4 w-4" /> : index + 1}
                 </div>
-                <span className={`ml-3 text-xs font-poppins font-semibold uppercase tracking-wider ${isActive ? "text-primary" : isPast ? "text-secondary" : "text-muted-foreground hidden sm:inline-block"}`}>
+                <span 
+                  className={`ml-3 text-xs font-poppins font-semibold uppercase tracking-wider ${isActive ? "text-primary" : isPast ? "text-secondary cursor-pointer hover:text-accent" : "text-muted-foreground hidden sm:inline-block"}`}
+                  onClick={() => isPast && goToStep(index)}
+                  title={isPast ? `Go to Step ${index + 1}` : undefined}
+                >
                   {step}
                 </span>
                 {index < STEPS.length - 1 && (
@@ -519,7 +543,7 @@ export function BookingWizard({
           {currentStep === 0 && <TravellerDetailsStep data={bookingData} updateData={setBookingData} onNext={nextStep} isSidebar={isSidebar} pricing={pricing} departures={departures} />}
           {currentStep === 1 && <AccommodationSelectionStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} isSidebar={isSidebar} pricing={pricing} />}
           {currentStep === 2 && <AddonsAndCouponsStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} isSidebar={isSidebar} pricing={pricing} />}
-          {currentStep === 3 && <ReviewSummaryStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} isSidebar={isSidebar} pricing={pricing} />}
+          {currentStep === 3 && <ReviewSummaryStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} onGoToStep={goToStep} journey={journey} isSidebar={isSidebar} pricing={pricing} />}
           {currentStep === 4 && <PaymentStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} isSidebar={isSidebar} pricing={pricing} />}
           {currentStep === 5 && <SuccessConfirmationStep data={bookingData} journey={journey} isSidebar={isSidebar} pricing={pricing} />}
         </div>
