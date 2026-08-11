@@ -76,14 +76,14 @@ export function BookingWizard({
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const [draftId] = useState<string>(() => {
     if (typeof window !== "undefined") {
-      const saved = localStorage.getItem(storageKey);
-      if (saved) {
-        try {
+      try {
+        const saved = localStorage.getItem(storageKey);
+        if (saved) {
           const parsed = JSON.parse(saved);
           if (parsed.bookingData?.draftId) return parsed.bookingData.draftId;
-        } catch (e) {
-          // ignore
         }
+      } catch (e) {
+        // localStorage blocked by browser privacy settings — use fresh draft id
       }
     }
     return `GN-DRAFT-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
@@ -108,7 +108,8 @@ export function BookingWizard({
   // Restore local storage draft on initial mount
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const saved = localStorage.getItem(storageKey);
+    let saved: string | null = null;
+    try { saved = localStorage.getItem(storageKey); } catch { return; }
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
@@ -159,8 +160,8 @@ export function BookingWizard({
     try {
       localStorage.setItem(storageKey, JSON.stringify(fullDraft));
       setSaveStatus("saved");
-    } catch (e) {
-      console.warn("localStorage write error:", e);
+    } catch {
+      // localStorage blocked by browser privacy settings — skip persistence silently
     }
 
     const timer = setTimeout(async () => {
