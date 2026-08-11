@@ -108,7 +108,7 @@ export function GoNomadikLoadingScreen({
           <img
             src="/images/gonomadik-g-monogram.png"
             alt="GoNomadik"
-            className="h-16 sm:h-20 w-auto object-contain pointer-events-none drop-shadow-none border-none shadow-none"
+            className="h-16 sm:h-20 w-auto object-cover rounded-full shadow-md pointer-events-none"
           />
         </motion.div>
 
