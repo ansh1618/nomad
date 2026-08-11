@@ -40,16 +40,14 @@ export function GoNomadikLogo({
         />
       </div>
 
-      {/* Adjacent Separate Wordmark Text Element */}
+      {/* Adjacent Separate Wordmark Text Element: Go (Navy/White) + Nomadik (Gold) */}
       <div className="flex flex-col text-left">
         <span
-          className={cn("font-bold tracking-[-0.03em] leading-none", textSizes[size])}
+          className={cn("font-extrabold tracking-[-0.02em] leading-none", textSizes[size])}
           style={{ fontFamily: "'Outfit', 'Plus Jakarta Sans', 'Manrope', sans-serif" }}
         >
-          <span className={primaryTextColor}>go</span>
-          <span className="text-[#C8A96A]">noma</span>
-          <span className={primaryTextColor}>dik</span>
-          <span className="text-[#C8A96A]">.</span>
+          <span className={primaryTextColor}>Go</span>
+          <span className="text-[#C8A96A]">Nomadik</span>
         </span>
         {showSubtitle && (
           <span className="text-[9px] sm:text-[10px] font-poppins font-medium tracking-[0.2em] uppercase text-slate-400 mt-1">
