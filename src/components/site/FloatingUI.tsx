@@ -620,7 +620,13 @@ export function FloatingUI() {
         </button>
 
         <a
-          href={BRAND.community}
+          href={
+            location.pathname.includes("/go-nomadik-x-mh")
+              ? `https://wa.me/919971046607?text=${encodeURIComponent(
+                  "Hi GoNomadik! I am inquiring about the Miranda House Udaipur 2026 trip."
+                )}`
+              : BRAND.community
+          }
           target="_blank"
           rel="noreferrer"
           aria-label="Chat on WhatsApp"
