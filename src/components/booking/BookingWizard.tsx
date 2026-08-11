@@ -25,9 +25,11 @@ import { ReviewSummaryStep } from "./ReviewSummaryStep";
 import { PaymentStep } from "./PaymentStep";
 import { SuccessConfirmationStep } from "./SuccessConfirmationStep";
 import { resolveBookingPricing } from "@/lib/pricing-fns";
+import { saveBookingDraftFn } from "@/lib/booking-fns";
 
 // Context or simple state for the wizard
 export type BookingState = {
+  draftId?: string;
   departureId: string | null;
   selectedDeparture: any | null;
   departureDate: string | null;
@@ -70,9 +72,27 @@ export function BookingWizard({
 
   const initialDeparture = departures[0] || null;
 
+  const storageKey = `gonomadik_booking_draft_${journey?.id || journey?.slug || 'active'}`;
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [draftId] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (parsed.bookingData?.draftId) return parsed.bookingData.draftId;
+        } catch (e) {
+          // ignore
+        }
+      }
+    }
+    return `GN-DRAFT-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
+  });
+
   const [currentStep, setCurrentStep] = useState(0);
   const [activeSummaryTab, setActiveSummaryTab] = useState<"billing" | "itinerary" | "inclusions" | "info">("billing");
   const [bookingData, setBookingData] = useState<BookingState>({
+    draftId,
     departureId: initialDeparture?.id || null,
     selectedDeparture: initialDeparture,
     departureDate: initialDeparture?.date || null,
@@ -84,6 +104,94 @@ export function BookingWizard({
     addons: [],
     coupon: null,
   });
+
+  // Restore local storage draft on initial mount
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const saved = localStorage.getItem(storageKey);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.bookingData && typeof parsed.bookingData === "object") {
+          setBookingData((prev) => ({
+            ...prev,
+            ...parsed.bookingData,
+            departureId: parsed.bookingData.departureId || prev.departureId,
+            travellers: Array.isArray(parsed.bookingData.travellers) && parsed.bookingData.travellers.length > 0
+              ? parsed.bookingData.travellers
+              : prev.travellers,
+            selectedRooms: Array.isArray(parsed.bookingData.selectedRooms) ? parsed.bookingData.selectedRooms : prev.selectedRooms,
+            selectedRoomObj: parsed.bookingData.selectedRoomObj || prev.selectedRoomObj,
+            addons: Array.isArray(parsed.bookingData.addons) ? parsed.bookingData.addons : prev.addons,
+            coupon: parsed.bookingData.coupon || prev.coupon,
+          }));
+        }
+        if (typeof parsed.currentStep === "number" && parsed.currentStep < 5) {
+          setCurrentStep(parsed.currentStep);
+        }
+      } catch (e) {
+        console.warn("Failed to restore local booking draft:", e);
+      }
+    }
+  }, [storageKey]);
+
+  // Save to localStorage & DB draft
+  const selectedDeparture = departures.find(d => d.id === bookingData.departureId) || bookingData.selectedDeparture;
+
+  const pricing = resolveBookingPricing({
+    journey,
+    departure: selectedDeparture,
+    room: bookingData.selectedRoomObj,
+    travellers: bookingData.travellers,
+    addons: bookingData.addons,
+    coupon: bookingData.coupon,
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const fullDraft = {
+      bookingData: { ...bookingData, draftId },
+      currentStep,
+      updatedAt: new Date().toISOString(),
+    };
+
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(fullDraft));
+      setSaveStatus("saved");
+    } catch (e) {
+      console.warn("localStorage write error:", e);
+    }
+
+    const timer = setTimeout(async () => {
+      if (bookingData.travellers.length > 0 || currentStep > 0 || bookingData.selectedRoomObj) {
+        try {
+          setSaveStatus("saving");
+          await saveBookingDraftFn({
+            data: {
+              draftId,
+              journeyId: journey?.id || null,
+              departureId: bookingData.departureId || null,
+              currentStep,
+              travellers: bookingData.travellers,
+              roomSharing: bookingData.selectedRoomObj?.sharing_type || bookingData.selectedRoomObj?.type || null,
+              pickupPoint: bookingData.travellers[0]?.pickupPoint || null,
+              addons: bookingData.addons,
+              couponCode: bookingData.coupon?.code || null,
+              subtotal: pricing.subtotal || 0,
+              totalAmount: pricing.grandTotal || 0,
+            }
+          });
+          setSaveStatus("saved");
+        } catch (err) {
+          console.warn("[BookingWizard] Draft DB sync warning:", err);
+          setSaveStatus("saved");
+        }
+      }
+    }, 600);
+
+    return () => clearTimeout(timer);
+  }, [bookingData, currentStep, draftId, journey?.id, pricing.subtotal, pricing.grandTotal, storageKey]);
 
   // Auto-select first departure and keep departure state synchronized
   useEffect(() => {
@@ -140,17 +248,6 @@ export function BookingWizard({
     }
   };
 
-  const selectedDeparture = departures.find(d => d.id === bookingData.departureId) || bookingData.selectedDeparture;
-
-  const pricing = resolveBookingPricing({
-    journey,
-    departure: selectedDeparture,
-    room: bookingData.selectedRoomObj,
-    travellers: bookingData.travellers,
-    addons: bookingData.addons,
-    coupon: bookingData.coupon,
-  });
-
   if (isSidebar) {
     return (
       <div id="booking-sidebar-card" className="space-y-4 font-sans text-xs pb-24 sm:pb-10">
@@ -170,6 +267,16 @@ export function BookingWizard({
               <p className="text-[10px] text-muted-foreground">{journey.name}</p>
             </div>
           </div>
+          {saveStatus === "saving" && (
+            <span className="text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full animate-pulse font-poppins">
+              Saving draft...
+            </span>
+          )}
+          {saveStatus === "saved" && (
+            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full font-poppins flex items-center gap-1">
+              <Check className="h-3 w-3 text-emerald-600" /> Saved
+            </span>
+          )}
         </div>
 
         {/* Text-based Compact Stepper */}
@@ -329,6 +436,16 @@ export function BookingWizard({
               <p className="text-sm text-muted-foreground">{journey.name} • {journey.duration}</p>
             </div>
           </div>
+          {saveStatus === "saving" && (
+            <span className="text-xs font-bold text-amber-600 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full animate-pulse font-poppins">
+              Saving draft...
+            </span>
+          )}
+          {saveStatus === "saved" && (
+            <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full font-poppins flex items-center gap-1.5 shadow-xs">
+              <Check className="h-3.5 w-3.5 text-emerald-600" /> Draft Saved
+            </span>
+          )}
         </div>
 
         {/* Departure Date Selection Dropdown */}

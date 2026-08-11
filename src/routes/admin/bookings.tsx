@@ -41,6 +41,8 @@ export const Route = createFileRoute('/admin/bookings')({
 })
 
 const STATUS_BADGE: Record<string, string> = {
+  DRAFT: 'bg-slate-100 text-slate-700 border-slate-300',
+  IN_PROGRESS: 'bg-amber-50 text-amber-800 border-amber-300',
   CONFIRMED: 'bg-emerald-100 text-emerald-700',
   PAYMENT_PENDING: 'bg-amber-100 text-amber-700',
   PARTIAL_PAID: 'bg-blue-100 text-blue-700',
@@ -420,6 +422,7 @@ function BookingsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ALL">All Status</SelectItem>
+                  <SelectItem value="DRAFT">Draft</SelectItem>
                   <SelectItem value="CONFIRMED">Confirmed</SelectItem>
                   <SelectItem value="PAYMENT_PENDING">Payment Pending</SelectItem>
                   <SelectItem value="PARTIAL_PAID">Partial Paid</SelectItem>

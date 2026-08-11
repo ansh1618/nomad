@@ -9,11 +9,23 @@ import { cn } from "@/lib/utils";
 export function TravellerDetailsStep({ data, updateData, onNext, isSidebar = false }: any) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   // Ensure at least one traveller exists
-  const [travellers, setTravellers] = useState(data.travellers.length > 0 ? data.travellers : [{
+  const [travellers, setTravellers] = useState(data.travellers && data.travellers.length > 0 ? data.travellers : [{
     id: 't-1', isPrimary: true, fullName: '', gender: '', dob: '', phone: '', email: '', 
     aadhaarNumber: '', passportNumber: '', foodPreference: '', medicalConditions: '', 
     emergencyContactName: '', emergencyContactPhone: '', pickupPoint: ''
   }]);
+
+  // Synchronize travellers changes back to parent state immediately
+  useEffect(() => {
+    if (travellers && travellers.length > 0) {
+      updateData((prev: any) => {
+        if (JSON.stringify(prev.travellers) !== JSON.stringify(travellers)) {
+          return { ...prev, travellers };
+        }
+        return prev;
+      });
+    }
+  }, [travellers]);
 
   const updateTraveller = (id: string, field: string, value: string) => {
     setTravellers((prev: any[]) => prev.map(t => t.id === id ? { ...t, [field]: value } : t));

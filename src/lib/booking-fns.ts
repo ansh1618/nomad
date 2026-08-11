@@ -109,6 +109,101 @@ export const lockInventoryFn = createServerFn({ method: "POST" })
   });
 
 // ==========================================
+// DRAFT BOOKING SAVING / UPSERT
+// ==========================================
+
+const saveBookingDraftSchema = z.object({
+  draftId: z.string().min(1),
+  journeyId: z.string().optional().nullable(),
+  departureId: z.string().optional().nullable(),
+  currentStep: z.number().default(0),
+  travellers: z.array(z.any()).default([]),
+  roomSharing: z.string().optional().nullable(),
+  pickupPoint: z.string().optional().nullable(),
+  addons: z.array(z.any()).default([]),
+  couponCode: z.string().optional().nullable(),
+  subtotal: z.number().default(0),
+  totalAmount: z.number().default(0),
+});
+
+export const saveBookingDraftFn = createServerFn({ method: "POST" })
+  .validator((data: z.infer<typeof saveBookingDraftSchema>) => saveBookingDraftSchema.parse(data))
+  .handler(async ({ data }) => {
+    try {
+      const primary = data.travellers[0] || {};
+      const customerName = (primary.fullName || primary.name || "").trim() || "Draft Explorer";
+      const customerPhone = (primary.phone || "").trim() || null;
+      const customerEmail = (primary.email || "").trim() || null;
+      const travellerCount = Math.max(1, data.travellers.length);
+
+      const isValidUuid = (val: any) => typeof val === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+
+      const cleanDepartureId = isValidUuid(data.departureId) ? data.departureId : null;
+      const cleanJourneyId = isValidUuid(data.journeyId) ? data.journeyId : null;
+
+      // Check if draft record already exists with this booking_id
+      const { data: existing } = await supabaseAdmin
+        .from("bookings")
+        .select("id, booking_id")
+        .eq("booking_id", data.draftId)
+        .maybeSingle();
+
+      const payload: Record<string, any> = {
+        booking_id: data.draftId,
+        customer_name: customerName,
+        phone: customerPhone,
+        email: customerEmail,
+        status: "DRAFT",
+        booking_status: "DRAFT",
+        payment_status: "DRAFT",
+        travellers_count: travellerCount,
+        amount: data.totalAmount || data.subtotal,
+        total_amount: data.totalAmount || data.subtotal,
+        room_sharing: data.roomSharing || null,
+        pickup_point: data.pickupPoint || null,
+        departure_id: cleanDepartureId,
+        journey_id: cleanJourneyId,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (existing?.id) {
+        await supabaseAdmin
+          .from("bookings")
+          .update(payload)
+          .eq("id", existing.id);
+
+        return { success: true as const, bookingId: data.draftId, dbId: existing.id };
+      } else {
+        const { data: inserted, error: insertErr } = await supabaseAdmin
+          .from("bookings")
+          .insert({
+            ...payload,
+            created_at: new Date().toISOString(),
+          })
+          .select("id, booking_id")
+          .maybeSingle();
+
+        if (insertErr) {
+          console.warn("[saveBookingDraftFn] Insert draft warning:", insertErr.message);
+          delete payload.departure_id;
+          delete payload.journey_id;
+          const { data: fallbackInsert } = await supabaseAdmin
+            .from("bookings")
+            .insert(payload)
+            .select("id, booking_id")
+            .maybeSingle();
+          return { success: true as const, bookingId: data.draftId, dbId: fallbackInsert?.id };
+        }
+
+        return { success: true as const, bookingId: data.draftId, dbId: inserted?.id };
+      }
+    } catch (err: any) {
+      console.warn("[saveBookingDraftFn] Non-fatal draft save warning:", err?.message || err);
+      return { success: false as const, error: err?.message || "Failed to save draft" };
+    }
+  });
+
+// ==========================================
 // TRANSACTIONAL BOOKING CREATION
 // ==========================================
 
