@@ -1,93 +1,100 @@
 import { useState, useEffect } from "react";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 
 interface GoNomadikLoadingScreenProps {
   fullPage?: boolean;
   statusText?: string;
 }
 
-const FULL_WORD = "gonomadik.";
-const TYPING_SPEED = 90; // ms per character
-const DELETING_SPEED = 55; // ms per character
-const PAUSE_DURATION = 800; // ms pause at full word
+const WORD = "GoNomadik";
+const CHAR_TYPING_SPEED = 90; // ms per character
 
 export function GoNomadikLoadingScreen({
   fullPage = true,
   statusText = "Loading journeys",
 }: GoNomadikLoadingScreenProps) {
-  // Typewriter state
-  const [displayText, setDisplayText] = useState("");
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [cursorVisible, setCursorVisible] = useState(true);
+  // Sequence animation steps: 0 = start, 1 = icon loaded, 2 = wordmark typing, 3 = wordmark complete / tagline fade, 4 = progress & status
+  const [charIndex, setCharIndex] = useState(0);
+  const [iconReady, setIconReady] = useState(false);
+  const [taglineReady, setTaglineReady] = useState(false);
   const [dotsCount, setDotsCount] = useState(3);
 
-  // Blinking cursor pulse (every 500ms)
+  // Step 1: Icon fade/scale-in trigger
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCursorVisible((prev) => !prev);
-    }, 500);
-    return () => clearInterval(timer);
+    const timer = setTimeout(() => {
+      setIconReady(true);
+    }, 200);
+    return () => clearTimeout(timer);
   }, []);
 
-  // Dots animation pulse (every 400ms)
+  // Step 2: Start typing "GoNomadik" after icon is fully visible (~750ms)
+  useEffect(() => {
+    if (!iconReady) return;
+
+    const startTypingTimer = setTimeout(() => {
+      let currentIdx = 0;
+      const interval = setInterval(() => {
+        currentIdx++;
+        setCharIndex(currentIdx);
+        if (currentIdx >= WORD.length) {
+          clearInterval(interval);
+          setTaglineReady(true);
+        }
+      }, CHAR_TYPING_SPEED);
+    }, 550);
+
+    return () => clearTimeout(startTypingTimer);
+  }, [iconReady]);
+
+  // Step 3: Animated dots for loading status
   useEffect(() => {
     const timer = setInterval(() => {
       setDotsCount((prev) => (prev % 3) + 1);
-    }, 400);
+    }, 450);
     return () => clearInterval(timer);
   }, []);
 
-  // Continuous Typewriter Loop
-  useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
+  const containerClasses = fullPage
+    ? "fixed inset-0 z-[9999] bg-[#FAFAFC] flex flex-col items-center justify-center p-6 select-none"
+    : "w-full min-h-[60vh] bg-[#FAFAFC] flex flex-col items-center justify-center p-6 select-none";
 
-    if (!isDeleting && displayText === FULL_WORD) {
-      // Pause at full word before deleting
-      timeoutId = setTimeout(() => {
-        setIsDeleting(true);
-      }, PAUSE_DURATION);
-    } else if (isDeleting && displayText === "") {
-      // Pause briefly at blank before typing again
-      timeoutId = setTimeout(() => {
-        setIsDeleting(false);
-      }, 300);
-    } else {
-      const currentSpeed = isDeleting ? DELETING_SPEED : TYPING_SPEED;
-      timeoutId = setTimeout(() => {
-        setDisplayText((prev) =>
-          isDeleting
-            ? FULL_WORD.slice(0, prev.length - 1)
-            : FULL_WORD.slice(0, prev.length + 1)
-        );
-      }, currentSpeed);
-    }
+  // Helper to render letter-by-letter with Navy "Go" and Gold "Nomadik"
+  const currentTypedText = WORD.slice(0, charIndex);
 
-    return () => clearTimeout(timeoutId);
-  }, [displayText, isDeleting]);
-
-  // Color formatter matching logo (go: Navy, noma: Gold, dik: Navy, .: Gold)
-  const renderStyledWordmark = (str: string) => {
-    const part1 = str.slice(0, 2); // "go" -> Navy
-    const part2 = str.slice(2, 6); // "noma" -> Gold
-    const part3 = str.slice(6, 9); // "dik" -> Navy
-    const part4 = str.slice(9, 10); // "." -> Gold
+  const renderStyledWordmark = () => {
+    const goPart = currentTypedText.slice(0, 2); // "Go"
+    const nomadikPart = currentTypedText.slice(2); // "Nomadik"
 
     return (
-      <span
-        className="font-bold text-3xl sm:text-4xl tracking-[-0.03em] select-none"
+      <div
+        className="font-extrabold text-3xl sm:text-5xl tracking-tight select-none flex items-center justify-center min-h-[52px]"
         style={{ fontFamily: "'Outfit', 'Plus Jakarta Sans', 'Manrope', sans-serif" }}
       >
-        {part1 && <span className="text-[#0A2540]">{part1}</span>}
-        {part2 && <span className="text-[#C8A96A]">{part2}</span>}
-        {part3 && <span className="text-[#0A2540]">{part3}</span>}
-        {part4 && <span className="text-[#C8A96A]">{part4}</span>}
-      </span>
+        {goPart.split("").map((char, i) => (
+          <motion.span
+            key={`go-${i}`}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.15 }}
+            className="text-[#0A2540]"
+          >
+            {char}
+          </motion.span>
+        ))}
+        {nomadikPart.split("").map((char, i) => (
+          <motion.span
+            key={`nomadik-${i}`}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.15 }}
+            className="text-[#C8A96A]"
+          >
+            {char}
+          </motion.span>
+        ))}
+      </div>
     );
   };
-
-  const containerClasses = fullPage
-    ? "fixed inset-0 z-[9999] bg-white bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-amber-500/5 via-white to-white flex flex-col items-center justify-center p-6 select-none shadow-none border-none"
-    : "w-full min-h-[60vh] bg-white flex flex-col items-center justify-center p-6 select-none";
 
   return (
     <motion.div
@@ -97,58 +104,64 @@ export function GoNomadikLoadingScreen({
       transition={{ duration: 0.35, ease: "easeInOut" }}
       className={containerClasses}
     >
-      <div className="flex flex-col items-center justify-center space-y-5 max-w-sm mx-auto text-center">
-        {/* 1. TOP LOGO: Static G Monogram with single subtle fade-in */}
+      <div className="flex flex-col items-center justify-center space-y-6 max-w-md mx-auto text-center">
+        {/* 1. ROUND GO NOMADIK ICON (Fade & Scale In) */}
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.4, ease: "easeOut" }}
-          className="relative flex items-center justify-center"
+          initial={{ opacity: 0, scale: 0.92 }}
+          animate={iconReady ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.92 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="relative flex items-center justify-center shrink-0"
         >
           <img
-            src="/images/gonomadik-g-monogram.png"
-            alt="GoNomadik"
-            className="h-16 sm:h-20 w-auto object-cover rounded-full shadow-md pointer-events-none"
+            src="/images/gonomadik-round-emblem.png"
+            alt="GoNomadik Emblem"
+            className="h-20 sm:h-28 w-auto object-cover rounded-full shadow-lg ring-4 ring-[#C8A96A]/20 pointer-events-none"
           />
         </motion.div>
 
-        {/* 2. ANIMATED WORDMARK WITH TYPEWRITER EFFECT */}
-        <div className="flex items-center justify-center min-h-[44px]">
-          {renderStyledWordmark(displayText)}
-          {/* Blinking Cursor | */}
-          <span
-            className={`font-display font-light text-3xl sm:text-4xl text-[#0A2540] ml-0.5 transition-opacity duration-100 ${
-              cursorVisible ? "opacity-100" : "opacity-0"
-            }`}
-          >
-            |
-          </span>
+        {/* 2. "GoNomadik" WORDMARK (Progressive Letter-by-Letter Reveal) */}
+        <div className="pt-1">
+          {renderStyledWordmark()}
         </div>
 
-        {/* 3. SUBTITLE */}
-        <p className="text-xs sm:text-sm tracking-[0.25em] text-slate-400 font-poppins uppercase font-medium">
-          Curated Road Trips Across India
-        </p>
+        {/* 3. TAGLINE (TRAVEL MORE • DISCOVER DEEPER) */}
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={taglineReady ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
+          transition={{ duration: 0.45, ease: "easeOut" }}
+          className="space-y-1"
+        >
+          <p className="text-[10px] sm:text-xs font-bold tracking-[0.25em] text-[#0A2540] font-poppins uppercase">
+            TRAVEL MORE <span className="text-[#C8A96A] mx-1">•</span> DISCOVER DEEPER
+          </p>
+        </motion.div>
 
-        {/* 4. PREMIUM HORIZONTAL LOADING BAR */}
-        <div className="w-48 sm:w-56 h-1 rounded-full bg-slate-100 relative overflow-hidden mt-4">
-          <motion.div
-            className="absolute top-0 bottom-0 bg-gradient-to-r from-[#C8A96A] via-[#D4AF37] to-[#C8A96A] rounded-full"
-            initial={{ x: "-100%", width: "40%" }}
-            animate={{ x: "280%", width: "40%" }}
-            transition={{
-              repeat: Infinity,
-              duration: 1.4,
-              ease: "easeInOut",
-            }}
-          />
-        </div>
+        {/* 4. ELEGANT NAVY + GOLD PROGRESS INDICATOR */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={taglineReady ? { opacity: 1 } : { opacity: 0 }}
+          transition={{ duration: 0.4 }}
+          className="pt-2 flex flex-col items-center gap-4 w-full"
+        >
+          <div className="w-44 sm:w-56 h-1.5 rounded-full bg-slate-200/80 relative overflow-hidden">
+            <motion.div
+              className="absolute top-0 bottom-0 bg-gradient-to-r from-[#0A2540] via-[#C8A96A] to-[#0A2540] rounded-full"
+              initial={{ x: "-100%", width: "45%" }}
+              animate={{ x: "250%", width: "45%" }}
+              transition={{
+                repeat: Infinity,
+                duration: 1.4,
+                ease: "easeInOut",
+              }}
+            />
+          </div>
 
-        {/* 5. BOTTOM STATUS WITH ANIMATED DOTS */}
-        <p className="text-xs text-slate-400 font-poppins font-medium pt-1">
-          {statusText}
-          {".".repeat(dotsCount)}
-        </p>
+          {/* 5. LOADING STATUS TEXT */}
+          <p className="text-xs text-slate-500 font-poppins font-medium">
+            {statusText}
+            {".".repeat(dotsCount)}
+          </p>
+        </motion.div>
       </div>
     </motion.div>
   );
