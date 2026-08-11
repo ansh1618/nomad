@@ -115,7 +115,7 @@ export function GoNomadikLoadingScreen({
           <img
             src="/images/gonomadik-round-emblem.png"
             alt="GoNomadik Emblem"
-            className="h-20 sm:h-28 w-auto object-cover rounded-full shadow-lg ring-4 ring-[#C8A96A]/20 pointer-events-none"
+            className="h-20 sm:h-28 w-auto aspect-square object-contain pointer-events-none drop-shadow-md bg-transparent"
           />
         </motion.div>
 
