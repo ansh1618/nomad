@@ -70,22 +70,27 @@ export async function getDestinationBySlug(slug: string) {
   }
   if (!data) return null;
 
-  const { data: dbReviews } = await supabase
-    .from("reviews")
-    .select("*")
-    .eq("approved", true)
-    .order("created_at", { ascending: false })
-    .limit(6);
+  let reviewsList: any[] = [];
+  try {
+    const { data: dbReviews } = await supabase
+      .from("reviews")
+      .select("*")
+      .or("is_approved.eq.true,approved.eq.true")
+      .order("created_at", { ascending: false })
+      .limit(6);
 
-  const reviewsList = dbReviews && dbReviews.length > 0
-    ? dbReviews.map((r: any) => ({
+    if (dbReviews && dbReviews.length > 0) {
+      reviewsList = dbReviews.map((r: any) => ({
         name: r.author_name || "Verified Traveler",
         avatar: (r.author_name || "Verified Traveler").slice(0, 2).toUpperCase(),
         rating: r.rating || 5,
         text: r.content || "",
         date: r.trip_date || "Recent"
-      }))
-    : [];
+      }));
+    }
+  } catch (err) {
+    console.warn("Non-fatal reviews fetch error:", err);
+  }
 
   return {
     slug: data.slug,

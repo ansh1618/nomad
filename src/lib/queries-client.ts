@@ -62,8 +62,11 @@ export function getRealDestinationImage(
   return resolveDestinationHero(slug, candidate);
 }
 
-export const STATIC_FALLBACK_DESTINATIONS: any[] = [];
-export const STATIC_FALLBACK_JOURNEYS: any[] = [];
+import { destinations as staticDestinations } from "@/data/destinations";
+import { journeys as staticJourneys } from "@/data/journeys";
+
+export const STATIC_FALLBACK_DESTINATIONS: any[] = staticDestinations || [];
+export const STATIC_FALLBACK_JOURNEYS: any[] = staticJourneys || [];
 
 export async function getDestinations() {
   try {
@@ -247,7 +250,13 @@ export async function getJourneyBySlug(slug: string) {
     return null;
   });
   
-  if (!data) return null;
+  if (!data) {
+    const staticMatch = (STATIC_FALLBACK_JOURNEYS || []).find(
+      (j: any) => (j.slug || "").toLowerCase().trim() === cleanSlug
+    );
+    if (staticMatch) return staticMatch;
+    return null;
+  }
 
   const rawItinerary = (Array.isArray(data.itinerary_days) && data.itinerary_days.length > 0)
     ? data.itinerary_days

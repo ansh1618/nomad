@@ -359,19 +359,28 @@ export async function getApprovedReviews(options?: {
     let query = supabase
       .from("reviews")
       .select("*", { count: "exact" })
-      .or("is_approved.eq.true,status.eq.approved");
+      .or("is_approved.eq.true,approved.eq.true");
 
     if (options?.journeyId) {
-      query = query.or(`journey_id.eq.${options.journeyId},journey_slug.eq.${options.journeyId}`);
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(options.journeyId);
+      if (isUuid) {
+        query = query.eq("journey_id", options.journeyId);
+      }
     }
     if (options?.destinationId) {
-      query = query.or(`destination_id.eq.${options.destinationId},destination_slug.eq.${options.destinationId}`);
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(options.destinationId);
+      if (isUuid) {
+        query = query.eq("destination_id", options.destinationId);
+      }
     }
     if (options?.featured) {
-      query = query.or("is_featured.eq.true,featured.eq.true");
+      query = query.eq("is_featured", true);
     }
 
-    const { data: dbReviews } = await query;
+    const { data: dbReviews, error } = await query;
+    if (error) {
+      console.warn("[getApprovedReviews] Supabase query warning, using safe fallback:", error.message);
+    }
 
     const formattedDb: Review[] = (dbReviews || []).map((r: any) => ({
       id: r.id,
