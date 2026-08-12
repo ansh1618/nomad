@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Star, X, ShieldCheck, Lock, ArrowRight } from "lucide-react";
-import { SEED_REVIEWS } from "@/lib/reviews-client";
 import { ReviewStarRating } from "./ReviewStarRating";
 import { Link } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "motion/react";
@@ -85,33 +84,16 @@ export function FloatingReviewWidget() {
                   </p>
                 </div>
 
-                {/* Sample Reviews List */}
+                {/* Reviews Placeholder — populated from DB after first verified bookings */}
                 <div className="space-y-3 pt-1">
                   <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
                     Recent Verified Stories
                   </span>
-                  {SEED_REVIEWS.slice(0, 3).map((rev) => (
-                    <div
-                      key={rev.id}
-                      className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-1.5 text-xs text-left"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-bold text-[#102A43]">{rev.author_name}</span>
-                          <span className="text-[9px] font-bold bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded">
-                            ✔ Verified
-                          </span>
-                        </div>
-                        <ReviewStarRating value={rev.overall_rating} size="sm" />
-                      </div>
-                      <p className="text-slate-600 line-clamp-2 leading-relaxed italic">
-                        "{rev.review}"
-                      </p>
-                      <span className="text-[10px] text-slate-400 block font-medium">
-                        {rev.college} · {rev.journey_name}
-                      </span>
-                    </div>
-                  ))}
+                  <div className="p-5 bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-center text-slate-400 space-y-1">
+                    <ShieldCheck className="h-6 w-6 mx-auto text-slate-300 mb-1" />
+                    <p className="text-xs font-medium text-slate-500">Verified reviews will appear here.</p>
+                    <p className="text-[10px] text-slate-400">Complete your journey with GoNomadik to be the first to share your story!</p>
+                  </div>
                 </div>
               </div>
 

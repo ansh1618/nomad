@@ -18,7 +18,7 @@ import {
 import { getJourneys } from "@/lib/queries-client";
 import { cancelBookingCustomerFn } from "@/lib/mutations/payment";
 import { ReviewFormModal } from "@/components/site/ReviewFormModal";
-import { SEED_REVIEWS } from "@/lib/reviews-client";
+
 
 export const Route = createFileRoute("/account")({
   validateSearch: (search: Record<string, unknown>): { tab?: string } => ({
@@ -434,22 +434,13 @@ function AccountDashboard() {
 
                 {/* Submitted Reviews List */}
                 <div className="space-y-4">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-accent border-b pb-2">Submitted Reviews & Stories</h3>
-                  {SEED_REVIEWS.slice(0, 2).map((rev) => (
-                    <div key={rev.id} className="p-5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-sm text-[#102A43]">{rev.title}</span>
-                        <span className="text-[10px] font-bold uppercase bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
-                          Published & Verified
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-700 leading-relaxed font-poppins">"{rev.review}"</p>
-                      <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
-                        <span>{rev.journey_name} · {rev.trip_date}</span>
-                        <span className="font-bold text-amber-600">Earned +{rev.xp_earned || 200} XP ✨</span>
-                      </div>
-                    </div>
-                  ))}
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-accent border-b pb-2">Submitted Reviews &amp; Stories</h3>
+                  <div className="p-8 bg-slate-50 border border-dashed border-slate-200 rounded-2xl text-center space-y-2">
+                    <p className="text-sm font-semibold text-[#102A43]">No reviews yet</p>
+                    <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                      Once you complete a journey with GoNomadik, you'll be able to share your verified review and earn XP here.
+                    </p>
+                  </div>
                 </div>
               </div>
             )}

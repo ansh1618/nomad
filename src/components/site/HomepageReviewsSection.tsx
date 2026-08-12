@@ -14,9 +14,9 @@ import {
 } from "lucide-react";
 import { ReviewCard } from "./ReviewCard";
 import { ReviewStarRating } from "./ReviewStarRating";
-import { SEED_REVIEWS, DESTINATION_LEADERBOARD } from "@/lib/reviews-client";
+import { DESTINATION_LEADERBOARD, getApprovedReviews } from "@/lib/reviews-client";
 import { getPublicTripCaptains } from "@/lib/queries-client";
-import type { TripCaptain } from "@/types/supabase";
+import type { TripCaptain, Review } from "@/types/supabase";
 import { Button } from "@/components/ui/button";
 import { motion } from "motion/react";
 
@@ -26,8 +26,20 @@ function HomepageReviewsContent() {
   const [activeSlide, setActiveSlide] = useState(0);
   const [captains, setCaptains] = useState<TripCaptain[]>([]);
   const [loadingCaptains, setLoadingCaptains] = useState(true);
+  const [featuredReviews, setFeaturedReviews] = useState<Review[]>([]);
 
-  const featuredReviews = SEED_REVIEWS.filter((r) => r.featured || r.is_featured);
+  // Fetch real featured reviews from DB
+  useEffect(() => {
+    async function loadFeaturedReviews() {
+      try {
+        const { data } = await getApprovedReviews({ featured: true, limit: 6 });
+        setFeaturedReviews(data);
+      } catch (err) {
+        console.warn("[HomepageReviewsSection] Failed to load featured reviews:", err);
+      }
+    }
+    loadFeaturedReviews();
+  }, []);
 
   // Auto slide carousel
   useEffect(() => {
@@ -72,60 +84,70 @@ function HomepageReviewsContent() {
           <div className="pt-2 flex justify-center">
             <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 px-4 py-1.5 rounded-full text-xs font-bold text-emerald-800">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-              <span>56 people viewed trips today · Recently booked by Rahul (NSUT) 2 mins ago</span>
+              <span>56 people viewed trips today</span>
             </div>
           </div>
         </div>
 
         {/* 1. Dynamic Carousel of Featured Reviews */}
-        <div className="relative">
-          <div className="overflow-hidden">
-            <motion.div
-              className="flex transition-transform duration-500 ease-out"
-              style={{ transform: `translateX(-${activeSlide * 100}%)` }}
-            >
-              {featuredReviews.map((rev) => (
-                <div key={rev.id} className="w-full shrink-0 px-2">
-                  <div className="max-w-3xl mx-auto">
-                    <ReviewCard review={rev} />
+        {featuredReviews.length > 0 ? (
+          <div className="relative">
+            <div className="overflow-hidden">
+              <motion.div
+                className="flex transition-transform duration-500 ease-out"
+                style={{ transform: `translateX(-${activeSlide * 100}%)` }}
+              >
+                {featuredReviews.map((rev) => (
+                  <div key={rev.id} className="w-full shrink-0 px-2">
+                    <div className="max-w-3xl mx-auto">
+                      <ReviewCard review={rev} />
+                    </div>
                   </div>
-                </div>
-              ))}
-            </motion.div>
-          </div>
-
-          {/* Controls */}
-          <div className="flex justify-center items-center gap-4 mt-6">
-            <button
-              type="button"
-              onClick={() =>
-                setActiveSlide((prev) => (prev - 1 + featuredReviews.length) % featuredReviews.length)
-              }
-              className="p-3 rounded-full bg-white border border-slate-200 shadow-md hover:bg-slate-50 transition-all text-slate-700"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </button>
-            <div className="flex gap-2">
-              {featuredReviews.map((_, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => setActiveSlide(i)}
-                  className={`h-2.5 rounded-full transition-all ${
-                    activeSlide === i ? "w-8 bg-[#102A43]" : "w-2.5 bg-slate-300"
-                  }`}
-                />
-              ))}
+                ))}
+              </motion.div>
             </div>
-            <button
-              type="button"
-              onClick={() => setActiveSlide((prev) => (prev + 1) % featuredReviews.length)}
-              className="p-3 rounded-full bg-white border border-slate-200 shadow-md hover:bg-slate-50 transition-all text-slate-700"
-            >
-              <ChevronRight className="h-5 w-5" />
-            </button>
+
+            {/* Controls */}
+            <div className="flex justify-center items-center gap-4 mt-6">
+              <button
+                type="button"
+                onClick={() =>
+                  setActiveSlide((prev) => (prev - 1 + featuredReviews.length) % featuredReviews.length)
+                }
+                className="p-3 rounded-full bg-white border border-slate-200 shadow-md hover:bg-slate-50 transition-all text-slate-700"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+              <div className="flex gap-2">
+                {featuredReviews.map((_, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setActiveSlide(i)}
+                    className={`h-2.5 rounded-full transition-all ${
+                      activeSlide === i ? "w-8 bg-[#102A43]" : "w-2.5 bg-slate-300"
+                    }`}
+                  />
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveSlide((prev) => (prev + 1) % featuredReviews.length)}
+                className="p-3 rounded-full bg-white border border-slate-200 shadow-md hover:bg-slate-50 transition-all text-slate-700"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="bg-slate-50/80 rounded-3xl p-10 text-center border border-dashed border-slate-200 text-slate-500 space-y-2">
+            <Star className="h-8 w-8 mx-auto text-amber-400 mb-1" />
+            <h4 className="font-bold text-sm text-[#102A43]">Traveler Reviews Coming Soon</h4>
+            <p className="text-xs text-muted-foreground max-w-md mx-auto">
+              Real, verified traveler reviews from our explorers will appear here. Be among the first to share your GoNomadik story!
+            </p>
+          </div>
+        )}
 
         {/* 2. Leaderboards Grid (Top Destinations & Top Captains) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch pt-6">

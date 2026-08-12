@@ -55,22 +55,7 @@ export const destinations: Destination[] = [
       { q: "Is pickup available from Delhi?", a: "Yes, all our Manali group journeys include premium traveler pickup from Majnu ka Tilla, Delhi NCR." },
       { q: "What kind of clothing should I pack?", a: "For summers, light woolens are sufficient. For winters, pack heavy thermal innerwear, down jackets, and snow-proof boots." }
     ],
-    reviews: [
-      {
-        name: "Abhinav Singh",
-        avatar: "AS",
-        rating: 5,
-        text: "The Manali road trip was pure magic. Our trip captain took us to some secret cafe spots in Old Manali that you won't find on Google Maps!",
-        date: "2 weeks ago"
-      },
-      {
-        name: "Meera Sen",
-        avatar: "MS",
-        rating: 5,
-        text: "Incredible stays and super safe road journey. Traveling solo as a female traveler, I felt completely at ease with the Nomadik group.",
-        date: "1 month ago"
-      }
-    ]
+    reviews: []
   },
   {
     slug: "jibhi",
@@ -94,15 +79,7 @@ export const destinations: Destination[] = [
       { q: "Can I customize the Jibhi itinerary?", a: "Absolutely! We offer flexible customized extensions for couples and private groups." },
       { q: "Is internet connectivity reliable in Jibhi?", a: "Jibhi has decent 4G connectivity (Airtel/Jio), though remote locations like Jalori Pass may have limited signal." }
     ],
-    reviews: [
-      {
-        name: "Shreya Nair",
-        avatar: "SN",
-        rating: 5,
-        text: "Waking up to the sound of the stream in Jibhi was healing. Nomadik planned it flawlessly.",
-        date: "3 weeks ago"
-      }
-    ]
+    reviews: []
   },
   {
     slug: "chopta-tungnath",
@@ -126,15 +103,7 @@ export const destinations: Destination[] = [
       { q: "Is the Tungnath trek difficult?", a: "The trek is moderate, about 5 km one-way from Chopta, on a well-defined paved trail. Most first-timers do it easily." },
       { q: "Are meals included in the camp?", a: "Yes, hot freshly prepared organic local pahadi meals (breakfast & dinner) are included at the Chopta camps." }
     ],
-    reviews: [
-      {
-        name: "Rohan Varma",
-        avatar: "RV",
-        rating: 5,
-        text: "The sunrise from Chandrashila peak was life-changing. Excellent trip captain who kept our spirits high during the trek!",
-        date: "1 month ago"
-      }
-    ]
+    reviews: []
   },
   {
     slug: "mcleodganj",
@@ -158,15 +127,7 @@ export const destinations: Destination[] = [
       { q: "Can we camp at Triund overnight?", a: "Yes, we arrange guided overnight camps at Triund with premium sleeping bags and warm meals." },
       { q: "Are payments secure?", a: "All transactions are fully encrypted. We support booking deposits and flexible split payments." }
     ],
-    reviews: [
-      {
-        name: "Karan Johar",
-        avatar: "KJ",
-        rating: 5,
-        text: "Loved the cafes, loved the Triund trek, loved the community. Nomadik connects you with other solo travelers beautifully.",
-        date: "3 weeks ago"
-      }
-    ]
+    reviews: []
   },
   {
     slug: "udaipur",
@@ -190,14 +151,6 @@ export const destinations: Destination[] = [
       { q: "Is pick-up available from Udaipur station?", a: "Yes, we arrange comfortable AC transport pickup from Udaipur station or Airport on day one." },
       { q: "Can we customize the heritage tours?", a: "Yes! Private custom itineraries are available for all Rajasthan journeys." }
     ],
-    reviews: [
-      {
-        name: "Ananya Mehta",
-        avatar: "AM",
-        rating: 5,
-        text: "Udaipur felt like a painting. Staying at a heritage haveli overlooking Lake Pichola was outstanding. Nomadik rules!",
-        date: "2 months ago"
-      }
-    ]
+    reviews: []
   }
 ];

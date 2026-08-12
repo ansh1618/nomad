@@ -3,7 +3,6 @@ import { Navbar } from "@/components/site/Navbar";
 import { Hero } from "@/components/site/Hero";
 import { PopularDestinations } from "@/components/site/PopularDestinations";
 import { TravelStats } from "@/components/site/TravelStats";
-import { NorthCampusSection } from "@/components/site/NorthCampusSection";
 import { MirandaHouseBanner } from "@/components/site/MirandaHouseBanner";
 import { WhyChooseUs } from "@/components/site/WhyChooseUs";
 import { MapSection } from "@/components/site/MapSection";
@@ -74,8 +73,6 @@ function Index() {
         <PopularDestinations />
         {/* 4. Animated stats counter */}
         <TravelStats />
-        {/* Nomadik x North Campus Collaboration */}
-        <NorthCampusSection />
         {/* GoNomadik x Miranda House Special College Campaign */}
         <MirandaHouseBanner />
         {/* 5. Why Nomadik — 6 brand pillars */}
