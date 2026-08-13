@@ -155,34 +155,32 @@ export async function getBookings(
 // BY ID (admin detail)
 // ==========================================
 export async function getBookingById(id: string): Promise<Booking | null> {
-  const { data, error } = await supabase
-    .from('bookings')
-    .select(BOOKING_DETAIL_SELECT)
-    .eq('id', id)
-    .single()
+  if (!id) return null;
+  const dbClient = getSupabaseAdmin() || supabase;
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+
+  let query = dbClient.from('bookings').select(BOOKING_DETAIL_SELECT);
+  if (isUuid) {
+    query = query.eq('id', id);
+  } else {
+    query = query.eq('booking_id', id);
+  }
+
+  const { data, error } = await query.maybeSingle();
 
   if (error) {
-    if (error.code === 'PGRST116') return null
-    throw new Error(error.message)
+    console.error("[getBookingById] Supabase error:", error.message);
+    if (error.code === 'PGRST116') return null;
+    throw new Error(error.message);
   }
-  return data as Booking
+  return data as Booking | null;
 }
 
 // ==========================================
 // BY BOOKING_ID (NOM-202506-00001)
 // ==========================================
 export async function getBookingByDisplayId(bookingId: string): Promise<Booking | null> {
-  const { data, error } = await supabase
-    .from('bookings')
-    .select(BOOKING_DETAIL_SELECT)
-    .eq('booking_id', bookingId)
-    .single()
-
-  if (error) {
-    if (error.code === 'PGRST116') return null
-    throw new Error(error.message)
-  }
-  return data as Booking
+  return getBookingById(bookingId);
 }
 
 // ==========================================

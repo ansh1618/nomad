@@ -64,6 +64,7 @@ import {
   addBookingDocument,
   deleteBookingDocument,
 } from '@/lib/queries/bookings'
+import { getAdminBookingDetailFn } from '@/lib/server-fns'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -176,7 +177,13 @@ function BookingDetailPage() {
 
   const { data: booking, isLoading } = useQuery({
     queryKey: ['booking_detail', id],
-    queryFn: () => getBookingById(id),
+    queryFn: async () => {
+      try {
+        return await getAdminBookingDetailFn({ data: id });
+      } catch {
+        return await getBookingById(id);
+      }
+    },
   })
 
   const b = booking as FullBooking | null
@@ -498,17 +505,19 @@ function BookingDetailPage() {
 
     const balance = Math.max(0, total - (b.amount_paid || 0))
 
+    const validStatus = editForm.status as any;
+    const isConfirmed = validStatus === 'CONFIRMED';
+
     editBookingMutation.mutate({
-      status: editForm.status as any,
-      room_preference: editForm.room_preference,
-      food_preference: editForm.food_preference,
-      special_requests: editForm.special_requests,
+      status: validStatus,
+      booking_status: isConfirmed ? 'CONFIRMED' : validStatus,
+      payment_status: isConfirmed ? 'SUCCESS' : undefined,
+      room_sharing: editForm.room_preference || null,
       amount: base,
       addon_amount: addon,
       discount_amount: disc,
-      coupon_discount: coupon,
-      gst_amount: gst,
       total_amount: total,
+      final_amount: total,
       balance_due: balance,
     })
   }
@@ -1214,7 +1223,7 @@ function BookingDetailPage() {
       {/* Booking Details Edit Modal */}
       <Dialog open={showEditDetails} onOpenChange={setShowEditDetails}>
         <DialogContent className="max-w-md bg-white border max-h-[90vh] overflow-y-auto">
-          <form onSubmit={handleDetailsSubmit} className="space-y-4">
+          <form onSubmit={handleEditDetailsSubmit} className="space-y-4">
             <DialogHeader>
               <DialogTitle>Edit Booking Details</DialogTitle>
               <DialogDescription>
