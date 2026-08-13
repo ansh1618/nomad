@@ -57,11 +57,10 @@ export const createRazorpayOrderFn = createServerFn({ method: 'POST' })
       await supabaseAdmin.from('payments').insert({
         booking_id: bookingId,
         amount,
-        currency,
-        status: 'Pending',
+        status: 'PENDING',
+        method: 'ONLINE',
         payment_type: paymentType,
         gateway: 'razorpay',
-        payment_gateway: 'RAZORPAY',
         gateway_order_id: order.id,
       });
     } catch (payErr) {

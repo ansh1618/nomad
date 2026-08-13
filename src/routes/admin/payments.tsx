@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { DataTable, exportToCSV } from '@/components/admin/DataTable'
 import type { ColumnDef } from '@tanstack/react-table'
 import { getPayments } from '@/lib/queries/admin'
+import { getAdminPaymentsListFn } from '@/lib/server-fns'
 import { initiateRefundFn } from '@/lib/mutations/payment'
 import type { Payment } from '@/types/supabase'
 import { toast } from 'sonner'
@@ -30,8 +31,11 @@ const GATEWAY_COLORS: Record<string, string> = {
 
 type PaymentWithJoins = Payment & {
   bookings?: {
-    booking_id: string
-    users?: { full_name: string; phone: string }
+    booking_id?: string
+    customer_name?: string
+    phone?: string
+    email?: string
+    users?: { full_name?: string; phone?: string }
   }
 }
 
@@ -46,7 +50,14 @@ function PaymentsPage() {
 
   const { data: result, isLoading } = useQuery({
     queryKey: ['payments_list', page, pageSize, search, sortBy, sortDir, statusFilter],
-    queryFn: () => getPayments({ page, pageSize, search, sortBy, sortDir, status: statusFilter || undefined }),
+    queryFn: async () => {
+      const params = { page, pageSize, search, sortBy, sortDir, status: statusFilter || undefined };
+      try {
+        return await getAdminPaymentsListFn({ data: params });
+      } catch {
+        return await getPayments(params);
+      }
+    },
     placeholderData: (prev) => prev,
   })
 
@@ -88,7 +99,8 @@ function PaymentsPage() {
         transaction_id: p.gateway_payment_id ?? '',
         order_id: p.gateway_order_id ?? '',
         booking_id: p.bookings?.booking_id ?? '',
-        customer: p.bookings?.users?.full_name ?? '',
+        customer: p.bookings?.customer_name ?? p.bookings?.users?.full_name ?? '',
+        phone: p.bookings?.phone ?? p.bookings?.users?.phone ?? '',
         amount: p.amount,
         status: p.status,
         created_at: p.created_at,
@@ -117,14 +129,18 @@ function PaymentsPage() {
       ),
     },
     {
-      accessorKey: 'bookings.users.full_name',
+      accessorKey: 'bookings.customer_name',
       header: 'Customer',
-      cell: ({ row }) => (
-        <div>
-          <p className="text-sm font-semibold">{row.original.bookings?.users?.full_name ?? 'Guest'}</p>
-          <p className="text-xs text-muted-foreground">{row.original.bookings?.users?.phone ?? ''}</p>
-        </div>
-      ),
+      cell: ({ row }) => {
+        const name = row.original.bookings?.customer_name ?? row.original.bookings?.users?.full_name ?? 'Explorer'
+        const phone = row.original.bookings?.phone ?? row.original.bookings?.users?.phone ?? ''
+        return (
+          <div>
+            <p className="text-sm font-semibold">{name}</p>
+            {phone && <p className="text-xs text-muted-foreground">{phone}</p>}
+          </div>
+        )
+      },
     },
     {
       accessorKey: 'payment_gateway',

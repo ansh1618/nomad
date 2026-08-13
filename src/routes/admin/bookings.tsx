@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { DataTable, exportToCSV } from '@/components/admin/DataTable'
 import type { ColumnDef } from '@tanstack/react-table'
 import { getBookings } from '@/lib/queries/bookings'
+import { getAdminBookingsListFn } from '@/lib/server-fns'
 import { useRealtimeBookings } from '@/hooks/use-realtime-bookings'
 import type { Booking } from '@/types/supabase'
 import { supabase } from '@/lib/supabase'
@@ -77,8 +78,8 @@ function BookingsPage() {
 
   const { data: result, isLoading } = useQuery({
     queryKey: ['bookings_list', page, pageSize, search, sortBy, sortDir, statusFilter, destinationFilter, fromDate, toDate],
-    queryFn: () =>
-      getBookings({
+    queryFn: async () => {
+      const params = {
         page,
         pageSize,
         search,
@@ -88,7 +89,13 @@ function BookingsPage() {
         destinationId: destinationFilter || undefined,
         fromDate: fromDate || undefined,
         toDate: toDate || undefined,
-      }),
+      };
+      try {
+        return await getAdminBookingsListFn({ data: params });
+      } catch {
+        return await getBookings(params);
+      }
+    },
     placeholderData: (prev) => prev,
   })
 
@@ -105,17 +112,19 @@ function BookingsPage() {
       
       const { count: todayBookings } = await supabase.from('bookings').select('*', { count: 'exact', head: true }).gte('created_at', todayStart)
 
-      const { data: allBookings } = await supabase.from('bookings').select('amount_paid, total_amount, balance_due, created_at')
+      const { data: allBookings } = await supabase.from('bookings').select('amount_paid, total_amount, balance_due, created_at, travellers_count, traveller_count')
       const revenue = allBookings?.reduce((s, b) => s + Number(b.amount_paid || 0), 0) ?? 0
       const todayRevenue = allBookings?.filter(b => b.created_at >= todayStart).reduce((s, b) => s + Number(b.amount_paid || 0), 0) ?? 0
+      const travellers = allBookings?.reduce((s, b) => s + (Number(b.travellers_count || b.traveller_count) || 1), 0) ?? 0
       const avgBookingValue = (confirmed ?? 0) > 0 ? Math.round(revenue / (confirmed || 1)) : 0
-      const { count: refundRequests } = await supabase.from('bookings').select('*', { count: 'exact', head: true }).or('refund_status.eq.REQUESTED,status.eq.REFUNDED')
+      const { count: refundRequests } = await supabase.from('bookings').select('*', { count: 'exact', head: true }).or('status.eq.REFUNDED,status.eq.Refunded')
 
       return {
         total: total ?? 0,
         confirmed: confirmed ?? 0,
         pending: pending ?? 0,
         cancelled: cancelled ?? 0,
+        travellers,
         revenue,
         todayRevenue,
         todayBookings: todayBookings ?? 0,

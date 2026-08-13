@@ -83,4 +83,26 @@ export const submitCallbackRequestFn = createServerFn({ method: "POST" })
     return await db.submitCallbackRequest(data);
   });
 
+// ── Admin Server Functions (Secure Service Role Access) ──
+import { getBookings } from "@/lib/queries/bookings";
+import { getPayments, getCouponUsagesAndAnalytics } from "@/lib/queries/admin";
+
+export const getAdminBookingsListFn = createServerFn({ method: "POST" })
+  .validator((params: any) => params)
+  .handler(async ({ data: params }) => {
+    return await getBookings(params);
+  });
+
+export const getAdminPaymentsListFn = createServerFn({ method: "POST" })
+  .validator((params: any) => params)
+  .handler(async ({ data: params }) => {
+    return await getPayments(params);
+  });
+
+export const getAdminCouponAnalyticsFn = createServerFn({ method: "POST" })
+  .validator((params: any) => params)
+  .handler(async ({ data: params }) => {
+    return await getCouponUsagesAndAnalytics(params);
+  });
+
 

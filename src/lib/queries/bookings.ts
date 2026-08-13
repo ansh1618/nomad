@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import type {
   Booking,
   BookingInsert,
@@ -9,22 +10,52 @@ import type {
   PaginationParams,
 } from '@/types/supabase'
 
-const BOOKING_SELECT = `
+const BOOKING_LIST_SELECT = `
+  id,
+  booking_id,
+  user_id,
+  customer_id,
+  departure_id,
+  journey_id,
+  coupon_code,
+  status,
+  booking_status,
+  payment_status,
+  travellers_count,
+  amount,
+  discount_amount,
+  total_amount,
+  amount_paid,
+  balance_due,
+  razorpay_order_id,
+  razorpay_payment_id,
+  room_sharing,
+  pickup_point,
+  customer_name,
+  phone,
+  email,
+  created_at,
+  updated_at,
+  departures(
+    id,
+    departure_date,
+    return_date,
+    base_price,
+    journeys(id, slug, name, hero_banner, duration)
+  ),
+  customers(id, name, email, phone)
+`
+
+const BOOKING_DETAIL_SELECT = `
   *,
   customers(id, name, email, phone, total_bookings, total_spent),
-  users(id, full_name, phone, email, avatar_url, gender, dob, city, emergency_contact),
   departures(
     id, departure_date, return_date, base_price, available_seats,
-    journeys(id, slug, name, hero_banner, duration),
-    buses(id, name, registration_number),
-    hotels(id, name, city)
+    journeys(id, slug, name, hero_banner, duration)
   ),
-  assigned_hotel:hotels(*),
   booking_travellers(*),
   payments(*),
-  booking_timeline(id, event, description, actor, created_at),
-  booking_documents(*),
-  coupons(id, code, discount_type, discount_value)
+  booking_timeline(id, event, description, actor, created_at)
 `
 
 // ==========================================
@@ -52,39 +83,64 @@ export async function getBookings(
     bookingStatus,
     paymentStatus,
     departureId,
-    destinationId,
     userId,
     fromDate,
     toDate,
   } = params
 
-  let query = supabase.from('bookings').select(BOOKING_SELECT, { count: 'exact' })
+  const dbClient = getSupabaseAdmin() || supabase;
+  let query = dbClient.from('bookings').select(BOOKING_LIST_SELECT, { count: 'exact' })
 
-  if (status) query = query.eq('status', status)
+  if (status) {
+    const upper = status.toUpperCase();
+    if (upper === 'CONFIRMED') {
+      query = query.or('status.eq.CONFIRMED,booking_status.eq.CONFIRMED,booking_status.eq.Confirmed');
+    } else if (upper === 'PAYMENT_PENDING' || upper === 'PENDING') {
+      query = query.or('status.eq.PAYMENT_PENDING,status.eq.PENDING,booking_status.eq.PENDING,booking_status.eq.Pending,payment_status.eq.PENDING,payment_status.eq.Pending');
+    } else if (upper === 'CANCELLED') {
+      query = query.or('status.eq.CANCELLED,booking_status.eq.CANCELLED,booking_status.eq.Cancelled');
+    } else if (upper === 'REFUNDED') {
+      query = query.or('status.eq.REFUNDED,refund_status.eq.REFUNDED,refund_status.eq.COMPLETED');
+    } else {
+      query = query.or(`status.eq.${status},booking_status.eq.${status}`);
+    }
+  }
+
   if (bookingStatus) query = query.eq('booking_status', bookingStatus)
   if (paymentStatus) query = query.eq('payment_status', paymentStatus)
   if (departureId) query = query.eq('departure_id', departureId)
-  if (destinationId) query = query.eq('destination_id', destinationId)
   if (userId) query = query.eq('user_id', userId)
   if (fromDate) query = query.gte('created_at', fromDate)
   if (toDate) query = query.lte('created_at', toDate)
-  if (search) {
+
+  if (search && search.trim()) {
+    const s = search.trim();
     query = query.or(
-      `booking_id.ilike.%${search}%,` +
-      `customer_name.ilike.%${search}%,` +
-      `phone.ilike.%${search}%,` +
-      `email.ilike.%${search}%,` +
-      `cashfree_order_id.ilike.%${search}%,` +
-      `cashfree_payment_id.ilike.%${search}%,` +
-      `transaction_id.ilike.%${search}%`
+      `booking_id.ilike.%${s}%,` +
+      `customer_name.ilike.%${s}%,` +
+      `phone.ilike.%${s}%,` +
+      `email.ilike.%${s}%,` +
+      `razorpay_order_id.ilike.%${s}%,` +
+      `razorpay_payment_id.ilike.%${s}%`
     )
   }
 
-  query = query.order(sortBy, { ascending: sortDir === 'asc' })
+  const validSortColumns = ['created_at', 'total_amount', 'amount_paid', 'customer_name', 'status'];
+  const safeSortBy = validSortColumns.includes(sortBy) ? sortBy : 'created_at';
+
+  query = query.order(safeSortBy, { ascending: sortDir === 'asc' })
   query = query.range((page - 1) * pageSize, page * pageSize - 1)
 
   const { data, error, count } = await query
-  if (error) throw new Error(error.message)
+  if (error) {
+    console.error("[getBookings] Supabase error:", {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+    });
+    throw new Error(`[Bookings] ${error.message}`);
+  }
 
   return {
     data: (data ?? []) as Booking[],
@@ -101,7 +157,7 @@ export async function getBookings(
 export async function getBookingById(id: string): Promise<Booking | null> {
   const { data, error } = await supabase
     .from('bookings')
-    .select(BOOKING_SELECT)
+    .select(BOOKING_DETAIL_SELECT)
     .eq('id', id)
     .single()
 
@@ -118,7 +174,7 @@ export async function getBookingById(id: string): Promise<Booking | null> {
 export async function getBookingByDisplayId(bookingId: string): Promise<Booking | null> {
   const { data, error } = await supabase
     .from('bookings')
-    .select(BOOKING_SELECT)
+    .select(BOOKING_DETAIL_SELECT)
     .eq('booking_id', bookingId)
     .single()
 
@@ -135,7 +191,7 @@ export async function getBookingByDisplayId(bookingId: string): Promise<Booking 
 export async function getUserBookings(userId: string): Promise<Booking[]> {
   const { data, error } = await supabase
     .from('bookings')
-    .select(BOOKING_SELECT)
+    .select(BOOKING_DETAIL_SELECT)
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
 

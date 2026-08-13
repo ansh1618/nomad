@@ -90,6 +90,8 @@ export function PaymentStep({
         gstAmount: pricing.gst,
         totalAmount: pricing.total, // backend stores total with GST
         couponId: data.coupon?.id || undefined,
+        couponCode: data.coupon?.code || undefined,
+        coupon: data.coupon || undefined,
         discountAmount: pricing.couponDiscount,
         hotelId: journey?.hotel_id || journey?.accommodation?.id || null,
       };

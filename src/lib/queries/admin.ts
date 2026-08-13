@@ -231,86 +231,64 @@ export async function getCouponUsagesAndAnalytics(params: {
   totalPages: number;
 }> {
   const { couponCode, journeyId, search, page = 1, pageSize = 20, bookingStatus } = params
-  const dbClient = supabaseAdmin || supabase
-
   let allUsages: CouponUsageItem[] = []
 
   try {
-    let query = dbClient.from("coupon_usages").select("*")
-    if (couponCode && couponCode !== "ALL") query = query.ilike("coupon_code", `%${couponCode}%`)
-    if (journeyId && journeyId !== "ALL") query = query.eq("journey_id", journeyId)
-
-    const { data: dbUsages, error } = await query
-    if (!error && dbUsages) {
-      allUsages = dbUsages.map((u: any) => ({
-        id: u.id,
-        coupon_id: u.coupon_id,
-        coupon_code: u.coupon_code || "STUTI500",
-        booking_id: u.booking_id,
-        booking_code: u.booking_code || u.booking_id,
-        user_id: u.user_id,
-        customer_name: u.customer_name || "Explorer",
-        customer_phone: u.customer_phone || "—",
-        customer_email: u.customer_email || "—",
-        journey_id: u.journey_id,
-        journey_name: u.journey_name || "Nomadik Trip",
-        departure_date: u.departure_date || "Upcoming Batch",
-        original_amount: Number(u.original_amount) || 0,
-        discount_amount: Number(u.discount_amount) || 0,
-        final_amount: Number(u.final_amount) || 0,
-        used_at: u.used_at || u.created_at || new Date().toISOString(),
-        status: u.status || "CONFIRMED",
-      }))
-    }
-  } catch (err) {
-    console.warn("coupon_usages DB query error:", err)
-  }
-
-  try {
-    let bQuery = dbClient
+    const dbClient = getSupabaseAdmin() || supabase;
+    const { data: bData, error } = await dbClient
       .from("bookings")
-      .select("*, journeys(name, slug), departures(departure_date)")
+      .select("id, booking_id, user_id, customer_name, phone, email, amount, total_amount, discount_amount, coupon_code, status, booking_status, created_at, departures(departure_date, journeys(name))")
+      .order("created_at", { ascending: false });
 
-    if (couponCode && couponCode !== "ALL") {
-      bQuery = bQuery.ilike("coupon_code", `%${couponCode}%`)
-    } else {
-      bQuery = bQuery.not("coupon_code", "is", null)
-    }
-
-    const { data: bData } = await bQuery
-    if (bData && bData.length > 0) {
-      const existingBookingIds = new Set(allUsages.map((u) => u.booking_id))
+    if (error) {
+      console.error("[getCouponUsagesAndAnalytics] Supabase error:", {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+      });
+    } else if (bData) {
       for (const b of bData) {
-        if (!existingBookingIds.has(b.id)) {
-          const discountVal = Number(b.discount_amount) || (b.coupon_code?.toUpperCase() === "STUTI500" ? 500 : 0)
-          if (discountVal > 0 || b.coupon_code) {
-            const orig = Number(b.total_amount || b.amount) + discountVal
-            const fin = Number(b.total_amount || b.amount)
-            allUsages.push({
-              id: `b-${b.id}`,
-              coupon_id: null,
-              coupon_code: b.coupon_code || "STUTI500",
-              booking_id: b.id,
-              booking_code: b.booking_id || b.id,
-              user_id: b.user_id,
-              customer_name: b.customer_name || "Explorer",
-              customer_phone: b.phone || "—",
-              customer_email: b.email || "—",
-              journey_id: b.journey_id,
-              journey_name: b.journeys?.name || "Nomadik Journey",
-              departure_date: b.departures?.departure_date ? new Date(b.departures.departure_date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "Upcoming Batch",
-              original_amount: orig,
-              discount_amount: discountVal,
-              final_amount: fin,
-              used_at: b.created_at || new Date().toISOString(),
-              status: b.status || b.booking_status || "CONFIRMED",
-            })
-          }
+        const discountVal = Number(b.discount_amount) || Number(b.coupon_discount) || 0;
+        const code = b.coupon_code || (discountVal > 0 ? "STUTI500" : null);
+
+        if (discountVal > 0 || code) {
+          const finalAmt = Number(b.total_amount || b.amount || 0);
+          const origAmt = finalAmt + discountVal;
+          const depDate = (b.departures as any)?.departure_date
+            ? new Date((b.departures as any).departure_date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
+            : "Upcoming Batch";
+          const jName = (b.departures as any)?.journeys?.name || "Nomadik Journey";
+
+          allUsages.push({
+            id: `usage-${b.id}`,
+            coupon_id: null,
+            coupon_code: code || "STUTI500",
+            booking_id: b.id,
+            booking_code: b.booking_id || b.id,
+            user_id: b.user_id,
+            customer_name: b.customer_name || "Explorer",
+            customer_phone: b.phone || "—",
+            customer_email: b.email || "—",
+            journey_id: null,
+            journey_name: jName,
+            departure_date: depDate,
+            original_amount: origAmt,
+            discount_amount: discountVal,
+            final_amount: finalAmt,
+            used_at: b.created_at || new Date().toISOString(),
+            status: b.status || b.booking_status || "CONFIRMED",
+          });
         }
       }
     }
-  } catch (err) {
-    console.warn("Bookings coupon fallback query error:", err)
+  } catch (err: any) {
+    console.error("[getCouponUsagesAndAnalytics] Exception:", err?.message || err);
+  }
+
+  if (couponCode && couponCode !== "ALL") {
+    const filterCode = couponCode.toLowerCase().trim();
+    allUsages = allUsages.filter((u) => u.coupon_code.toLowerCase().includes(filterCode));
   }
 
   if (search && search.trim()) {
@@ -849,14 +827,41 @@ export async function getWalletTransactions(userId: string): Promise<WalletTrans
 export async function getPayments(params: PaginationParams & { status?: string } = {}): Promise<PaginatedResult<Payment>> {
   const { page = 1, pageSize = 20, search, sortBy = 'created_at', sortDir = 'desc', status } = params
 
-  let query = supabase.from('payments').select('*, bookings(booking_id, users(full_name, phone))', { count: 'exact' })
-  if (status) query = query.eq('status', status)
-  if (search) query = query.or(`gateway_payment_id.ilike.%${search}%`)
-  query = query.order(sortBy, { ascending: sortDir === 'asc' })
+  const dbClient = getSupabaseAdmin() || supabase;
+  let query = dbClient.from('payments').select('id, booking_id, amount, status, method, payment_method, gateway, transaction_id, cashfree_order_id, cashfree_payment_id, created_at, bookings(booking_id, customer_name, phone, email)', { count: 'exact' })
+
+  if (status) {
+    const upper = status.toUpperCase();
+    if (upper === 'SUCCESS' || upper === 'PAID') {
+      query = query.or('status.eq.SUCCESS,status.eq.Paid,status.eq.PAID');
+    } else if (upper === 'PENDING') {
+      query = query.or('status.eq.PENDING,status.eq.Pending');
+    } else {
+      query = query.eq('status', status);
+    }
+  }
+
+  if (search && search.trim()) {
+    const s = search.trim();
+    query = query.or(`transaction_id.ilike.%${s}%,cashfree_order_id.ilike.%${s}%,cashfree_payment_id.ilike.%${s}%`);
+  }
+
+  const validSort = ['created_at', 'amount', 'status'];
+  const safeSort = validSort.includes(sortBy) ? sortBy : 'created_at';
+
+  query = query.order(safeSort, { ascending: sortDir === 'asc' })
   query = query.range((page - 1) * pageSize, page * pageSize - 1)
 
   const { data, error, count } = await query
-  if (error) throw new Error(error.message)
+  if (error) {
+    console.error("[getPayments] Supabase error:", {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+    });
+    throw new Error(`[Payments] ${error.message}`);
+  }
 
   return { data: (data ?? []) as Payment[], total: count ?? 0, page, pageSize, totalPages: Math.ceil((count ?? 0) / pageSize) }
 }

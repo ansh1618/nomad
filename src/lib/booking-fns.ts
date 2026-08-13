@@ -516,6 +516,8 @@ export const createBookingFn = createServerFn({ method: "POST" })
         final_amount: totalAmount,
         amount_paid: 0,
         balance_due: totalAmount,
+        coupon_code: appliedCouponCode || null,
+        coupon_id: cleanCouponId || null,
         room_sharing: data.roomSharing || null,
         pickup_point: data.pickupPoint || null,
       };
@@ -606,15 +608,17 @@ export const createBookingFn = createServerFn({ method: "POST" })
       await supabaseAdmin.from("booking_travellers").insert(travellersToInsert);
 
       // Insert payment record
-      await supabaseAdmin.from("payments").insert({
-        booking_id: bookingDbId,
-        amount: totalAmount,
-        currency: "INR",
-        status: "Pending",
-        payment_type: "FULL",
-        payment_gateway: "RAZORPAY",
-        gateway: "razorpay",
-      });
+      try {
+        await supabaseAdmin.from("payments").insert({
+          booking_id: bookingDbId,
+          amount: totalAmount,
+          status: "PENDING",
+          method: "ONLINE",
+          gateway: "razorpay",
+        });
+      } catch (payErr) {
+        console.warn("[createBookingFn] Initial payments insert warning:", payErr);
+      }
 
       // Insert timeline
       await supabaseAdmin.from("booking_timeline").insert({
@@ -781,14 +785,17 @@ export const createGuestBookingFn = createServerFn({ method: "POST" })
       });
 
       // Payment record
-      await supabaseAdmin.from("payments").insert({
-        booking_id: bookingDbId,
-        amount: depositAmount,
-        currency: "INR",
-        status: "Pending",
-        gateway: "razorpay",
-        payment_gateway: "RAZORPAY",
-      });
+      try {
+        await supabaseAdmin.from("payments").insert({
+          booking_id: bookingDbId,
+          amount: depositAmount,
+          status: "PENDING",
+          method: "ONLINE",
+          gateway: "razorpay",
+        });
+      } catch (payErr) {
+        console.warn("[createGuestBookingFn] Payments insert warning:", payErr);
+      }
 
       // Timeline
       await supabaseAdmin.from("booking_timeline").insert({

@@ -23,7 +23,9 @@ export function getSupabaseAdmin(): SupabaseClient | null {
   const serviceKey = getEnvVar("SUPABASE_SERVICE_ROLE_KEY");
 
   if (!url || !serviceKey) {
-    console.error("[Supabase Admin] Environment variables missing (VITE_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY).");
+    if (typeof window === "undefined") {
+      console.error("[Supabase Admin] Environment variables missing (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY).");
+    }
     return null;
   }
 
@@ -36,7 +38,9 @@ export function getSupabaseAdmin(): SupabaseClient | null {
     });
     return adminClientInstance;
   } catch (err: any) {
-    console.error("[Supabase Admin] Failed to initialize admin client:", err?.message || err);
+    if (typeof window === "undefined") {
+      console.error("[Supabase Admin] Failed to initialize admin client:", err?.message || err);
+    }
     return null;
   }
 }
@@ -82,11 +86,19 @@ function createMockQueryBuilder(): any {
     delete: () => mockBuilder,
     eq: () => mockBuilder,
     neq: () => mockBuilder,
-    or: () => mockBuilder,
-    in: () => mockBuilder,
+    gt: () => mockBuilder,
+    gte: () => mockBuilder,
+    lt: () => mockBuilder,
+    lte: () => mockBuilder,
+    like: () => mockBuilder,
+    ilike: () => mockBuilder,
     is: () => mockBuilder,
+    in: () => mockBuilder,
+    or: () => mockBuilder,
+    not: () => mockBuilder,
     order: () => mockBuilder,
     limit: () => mockBuilder,
+    range: () => mockBuilder,
     single: async () => ({ data: null, error: { message: "Supabase admin unavailable" } }),
     maybeSingle: async () => ({ data: null, error: null }),
     then: (resolve: any) => resolve({ data: [], error: null, count: 0 }),

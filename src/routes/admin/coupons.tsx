@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DataTable, exportToCSV } from '@/components/admin/DataTable'
 import type { ColumnDef } from '@tanstack/react-table'
 import { getCoupons, createCoupon, deleteCoupon, getCouponUsagesAndAnalytics } from '@/lib/queries/admin'
+import { getAdminCouponAnalyticsFn } from '@/lib/server-fns'
 import { getPublishedDestinations } from '@/lib/queries/destinations'
 import type { Coupon, CouponUsageItem } from '@/types/supabase'
 import { toast } from 'sonner'
@@ -83,14 +84,21 @@ function CouponsPage() {
   // 2. Fetch Coupon Usages & Analytics
   const { data: analyticsResult, isLoading: loadingAnalytics } = useQuery({
     queryKey: ['coupon_usages_analytics', selectedCouponFilter, selectedJourneyFilter, selectedStatusFilter, search, page, pageSize],
-    queryFn: () => getCouponUsagesAndAnalytics({
-      couponCode: selectedCouponFilter,
-      journeyId: selectedJourneyFilter,
-      bookingStatus: selectedStatusFilter,
-      search,
-      page,
-      pageSize
-    }),
+    queryFn: async () => {
+      const params = {
+        couponCode: selectedCouponFilter,
+        journeyId: selectedJourneyFilter,
+        bookingStatus: selectedStatusFilter,
+        search,
+        page,
+        pageSize
+      };
+      try {
+        return await getAdminCouponAnalyticsFn({ data: params });
+      } catch {
+        return await getCouponUsagesAndAnalytics(params);
+      }
+    },
     placeholderData: (prev) => prev,
   })
 

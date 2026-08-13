@@ -291,25 +291,42 @@ export async function confirmBookingAfterPayment(
     })
     .eq("id", bookingId);
 
-  // 3. Insert detailed payment record
-  await adminClient.from("payments").insert({
-    booking_id: bookingId,
-    amount: amountPaid,
-    currency: "INR",
-    status: "Paid",
-    payment_type: "ONLINE",
-    payment_gateway: gateway.toUpperCase(),
-    gateway: gateway,
-    gateway_order_id: orderId,
-    gateway_payment_id: paymentId,
-    gateway_signature: signature ?? null,
-    payment_method: method,
-    bank,
-    upi,
-    wallet,
-    gateway_response: gatewayResponse ?? null,
-    payment_time: new Date().toISOString(),
-  });
+  // 3. Insert detailed payment record (safely)
+  try {
+    const paymentPayload: Record<string, any> = {
+      booking_id: bookingId,
+      amount: amountPaid,
+      status: "SUCCESS",
+      payment_type: "ONLINE",
+      payment_gateway: gateway.toUpperCase(),
+      gateway: gateway,
+      gateway_order_id: orderId,
+      gateway_payment_id: paymentId,
+      gateway_signature: signature ?? null,
+      payment_method: method,
+      bank,
+      upi,
+      wallet,
+      gateway_response: gatewayResponse ?? null,
+      payment_time: new Date().toISOString(),
+    };
+
+    const { error: payErr } = await adminClient.from("payments").insert(paymentPayload);
+    if (payErr) {
+      console.warn("[confirmBookingAfterPayment] Payments insert warning:", payErr.message);
+      // Fallback: insert minimal fields
+      await adminClient.from("payments").insert({
+        booking_id: bookingId,
+        amount: amountPaid,
+        status: "SUCCESS",
+        payment_gateway: gateway.toUpperCase(),
+        gateway_order_id: orderId,
+        gateway_payment_id: paymentId,
+      });
+    }
+  } catch (err: any) {
+    console.error("[confirmBookingAfterPayment] Payments table insert exception:", err?.message || err);
+  }
 
   // Fetch departure and journey info
   let tripName = "Nomadik Road Trip";
