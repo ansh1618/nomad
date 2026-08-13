@@ -53,18 +53,37 @@ export const createRazorpayOrderFn = createServerFn({ method: 'POST' })
 
     const order = await response.json()
 
+    // 1. Immediately link razorpay_order_id to booking row so webhook can find booking by order_id
+    try {
+      const { error: updateErr } = await supabaseAdmin
+        .from('bookings')
+        .update({
+          razorpay_order_id: order.id,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', bookingId);
+
+      if (updateErr) {
+        console.error(`[createRazorpayOrderFn] Failed to attach order ${order.id} to booking ${bookingId}:`, updateErr.message);
+      } else {
+        console.log(`[createRazorpayOrderFn] Linked razorpay_order_id ${order.id} to booking ${bookingId}`);
+      }
+    } catch (bErr: any) {
+      console.warn("[createRazorpayOrderFn] Booking razorpay_order_id update warning:", bErr?.message);
+    }
+
+    // 2. Insert initial PENDING payment record with exact real schema columns
     try {
       await supabaseAdmin.from('payments').insert({
         booking_id: bookingId,
         amount,
         status: 'PENDING',
         method: 'ONLINE',
-        payment_type: paymentType,
         gateway: 'razorpay',
-        gateway_order_id: order.id,
+        transaction_id: order.id,
       });
-    } catch (payErr) {
-      console.warn("[createRazorpayOrderFn] Payments table insert warning:", payErr);
+    } catch (payErr: any) {
+      console.warn("[createRazorpayOrderFn] Payments table insert warning:", payErr?.message || payErr);
     }
 
     return {

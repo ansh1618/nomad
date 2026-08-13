@@ -115,7 +115,7 @@ function PaymentsPage() {
       header: 'Transaction ID',
       cell: ({ row }) => (
         <span className="font-mono text-xs font-semibold text-primary">
-          {row.original.gateway_payment_id ?? row.original.gateway_order_id ?? '—'}
+          {row.original.transaction_id ?? row.original.cashfree_payment_id ?? row.original.gateway_payment_id ?? row.original.cashfree_order_id ?? '—'}
         </span>
       ),
     },
