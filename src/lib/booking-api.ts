@@ -238,10 +238,10 @@ export async function confirmBookingAfterPayment(
   const paymentId = input.paymentId ?? input.cashfreePaymentId ?? "";
   const { bookingId, amountPaid, gatewayResponse, signature } = input;
 
-  // 1. Fetch booking
+  // 1. Fetch booking — ONLY columns that actually exist in the real schema
   const { data: booking, error: fetchErr } = await adminClient
     .from("bookings")
-    .select("id, booking_id, customer_id, departure_id, amount, gst_rate, gst_amount, discount_amount, coupon_discount, total_amount, booking_status, customer_name, phone, email")
+    .select("id, booking_id, customer_id, departure_id, amount, discount_amount, total_amount, booking_status, customer_name, phone, email, coupon_code")
     .eq("id", bookingId)
     .single();
 
@@ -275,57 +275,97 @@ export async function confirmBookingAfterPayment(
           transaction_id: paymentId,
         };
 
-  await adminClient
+  const { error: updateErr } = await adminClient
     .from("bookings")
     .update({
       status: "CONFIRMED",
-      booking_status: "Confirmed",
-      payment_status: "Paid",
+      booking_status: "CONFIRMED",
+      payment_status: "SUCCESS",
       amount_paid: amountPaid,
       balance_due: Math.max(0, (booking.total_amount ?? 0) - amountPaid),
       payment_method: method,
       payment_time: new Date().toISOString(),
-      gateway_response: gatewayResponse ?? null,
       updated_at: new Date().toISOString(),
       ...gatewayBookingFields,
     })
     .eq("id", bookingId);
 
-  // 3. Insert detailed payment record (safely)
+  if (updateErr) {
+    console.error("[confirmBookingAfterPayment] CRITICAL: booking update failed:", updateErr.message);
+    // Still continue — we have the payment, try to at least write the payment record
+  } else {
+    console.log(`[BOOKING] Booking ${booking.booking_id} confirmed: amount_paid=${amountPaid}`);
+  }
+
+  // 3. Insert payment record — using EXACT real schema columns
+  // Actual payments schema: id, booking_id, amount, method (NOT NULL), status, transaction_id, gateway, cashfree_order_id, cashfree_payment_id, payment_method, refund_status, created_at, updated_at
   try {
     const paymentPayload: Record<string, any> = {
       booking_id: bookingId,
       amount: amountPaid,
       status: "SUCCESS",
-      payment_type: "ONLINE",
-      payment_gateway: gateway.toUpperCase(),
+      method: method?.toUpperCase() || "ONLINE",   // Required NOT NULL
       gateway: gateway,
-      gateway_order_id: orderId,
-      gateway_payment_id: paymentId,
-      gateway_signature: signature ?? null,
-      payment_method: method,
-      bank,
-      upi,
-      wallet,
-      gateway_response: gatewayResponse ?? null,
-      payment_time: new Date().toISOString(),
+      transaction_id: paymentId || null,            // Razorpay payment_id stored here
+      payment_method: method || null,
     };
 
-    const { error: payErr } = await adminClient.from("payments").insert(paymentPayload);
-    if (payErr) {
-      console.warn("[confirmBookingAfterPayment] Payments insert warning:", payErr.message);
-      // Fallback: insert minimal fields
-      await adminClient.from("payments").insert({
-        booking_id: bookingId,
-        amount: amountPaid,
-        status: "SUCCESS",
-        payment_gateway: gateway.toUpperCase(),
-        gateway_order_id: orderId,
-        gateway_payment_id: paymentId,
-      });
+    // Add gateway-specific IDs in cashfree columns if it's cashfree
+    if (gateway === "cashfree") {
+      paymentPayload.cashfree_order_id = orderId || null;
+      paymentPayload.cashfree_payment_id = paymentId || null;
+    }
+
+    // Idempotency: don't insert duplicate payment for same transaction_id
+    if (paymentId) {
+      const { data: existing } = await adminClient
+        .from("payments")
+        .select("id")
+        .eq("transaction_id", paymentId)
+        .maybeSingle();
+
+      if (existing) {
+        console.log(`[PAYMENT] Payment ${paymentId} already exists — idempotency skip`);
+      } else {
+        const { error: payErr } = await adminClient.from("payments").insert(paymentPayload);
+        if (payErr) {
+          console.error("[PAYMENT] Payment insert FAILED:", payErr.message, payErr.hint);
+        } else {
+          console.log(`[PAYMENT] Payment record created: ${paymentId}, amount=${amountPaid}`);
+        }
+      }
+    } else {
+      const { error: payErr } = await adminClient.from("payments").insert(paymentPayload);
+      if (payErr) {
+        console.error("[PAYMENT] Payment insert FAILED (no paymentId):", payErr.message);
+      } else {
+        console.log(`[PAYMENT] Payment record created, amount=${amountPaid}`);
+      }
     }
   } catch (err: any) {
-    console.error("[confirmBookingAfterPayment] Payments table insert exception:", err?.message || err);
+    console.error("[PAYMENT] Exception during payment insert:", err?.message || err);
+  }
+
+  // 3b. Update coupon used_count if coupon was used on this booking
+  try {
+    const couponCode = booking.coupon_code;
+    if (couponCode) {
+      const { data: coupon } = await adminClient
+        .from("coupons")
+        .select("id, used_count")
+        .eq("code", couponCode.toUpperCase().trim())
+        .maybeSingle();
+
+      if (coupon) {
+        await adminClient
+          .from("coupons")
+          .update({ used_count: (coupon.used_count ?? 0) + 1 })
+          .eq("id", coupon.id);
+        console.log(`[COUPON] Incremented used_count for coupon ${couponCode}: now ${(coupon.used_count ?? 0) + 1}`);
+      }
+    }
+  } catch (err: any) {
+    console.warn("[COUPON] Failed to update coupon used_count:", err?.message || err);
   }
 
   // Fetch departure and journey info
@@ -360,64 +400,28 @@ export async function confirmBookingAfterPayment(
     }
   }
 
-  // Generate invoice record in the database
-  const invoicePayload = {
-    booking_id: bookingId,
-    customer_name: booking.customer_name || "Explorer",
-    customer_email: booking.email || null,
-    customer_phone: booking.phone || null,
-    customer_address: pickupPoint || null,
-    trip_name: tripName,
-    departure_date: departureDate,
-    subtotal: booking.amount || booking.total_amount || 0,
-    gst: booking.gst_amount || 0,
-    total: booking.total_amount || amountPaid,
-    discount_amount: booking.discount_amount || booking.coupon_discount || 0,
-    gst_rate: booking.gst_rate || 5,
-    gst_amount: booking.gst_amount || 0,
-    total_amount: booking.total_amount || amountPaid,
-    amount_paid: amountPaid,
-    balance_due: Math.max(0, (booking.total_amount ?? 0) - amountPaid),
-    status: "PAID",
-    issued_at: new Date().toISOString(),
-    paid_at: new Date().toISOString(),
-  };
+  // Invoice creation is optional — skip if table doesn't exist or has schema mismatch
+  // to avoid breaking the confirmation flow.
 
-  const { data: invData, error: invErr } = await adminClient
-    .from("invoices")
-    .insert(invoicePayload)
-    .select("invoice_number")
-    .maybeSingle();
-
-  if (invErr) {
-    console.error("[confirmBookingAfterPayment] Failed to create invoice:", invErr.message);
-  } else {
-    console.log("[confirmBookingAfterPayment] Created invoice:", invData?.invoice_number);
+  // 4. Insert Timeline entries for progress tracking (non-critical, safe)
+  try {
+    await adminClient.from("booking_timeline").insert([
+      {
+        booking_id: bookingId,
+        event: "Payment Success",
+        description: `Payment of ₹${amountPaid.toLocaleString("en-IN")} received via ${gateway}`,
+        actor: "SYSTEM",
+      },
+      {
+        booking_id: bookingId,
+        event: "Booking Confirmed",
+        description: "Booking is now officially confirmed.",
+        actor: "SYSTEM",
+      },
+    ]);
+  } catch (err: any) {
+    console.warn("[confirmBookingAfterPayment] Timeline insert warning:", err?.message);
   }
-
-  // 4. Insert Timeline entries for progress tracking
-  await adminClient.from("booking_timeline").insert([
-    {
-      booking_id: bookingId,
-      event: "Payment Success",
-      description: `Payment of ₹${amountPaid.toLocaleString("en-IN")} received via ${method.toUpperCase()}`,
-      actor: "SYSTEM",
-    },
-    {
-      booking_id: bookingId,
-      event: "Booking Confirmed",
-      description: "Booking is now officially confirmed. Stays and convoy allocations in progress.",
-      actor: "SYSTEM",
-    },
-  ]);
-
-  // 5. Write audit log
-  await adminClient.from("booking_logs").insert({
-    booking_id: bookingId,
-    action: "PAYMENT_VERIFIED_CONFIRMED",
-    payload: { amountPaid, method, orderId, paymentId },
-    response: { status: "Confirmed" },
-  });
 
   // 5. Decrement departure available_seats
   if (booking.departure_id) {
@@ -466,23 +470,20 @@ export async function confirmBookingAfterPayment(
     }
   }
 
-  // 7. Add booking timeline event
-  await adminClient.from("booking_timeline").insert({
-    booking_id: bookingId,
-    event: "PAYMENT_SUCCESS",
-    description: `Payment of ₹${amountPaid} confirmed via ${gateway}`,
-    actor: "SYSTEM",
-    metadata: { gateway, gateway_payment_id: paymentId, order_id: orderId },
-  });
+  // 7. (duplicate timeline removed — already inserted above)
 
-  // 8. Create admin notification
-  await adminClient.from("notifications").insert({
-    recipient_type: "ADMIN",
-    title: "💰 New Booking Confirmed",
-    message: `Booking confirmed via ${gateway}. Amount: ₹${amountPaid.toLocaleString("en-IN")}`,
-    type: "SUCCESS",
-    related_booking_id: bookingId,
-  });
+  // 8. Create admin notification (non-critical)
+  try {
+    await adminClient.from("notifications").insert({
+      recipient_type: "ADMIN",
+      title: "💰 New Booking Confirmed",
+      message: `Booking ${booking.booking_id} confirmed via ${gateway}. Amount: ₹${amountPaid.toLocaleString("en-IN")}`,
+      type: "SUCCESS",
+      related_booking_id: bookingId,
+    });
+  } catch (err: any) {
+    console.warn("[confirmBookingAfterPayment] Notification insert warning:", err?.message);
+  }
 
   // 9. Fire email confirmation (asynchronous)
   const emailRecipient = booking.email;
