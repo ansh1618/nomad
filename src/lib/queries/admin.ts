@@ -745,6 +745,7 @@ export async function updateSettings(settings: Record<string, unknown>): Promise
 }
 
 // ==========================================
+// ==========================================
 // ANALYTICS
 // ==========================================
 export async function getDashboardStats(): Promise<DashboardStats> {
@@ -753,94 +754,119 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const todayIso = today.toISOString();
+  const startOfMonthIso = new Date(today.getFullYear(), today.getMonth(), 1).toISOString();
+  const sevenDaysAgoIso = new Date(Date.now() - 7 * 86400000).toISOString();
 
-  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString();
+  // 1. Fetch all SUCCESS payments
+  const { data: successPayments, error: payErr } = await dbClient
+    .from('payments')
+    .select('id, booking_id, amount, created_at')
+    .eq('status', 'SUCCESS');
 
-  // Run all queries in parallel directly from source tables — avoids relying on the v_dashboard_stats view
+  if (payErr) {
+    console.error("[getDashboardStats] Error fetching payments:", payErr);
+    throw new Error(`[DashboardStats] Failed to fetch payments: ${payErr.message}`);
+  }
+
+  const validPayments = successPayments ?? [];
+
+  // Calculate revenue metrics strictly from SUCCESS payments
+  const totalRevenue = validPayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+  const monthlyRevenue = validPayments
+    .filter((p) => p.created_at >= startOfMonthIso)
+    .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+  const todayRevenue = validPayments
+    .filter((p) => p.created_at >= todayIso)
+    .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+
+  // Paid/confirmed booking IDs from SUCCESS payments
+  const confirmedBookingIds = new Set(validPayments.map((p) => p.booking_id).filter(Boolean));
+  const confirmedBookingsCount = confirmedBookingIds.size;
+
+  // 2. Fetch bookings data in parallel with other metrics
   const [
-    successPayments,
-    todayPayments,
-    monthPayments,
-    todayBookingsResult,
-    confirmedBookingsResult,
-    pendingBookingsResult,
-    customersResult,
-    activePackagesResult,
-    upcomingDepsResult,
-    todayLeadsResult,
-    weekLeadsResult,
+    todayBookingsRes,
+    allBookingsRes,
+    customersRes,
+    journeysRes,
+    upcomingDepsRes,
+    todayLeadsRes,
+    weekLeadsRes,
   ] = await Promise.all([
-    // All-time revenue from captured payments
-    dbClient.from('payments').select('amount').eq('status', 'SUCCESS'),
-    // Today's revenue
-    dbClient.from('payments').select('amount').eq('status', 'SUCCESS').gte('created_at', todayIso),
-    // This month's revenue
-    dbClient.from('payments').select('amount').eq('status', 'SUCCESS').gte('created_at', startOfMonth),
-    // Today's bookings count
+    // Today's booking requests
     dbClient.from('bookings').select('id', { count: 'exact', head: true }).gte('created_at', todayIso),
-    // Confirmed bookings count
-    dbClient.from('bookings').select('id', { count: 'exact', head: true }).eq('booking_status', 'CONFIRMED'),
-    // Pending bookings count
-    dbClient.from('bookings').select('id', { count: 'exact', head: true }).eq('booking_status', 'PENDING'),
-    // Total customers
-    dbClient.from('customers').select('id', { count: 'exact', head: true }),
-    // Active packages
-    dbClient.from('journeys').select('id', { count: 'exact', head: true }).eq('is_active', true),
+    // All bookings for pending count and paid customer identification
+    dbClient.from('bookings').select('id, customer_id, email, phone, status, booking_status'),
+    // Total registered customers
+    dbClient.from('customers').select('id, email', { count: 'exact' }),
+    // Active journeys / packages
+    dbClient.from('journeys').select('id', { count: 'exact', head: true }).neq('is_deleted', true),
     // Upcoming departures
     dbClient.from('departures').select('id', { count: 'exact', head: true }).gte('departure_date', todayIso),
     // Today's leads
     dbClient.from('inquiries').select('id', { count: 'exact', head: true }).gte('created_at', todayIso),
     // This week's leads
-    dbClient.from('inquiries').select('id', { count: 'exact', head: true })
-      .gte('created_at', new Date(Date.now() - 7 * 86400000).toISOString()),
+    dbClient.from('inquiries').select('id', { count: 'exact', head: true }).gte('created_at', sevenDaysAgoIso),
   ]);
 
-  const totalRevenue = (successPayments.data ?? []).reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
-  const todayRevenue = (todayPayments.data ?? []).reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
-  const monthlyRevenue = (monthPayments.data ?? []).reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
+  const allBookings = allBookingsRes.data ?? [];
+
+  // Pending bookings = bookings not confirmed by SUCCESS payment and not cancelled/refunded
+  const pendingBookingsCount = allBookings.filter(
+    (b) =>
+      !confirmedBookingIds.has(b.id) &&
+      b.status !== 'CANCELLED' &&
+      b.status !== 'REFUNDED' &&
+      b.booking_status !== 'CANCELLED',
+  ).length;
+
+  // Paid customers = unique customers associated with confirmed paid bookings
+  const paidBookingRows = allBookings.filter((b) => confirmedBookingIds.has(b.id));
+  const paidCustomerIdentities = new Set(
+    paidBookingRows.map((b) => b.customer_id || b.email || b.phone).filter(Boolean),
+  );
+  const paidCustomersCount = paidCustomerIdentities.size || customersRes.count || 0;
+
+  const weekLeadsCount = weekLeadsRes.count ?? 0;
+  const leadConversionRate =
+    weekLeadsCount > 0 ? Math.round((confirmedBookingsCount / weekLeadsCount) * 100) : 0;
 
   const stats: DashboardStats = {
-    today_bookings: todayBookingsResult.count ?? 0,
+    today_bookings: todayBookingsRes.count ?? 0,
     today_revenue: todayRevenue,
     monthly_revenue: monthlyRevenue,
-    total_revenue: totalRevenue,
-    confirmed_bookings: confirmedBookingsResult.count ?? 0,
-    pending_bookings: pendingBookingsResult.count ?? 0,
+    confirmed_bookings: confirmedBookingsCount,
+    pending_bookings: pendingBookingsCount,
     completed_trips: 0,
-    total_customers: customersResult.count ?? 0,
-    active_packages: activePackagesResult.count ?? 0,
-    upcoming_departures: upcomingDepsResult.count ?? 0,
-    today_leads: todayLeadsResult.count ?? 0,
-    week_leads: weekLeadsResult.count ?? 0,
-    lead_conversion_rate: 0,
-  } as unknown as DashboardStats;
+    today_leads: todayLeadsRes.count ?? 0,
+    week_leads: weekLeadsCount,
+    total_customers: paidCustomersCount,
+    active_packages: journeysRes.count ?? 0,
+    upcoming_departures: upcomingDepsRes.count ?? 0,
+    lead_conversion_rate: leadConversionRate,
+  };
 
   return stats;
 }
 
 export async function getMonthlyRevenue(): Promise<MonthlyRevenue[]> {
-  // Try the view first; fall back to direct computation if it fails or returns nothing
-  try {
-    const dbClient = getSupabaseAdmin() || supabase;
-    const { data: viewData, error: viewErr } = await dbClient.from('v_monthly_revenue').select('*');
-    if (!viewErr && viewData && viewData.length > 0) {
-      return viewData as MonthlyRevenue[];
-    }
-  } catch { /* fall through to direct computation */ }
-
-  // Direct computation: last 12 months of SUCCESS payments grouped by month
   const dbClient = getSupabaseAdmin() || supabase;
   const twelveMonthsAgo = new Date();
   twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
   twelveMonthsAgo.setDate(1);
   twelveMonthsAgo.setHours(0, 0, 0, 0);
 
-  const { data: payments } = await dbClient
+  const { data: payments, error } = await dbClient
     .from('payments')
     .select('amount, created_at')
     .eq('status', 'SUCCESS')
     .gte('created_at', twelveMonthsAgo.toISOString())
     .order('created_at', { ascending: true });
+
+  if (error) {
+    console.error("[getMonthlyRevenue] Error fetching payments:", error);
+    throw new Error(`[MonthlyRevenue] ${error.message}`);
+  }
 
   const monthMap = new Map<string, { revenue: number; bookings: number }>();
 
@@ -848,14 +874,14 @@ export async function getMonthlyRevenue(): Promise<MonthlyRevenue[]> {
     const d = new Date(p.created_at);
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
     const existing = monthMap.get(key) ?? { revenue: 0, bookings: 0 };
-    existing.revenue += p.amount || 0;
+    existing.revenue += Number(p.amount) || 0;
     existing.bookings += 1;
     monthMap.set(key, existing);
   }
 
   return Array.from(monthMap.entries())
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([month, stats]) => ({ month, ...stats } as unknown as MonthlyRevenue));
+    .map(([month, stats]) => ({ month, ...stats }));
 }
 
 export async function getRevenueByDestination() {

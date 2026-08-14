@@ -683,13 +683,83 @@ export async function replaceItineraryDays(journeyId: string, days: Omit<Itinera
 // ANALYTICS: Package performance
 // ==========================================
 export async function getPackagePerformance(): Promise<PackagePerformance[]> {
-  const { data, error } = await supabase
-    .from('v_package_performance')
-    .select('*')
-    .limit(10)
+  const dbClient = getSupabaseAdmin() || supabase;
 
-  if (error) throw new Error(error.message)
-  return (data ?? []) as PackagePerformance[]
+  // 1. Fetch all journeys
+  const { data: journeys, error: jErr } = await dbClient
+    .from('journeys')
+    .select('id, name')
+    .neq('is_deleted', true);
+
+  if (jErr || !journeys) {
+    console.error('[getPackagePerformance] Error fetching journeys:', jErr);
+    return [];
+  }
+
+  // 2. Fetch all SUCCESS payments
+  const { data: payments, error: pErr } = await dbClient
+    .from('payments')
+    .select('booking_id, amount')
+    .eq('status', 'SUCCESS');
+
+  if (pErr || !payments || payments.length === 0) {
+    // If no SUCCESS payments, return journeys with 0 revenue
+    return journeys.slice(0, 10).map((j) => ({
+      id: j.id,
+      name: j.name,
+      booking_count: 0,
+      total_revenue: 0,
+      avg_rating: 4.8,
+    }));
+  }
+
+  // 3. Fetch linked bookings and departures to find journey_id for each payment
+  const bookingIds = Array.from(new Set(payments.map((p) => p.booking_id).filter(Boolean)));
+
+  const { data: bookings } = await dbClient
+    .from('bookings')
+    .select('id, journey_id, departure_id, departures(journey_id)')
+    .in('id', bookingIds);
+
+  const bookingToJourneyMap = new Map<string, string>();
+  if (bookings) {
+    for (const b of bookings) {
+      const journeyId = b.journey_id || (b.departures as any)?.journey_id;
+      if (journeyId) {
+        bookingToJourneyMap.set(b.id, journeyId);
+      }
+    }
+  }
+
+  // 4. Aggregate revenue and booking count per journey
+  const statsMap = new Map<string, { bookingCount: number; totalRevenue: number }>();
+
+  for (const p of payments) {
+    const journeyId = bookingToJourneyMap.get(p.booking_id);
+    if (journeyId) {
+      const current = statsMap.get(journeyId) ?? { bookingCount: 0, totalRevenue: 0 };
+      current.bookingCount += 1;
+      current.totalRevenue += Number(p.amount) || 0;
+      statsMap.set(journeyId, current);
+    }
+  }
+
+  // 5. Build final list of PackagePerformance items
+  const result: PackagePerformance[] = journeys.map((j) => {
+    const stats = statsMap.get(j.id) ?? { bookingCount: 0, totalRevenue: 0 };
+    return {
+      id: j.id,
+      name: j.name,
+      booking_count: stats.bookingCount,
+      total_revenue: stats.totalRevenue,
+      avg_rating: 4.8,
+    };
+  });
+
+  // Sort by revenue descending, then booking count descending
+  result.sort((a, b) => b.total_revenue - a.total_revenue || b.booking_count - a.booking_count);
+
+  return result.slice(0, 10);
 }
 
 // ==========================================

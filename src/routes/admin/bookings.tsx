@@ -105,24 +105,54 @@ function BookingsPage() {
     queryFn: async () => {
       const todayStart = new Date().toISOString().slice(0, 10) + 'T00:00:00.000Z'
 
-      const { count: total } = await supabase.from('bookings').select('*', { count: 'exact', head: true })
-      const { count: confirmed } = await supabase.from('bookings').select('*', { count: 'exact', head: true }).or('booking_status.eq.Confirmed,booking_status.eq.CONFIRMED,status.eq.CONFIRMED')
-      const { count: pending } = await supabase.from('bookings').select('*', { count: 'exact', head: true }).or('payment_status.eq.Pending,payment_status.eq.PENDING,status.eq.PAYMENT_PENDING')
-      const { count: cancelled } = await supabase.from('bookings').select('*', { count: 'exact', head: true }).or('booking_status.eq.Cancelled,status.eq.CANCELLED')
-      
-      const { count: todayBookings } = await supabase.from('bookings').select('*', { count: 'exact', head: true }).gte('created_at', todayStart)
+      // Fetch SUCCESS payments
+      const { data: successPayments } = await supabase
+        .from('payments')
+        .select('booking_id, amount, created_at')
+        .eq('status', 'SUCCESS')
 
-      const { data: allBookings } = await supabase.from('bookings').select('amount_paid, total_amount, balance_due, created_at, travellers_count, traveller_count')
-      const revenue = allBookings?.reduce((s, b) => s + Number(b.amount_paid || 0), 0) ?? 0
-      const todayRevenue = allBookings?.filter(b => b.created_at >= todayStart).reduce((s, b) => s + Number(b.amount_paid || 0), 0) ?? 0
-      const travellers = allBookings?.reduce((s, b) => s + (Number(b.travellers_count || b.traveller_count) || 1), 0) ?? 0
-      const avgBookingValue = (confirmed ?? 0) > 0 ? Math.round(revenue / (confirmed || 1)) : 0
-      const { count: refundRequests } = await supabase.from('bookings').select('*', { count: 'exact', head: true }).or('status.eq.REFUNDED,status.eq.Refunded')
+      const validPayments = successPayments ?? []
+      const revenue = validPayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0)
+      const todayRevenue = validPayments
+        .filter((p) => p.created_at >= todayStart)
+        .reduce((sum, p) => sum + (Number(p.amount) || 0), 0)
+
+      const confirmedBookingIds = new Set(validPayments.map((p) => p.booking_id).filter(Boolean))
+      const confirmed = confirmedBookingIds.size
+
+      const { count: total } = await supabase.from('bookings').select('*', { count: 'exact', head: true })
+      const { count: cancelled } = await supabase
+        .from('bookings')
+        .select('*', { count: 'exact', head: true })
+        .or('booking_status.eq.Cancelled,booking_status.eq.CANCELLED,status.eq.CANCELLED,status.eq.REFUNDED')
+      
+      const { count: todayBookings } = await supabase
+        .from('bookings')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', todayStart)
+
+      const { data: allBookings } = await supabase
+        .from('bookings')
+        .select('id, travellers_count, traveller_count, status')
+
+      const pending = (allBookings ?? []).filter(
+        (b) => !confirmedBookingIds.has(b.id) && b.status !== 'CANCELLED' && b.status !== 'REFUNDED'
+      ).length
+
+      const travellers = (allBookings ?? []).reduce(
+        (s, b) => s + (Number((b as any).travellers_count || (b as any).traveller_count) || 1),
+        0
+      )
+      const avgBookingValue = confirmed > 0 ? Math.round(revenue / confirmed) : 0
+      const { count: refundRequests } = await supabase
+        .from('bookings')
+        .select('*', { count: 'exact', head: true })
+        .or('status.eq.REFUNDED,status.eq.Refunded')
 
       return {
         total: total ?? 0,
-        confirmed: confirmed ?? 0,
-        pending: pending ?? 0,
+        confirmed: confirmed,
+        pending: pending,
         cancelled: cancelled ?? 0,
         travellers,
         revenue,

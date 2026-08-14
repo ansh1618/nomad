@@ -545,31 +545,41 @@ function AdminDashboard() {
                 <p className="text-sm text-muted-foreground text-center py-8">No bookings yet.</p>
               ) : (
                 <div className="space-y-2">
-                  {recentBookings.map((b) => (
-                    <div key={b.id} className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/20 transition-colors">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-xs font-semibold text-primary">
-                            {b.booking_id ?? b.id.slice(0, 8).toUpperCase()}
-                          </span>
-                          <Badge className={`${STATUS_COLORS[b.status] ?? 'bg-gray-100 text-gray-700'} text-[9px] font-bold border-0`}>
-                            {b.status.replace('_', ' ')}
-                          </Badge>
+                  {recentBookings.map((b) => {
+                    const isPaid = (b as any).payment_status === 'SUCCESS' || b.amount_paid > 0
+                    return (
+                      <div key={b.id} className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/20 transition-colors">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-xs font-semibold text-primary">
+                              {b.booking_id ?? b.id.slice(0, 8).toUpperCase()}
+                            </span>
+                            <span className="text-xs font-medium truncate">
+                              {(b as any).customer_name || 'Explorer'}
+                            </span>
+                            <Badge className={`${STATUS_COLORS[b.status] ?? 'bg-gray-100 text-gray-700'} text-[9px] font-bold border-0`}>
+                              {b.status.replace('_', ' ')}
+                            </Badge>
+                            <Badge className={`${isPaid ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'} text-[9px] font-bold border-0`}>
+                              {isPaid ? 'SUCCESS' : 'PENDING'}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {b.traveller_count ?? (b as any).travellers_count ?? b.booking_travellers?.length ?? 1} traveller{(b.traveller_count ?? (b as any).travellers_count ?? b.booking_travellers?.length ?? 1) !== 1 ? 's' : ''} · {new Date(b.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                            {isPaid ? ` · ₹${(b.amount_paid || 0).toLocaleString('en-IN')} paid` : ' · Unpaid'}
+                          </p>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {b.traveller_count ?? (b as any).travellers_count ?? b.booking_travellers?.length ?? 1} traveller{(b.traveller_count ?? (b as any).travellers_count ?? b.booking_travellers?.length ?? 1) !== 1 ? 's' : ''} · {new Date(b.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                        </p>
+                        <div className="text-right flex items-center gap-2">
+                          <p className="text-sm font-semibold">₹{b.total_amount.toLocaleString('en-IN')}</p>
+                          <Link to="/admin/bookings/$id" params={{ id: b.id }}>
+                            <Button variant="ghost" size="icon" className="h-7 w-7">
+                              <Eye className="h-3.5 w-3.5" />
+                            </Button>
+                          </Link>
+                        </div>
                       </div>
-                      <div className="text-right flex items-center gap-2">
-                        <p className="text-sm font-semibold">₹{b.total_amount.toLocaleString('en-IN')}</p>
-                        <Link to="/admin/bookings/$id" params={{ id: b.id }}>
-                          <Button variant="ghost" size="icon" className="h-7 w-7">
-                            <Eye className="h-3.5 w-3.5" />
-                          </Button>
-                        </Link>
-                      </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
             </CardContent>
