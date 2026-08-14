@@ -94,6 +94,8 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   );
 }
 
+import { BASE_URL, getCanonicalUrl, generateOrganizationSchema, generateWebSiteSchema } from "@/lib/seo";
+
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
     meta: [
@@ -106,6 +108,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           "Nomadik crafts premium, curated road trips and group journeys across India. Join our community of explorers on unforgettable road travels.",
       },
       { name: "author", content: "The Nomadik Traveller" },
+      { property: "og:site_name", content: "GoNomadik" },
+      { property: "og:locale", content: "en_IN" },
       { property: "og:title", content: "Nomadik | Premium Curated Road Trips & Journeys" },
       {
         property: "og:description",
@@ -113,10 +117,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           "Discover unforgettable road travel experiences with handpicked itineraries and a vibrant explorer community.",
       },
       { property: "og:type", content: "website" },
+      { property: "og:url", content: BASE_URL },
+      { property: "og:image", content: `${BASE_URL}/nomadik-favicon.png` },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@gonomadik" },
+      { name: "twitter:title", content: "Nomadik | Premium Curated Road Trips & Journeys" },
+      { name: "twitter:description", content: "Premium curated road trips and group journeys across India." },
+      { name: "twitter:image", content: `${BASE_URL}/nomadik-favicon.png` },
     ],
     links: [
+      { rel: "canonical", href: BASE_URL },
       { rel: "icon", type: "image/png", href: "/favicon.png" },
       { rel: "apple-touch-icon", href: "/favicon.png" },
       { rel: "shortcut icon", href: "/favicon.png" },
@@ -129,6 +139,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         rel: "stylesheet",
         href: appCss,
+      },
+    ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify(generateOrganizationSchema()),
+      },
+      {
+        type: "application/ld+json",
+        children: JSON.stringify(generateWebSiteSchema()),
       },
     ],
   }),

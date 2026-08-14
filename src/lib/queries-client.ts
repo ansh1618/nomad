@@ -102,10 +102,40 @@ export async function getDestinations() {
 export const getDestinationsList = getDestinations;
 
 export async function getDestinationBySlug(slug: string) {
-  const cleanSlug = slug.toLowerCase().trim();
-  const data = await sharedGetDestinationBySlug(cleanSlug).catch(() => null);
-  
-  if (!data) return null;
+  const cleanSlug = (slug || "").toLowerCase().trim();
+  const canonicalSlug = cleanSlug === "chopta-tungnath" ? "chopta" : cleanSlug === "mcleod-ganj" ? "mcleodganj" : cleanSlug;
+
+  let data = await sharedGetDestinationBySlug(canonicalSlug).catch(() => null);
+  if (!data && canonicalSlug !== cleanSlug) {
+    data = await sharedGetDestinationBySlug(cleanSlug).catch(() => null);
+  }
+
+  if (!data) {
+    const staticMatch = staticDestinations.find(
+      (d) => d.slug.toLowerCase() === canonicalSlug || d.slug.toLowerCase() === cleanSlug
+    );
+    if (staticMatch) {
+      return {
+        id: `static-${staticMatch.slug}`,
+        slug: staticMatch.slug,
+        name: staticMatch.name,
+        subtitle: staticMatch.subtitle,
+        hero_image: staticMatch.image,
+        thumbnail: staticMatch.image,
+        cover_image: staticMatch.image,
+        image: staticMatch.image,
+        gallery: [staticMatch.image],
+        overview: staticMatch.overview,
+        weather: staticMatch.weather,
+        howToReach: staticMatch.howToReach,
+        bestTime: staticMatch.bestTime,
+        topPlaces: staticMatch.topPlaces,
+        faqs: staticMatch.faqs,
+        reviews: staticMatch.reviews || []
+      };
+    }
+    return null;
+  }
 
   const dbReviews = await sharedGetApprovedReviews(data.id, 6).catch(() => []);
   const reviewsList = (dbReviews || []).map((r: any) => ({

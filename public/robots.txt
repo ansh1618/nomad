@@ -1,2 +1,15 @@
 User-agent: *
 Allow: /
+
+# Private / Internal Application Routes
+Disallow: /admin
+Disallow: /admin/*
+Disallow: /api
+Disallow: /api/*
+Disallow: /account
+Disallow: /account/*
+Disallow: /*?*book=
+Disallow: /*?*ref=
+
+# XML Sitemap Location
+Sitemap: https://nomadik.co.in/sitemap.xml

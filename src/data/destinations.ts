@@ -82,7 +82,7 @@ export const destinations: Destination[] = [
     reviews: []
   },
   {
-    slug: "chopta-tungnath",
+    slug: "chopta",
     name: "Chopta & Tungnath",
     subtitle: "The Mini Switzerland of Uttarakhand and the highest Shiva temple",
     image: adventureImg,

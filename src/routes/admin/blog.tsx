@@ -64,7 +64,20 @@ function BlogPage() {
   const blogs = result?.data ?? []
 
   const deleteMutation = useMutation({
-    mutationFn: (idToDelete: string) => deleteBlogFn({ data: idToDelete }),
+    mutationFn: async (idToDelete: string) => {
+      const res = await fetch('/api/admin/blog', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete', id: idToDelete }),
+      })
+      const resData = await res.json().catch(() => ({}))
+      if (!res.ok || !resData.success) {
+        const errObj = resData.error
+        const errMsg = typeof errObj === 'string' ? errObj : (errObj?.message || 'Failed to delete blog post')
+        throw new Error(errMsg)
+      }
+      return resData
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['blogs_list'] })
       toast.success('Blog post deleted successfully')

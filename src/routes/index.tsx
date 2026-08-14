@@ -44,18 +44,26 @@ export const Route = createFileRoute("/")({
   errorComponent: RouteErrorState,
   head: () => ({
     meta: [
-      { title: "Nomadik — Premium Curated Road Trips Across India" },
+      { title: "GoNomadik — Premium Curated Road Trips & Group Journeys from Delhi" },
       {
         name: "description",
         content:
-          "Discover handpicked road trip experiences to Manali, Jibhi, Chopta, McLeod Ganj & Udaipur. Curated journeys with experienced Trip Captains, verified stays & 24×7 support.",
+          "Book curated road trips from Delhi to Manali, Jibhi, Chopta, McLeod Ganj & Udaipur. Enjoy verified stays, experienced Trip Captains & 24×7 explorer support.",
       },
-      { property: "og:title", content: "Nomadik — Premium Curated Road Trips Across India" },
+      { property: "og:title", content: "GoNomadik — Premium Curated Road Trips Across India" },
       {
         property: "og:description",
         content:
-          "Some roads change you forever. Join 15,000+ explorers on curated road trip adventures across India.",
+          "Some roads change you forever. Join 15,000+ explorers on curated road trips and group journeys from Delhi.",
       },
+      { property: "og:url", content: "https://nomadik.co.in" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "GoNomadik — Premium Curated Road Trips & Group Journeys" },
+      { name: "twitter:description", content: "Curated road trip adventures from Delhi to Manali, Jibhi, Chopta, McLeod Ganj & Udaipur." },
+    ],
+    links: [
+      { rel: "canonical", href: "https://nomadik.co.in" }
     ],
   }),
   component: Index,

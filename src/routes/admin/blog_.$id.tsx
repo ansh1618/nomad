@@ -111,10 +111,25 @@ function BlogFormPage() {
         gallery: blog?.gallery || [],
       }
 
-      if (isNew) {
-        return await createBlogFn({ data: payload })
+      const res = await fetch('/api/admin/blog', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: isNew ? 'create' : 'update',
+          id: isNew ? undefined : id,
+          payload,
+        }),
+      })
+
+      const resData = await res.json().catch(() => ({}))
+
+      if (!res.ok || !resData.success) {
+        const errObj = resData.error
+        const errMsg = typeof errObj === 'string' ? errObj : (errObj?.message || 'Failed to save blog post')
+        throw new Error(errMsg)
       }
-      return await updateBlogFn({ data: { id, payload } })
+
+      return resData.data
     },
     onSuccess: (savedBlog) => {
       qc.invalidateQueries({ queryKey: ['blogs_list'] })

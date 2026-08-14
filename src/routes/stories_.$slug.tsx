@@ -39,24 +39,63 @@ import { motion, AnimatePresence, useScroll, useSpring } from "motion/react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 
+import {
+  BASE_URL,
+  getCanonicalUrl,
+  generateArticleSchema,
+  generateBreadcrumbSchema
+} from "@/lib/seo";
+
 export const Route = createFileRoute("/stories_/$slug")({
-  head: ({ loaderData }: any) => {
+  head: ({ loaderData, params }: any) => {
+    const slug = (params?.slug || "").toLowerCase().trim();
     const story = loaderData?.story;
+    const canonicalUrl = getCanonicalUrl(`/stories/${slug}`);
+
+    const title = story?.seo_title || story?.title ? `${story?.seo_title || story?.title} | GoNomadik` : "Travel Story & Guide | GoNomadik";
+    const description = story?.seo_description || story?.excerpt || "Read real traveler stories, trip guides & road travel insights on GoNomadik.";
+    const coverImage = story?.featured_image || story?.cover_image || `${BASE_URL}/nomadik-favicon.png`;
+
+    const breadcrumbs = [
+      { name: "Home", url: "/" },
+      { name: "Stories", url: "/stories" },
+      { name: story?.title || slug, url: `/stories/${slug}` }
+    ];
+
+    const articleSchema = generateArticleSchema({
+      title: story?.title || slug,
+      slug: slug,
+      excerpt: description,
+      content: story?.content,
+      featured_image: coverImage,
+      published_at: story?.published_at || story?.created_at,
+      author_name: story?.author_name || "The Nomadik Traveller"
+    });
+
+    const breadcrumbSchema = generateBreadcrumbSchema(breadcrumbs);
+
     return {
       meta: [
-        { title: story ? `${story.title} | Nomadik Stories` : "Story | Nomadik" },
-        {
-          name: "description",
-          content: story?.excerpt || story?.seo_description || "A traveler story from Nomadik",
-        },
-        { property: "og:title", content: story?.title || "Nomadik Story" },
-        { property: "og:description", content: story?.excerpt || "" },
-        { property: "og:image", content: story?.cover_image || "" },
+        { title: title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:url", content: canonicalUrl },
         { property: "og:type", content: "article" },
+        { property: "og:image", content: coverImage },
         { name: "twitter:card", content: "summary_large_image" },
-        { name: "twitter:title", content: story?.title || "Nomadik Story" },
-        { name: "twitter:image", content: story?.cover_image || "" },
+        { name: "twitter:title", content: title },
+        { name: "twitter:description", content: description },
+        { name: "twitter:image", content: coverImage },
+        { name: "author", content: story?.author_name || "The Nomadik Traveller" },
       ],
+      links: [
+        { rel: "canonical", href: canonicalUrl }
+      ],
+      scripts: [
+        { type: "application/ld+json", children: JSON.stringify(articleSchema) },
+        { type: "application/ld+json", children: JSON.stringify(breadcrumbSchema) }
+      ]
     };
   },
   component: SingleStoryRoute,

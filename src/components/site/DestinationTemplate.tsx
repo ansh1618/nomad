@@ -573,6 +573,68 @@ export function DestinationTemplate({ slug }: DestinationTemplateProps) {
         </div>
       </section>
 
+      {/* Content Cluster: Pillar Travel Guide Link */}
+      {(() => {
+        const canonicalSlug = slug === "chopta-tungnath" ? "chopta" : slug === "mcleod-ganj" ? "mcleodganj" : slug;
+        const blogSlugMap: Record<string, { title: string; slug: string; desc: string }> = {
+          udaipur: {
+            title: "Udaipur Travel Guide 2026: Places to Visit & Delhi Road Trip Tips",
+            slug: "udaipur-road-trip-guide-2026",
+            desc: "Comprehensive guide on Lake Pichola, City Palace, Aravalli driving routes & best heritage stay options."
+          },
+          manali: {
+            title: "Manali Travel Guide 2026: Old Manali Cafes, Solang Valley & Sethan",
+            slug: "manali-travel-guide-2026",
+            desc: "Discover Old Manali cafe walks, Solang Valley snow drives, Sethan igloos & Delhi travel tips."
+          },
+          jibhi: {
+            title: "Jibhi Travel Guide 2026: Tirthan Valley, Jalori Pass & Hidden Treehouses",
+            slug: "jibhi-travel-guide-2026",
+            desc: "Explore Jibhi waterfalls, Serolsar Lake trek, Chehni Kothi fort & riverside cottage stays."
+          },
+          chopta: {
+            title: "Chopta & Tungnath Trek Guide 2026: Highest Shiva Temple & Snow Trek",
+            slug: "chopta-tungnath-trek-guide-2026",
+            desc: "Detailed trek itinerary for Tungnath temple, Chandrashila summit views & Deoria Tal lake."
+          },
+          mcleodganj: {
+            title: "McLeod Ganj Travel Guide 2026: Dalai Lama Temple & Triund Camping",
+            slug: "mcleod-ganj-travel-guide-2026",
+            desc: "Explore Little Lhasa, Dalai Lama Temple, Tibetan cafes & Triund cliff-side camping."
+          }
+        };
+
+        const blogInfo = blogSlugMap[canonicalSlug];
+        if (!blogInfo) return null;
+
+        return (
+          <section className="bg-amber-50/50 border-t border-b border-amber-200/60 py-12">
+            <div className="max-w-7xl mx-auto px-5">
+              <div className="bg-white border border-amber-200 p-6 md:p-8 rounded-2xl shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                <div className="space-y-2">
+                  <span className="text-[10px] font-poppins font-bold uppercase tracking-widest text-amber-700 bg-amber-100 px-3 py-1 rounded-full">
+                    Pillar Travel Guide
+                  </span>
+                  <h3 className="font-display text-2xl font-bold text-primary">
+                    {blogInfo.title}
+                  </h3>
+                  <p className="text-xs text-muted-foreground max-w-2xl leading-relaxed">
+                    {blogInfo.desc}
+                  </p>
+                </div>
+                <Link
+                  to="/stories/$slug"
+                  params={{ slug: blogInfo.slug }}
+                  className="bg-primary text-white font-poppins font-bold px-5 py-3 rounded-xl text-xs hover:bg-primary/90 transition shrink-0 inline-flex items-center gap-2"
+                >
+                  Read Travel Guide &rarr;
+                </Link>
+              </div>
+            </div>
+          </section>
+        );
+      })()}
+
       {/* 7. Related Trips Section */}
       <section className="bg-primary text-white py-20">
         <div className="max-w-7xl mx-auto px-5">

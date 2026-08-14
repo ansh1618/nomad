@@ -120,29 +120,94 @@ export async function getPublishedStories(
     featured,
   } = params
 
-  let query = supabase
-    .from('stories')
-    .select(STORY_SELECT, { count: 'exact' })
-    .eq('is_published', true)
+  // 1. Primary Source of Truth: Supabase 'blogs' table
+  try {
+    let query = supabase.from('blogs').select('*', { count: 'exact' }).eq('is_published', true)
 
-  if (search) {
-    query = query.or(`title.ilike.%${search}%,snippet.ilike.%${search}%`)
+    if (search) {
+      query = query.or(`title.ilike.%${search}%,excerpt.ilike.%${search}%,category.ilike.%${search}%`)
+    }
+    if (category && category !== 'ALL') {
+      query = query.ilike('category', `%${category}%`)
+    }
+    if (featured !== undefined) {
+      query = query.eq('is_featured', featured)
+    }
+
+    query = query.order('created_at', { ascending: false })
+    query = query.range((page - 1) * pageSize, page * pageSize - 1)
+
+    const { data, error, count } = await query
+    if (!error && data && data.length > 0) {
+      const mappedBlogs: Story[] = data.map((b: any) => ({
+        id: b.id,
+        slug: b.slug,
+        title: b.title,
+        category: b.category || "ADVENTURE",
+        content: b.content || b.excerpt || "",
+        excerpt: b.excerpt || "",
+        cover_image: b.featured_image || "/images/manali/manali-snow-valley.jpg",
+        author_name: b.author_name || "The Nomadik Traveller",
+        author_image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&q=80",
+        author_designation: "Trip Captain",
+        college_name: "Nomadik Explorer",
+        reading_time: 4,
+        views: 280,
+        likes_count: 24,
+        rating: 4.9,
+        is_published: !!b.is_published,
+        is_featured: !!b.is_featured,
+        published_at: b.published_at || b.created_at || new Date().toISOString(),
+      }))
+
+      return {
+        data: mappedBlogs,
+        total: count ?? mappedBlogs.length,
+        page,
+        pageSize,
+        totalPages: Math.ceil((count ?? mappedBlogs.length) / pageSize),
+      }
+    }
+  } catch (err) {
+    console.warn("[getPublishedStories] Exception reading from 'blogs' table:", err)
   }
-  if (category && category !== 'ALL') query = query.eq('category', category)
-  if (featured !== undefined) query = query.eq('is_featured', featured)
 
-  query = query.order(sortBy, { ascending: sortDir === 'asc', nullsFirst: false })
-  query = query.range((page - 1) * pageSize, page * pageSize - 1)
+  // 2. Secondary fallback: 'stories' table
+  try {
+    let query = supabase
+      .from('stories')
+      .select(STORY_SELECT, { count: 'exact' })
+      .eq('is_published', true)
 
-  const { data, error, count } = await query
-  if (error) throw new Error(error.message)
+    if (search) {
+      query = query.or(`title.ilike.%${search}%,snippet.ilike.%${search}%`)
+    }
+    if (category && category !== 'ALL') query = query.eq('category', category)
+    if (featured !== undefined) query = query.eq('is_featured', featured)
+
+    query = query.order(sortBy, { ascending: sortDir === 'asc', nullsFirst: false })
+    query = query.range((page - 1) * pageSize, page * pageSize - 1)
+
+    const { data, error, count } = await query
+    if (!error && data && data.length > 0) {
+      return {
+        data: (data ?? []).map(mapStory),
+        total: count ?? 0,
+        page,
+        pageSize,
+        totalPages: Math.ceil((count ?? 0) / pageSize),
+      }
+    }
+  } catch (err) {
+    console.warn("[getPublishedStories] Exception reading from 'stories' table:", err)
+  }
 
   return {
-    data: (data ?? []).map(mapStory),
-    total: count ?? 0,
-    page,
+    data: [],
+    total: 0,
+    page: 1,
     pageSize,
-    totalPages: Math.ceil((count ?? 0) / pageSize),
+    totalPages: 0,
   }
 }
 
@@ -166,16 +231,57 @@ export async function getStoryById(id: string): Promise<Story | null> {
 // GET BY SLUG — Public
 // ==========================================
 export async function getStoryBySlug(slug: string): Promise<Story | null> {
-  const { data, error } = await supabase
-    .from('stories')
-    .select(STORY_SELECT)
-    .eq('slug', slug)
-    .single()
-  if (error) {
-    if (error.code === 'PGRST116') return null
-    throw new Error(error.message)
+  const cleanSlug = (slug || "").toLowerCase().trim()
+
+  // 1. Primary Source of Truth: 'blogs' table
+  try {
+    const { data: blogData } = await supabase
+      .from('blogs')
+      .select('*')
+      .eq('slug', cleanSlug)
+      .maybeSingle()
+
+    if (blogData) {
+      return {
+        id: blogData.id,
+        slug: blogData.slug,
+        title: blogData.title,
+        category: blogData.category || "ADVENTURE",
+        content: blogData.content || blogData.excerpt || "",
+        excerpt: blogData.excerpt || "",
+        cover_image: blogData.featured_image || "/images/manali/manali-snow-valley.jpg",
+        featured_image: blogData.featured_image || "",
+        author_name: blogData.author_name || "The Nomadik Traveller",
+        author_image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&q=80",
+        author_designation: "Trip Captain",
+        college_name: "Nomadik Explorer",
+        reading_time: 4,
+        views: 280,
+        likes_count: 24,
+        rating: 4.9,
+        is_published: !!blogData.is_published,
+        is_featured: !!blogData.is_featured,
+        published_at: blogData.published_at || blogData.created_at || new Date().toISOString(),
+        seo_title: blogData.seo?.title || blogData.title,
+        seo_description: blogData.seo?.description || blogData.excerpt
+      } as any
+    }
+  } catch (err) {
+    console.warn("[getStoryBySlug] Exception reading from 'blogs' table:", err)
   }
-  return mapStory(data)
+
+  // 2. Secondary fallback: 'stories' table
+  try {
+    const { data, error } = await supabase
+      .from('stories')
+      .select(STORY_SELECT)
+      .eq('slug', cleanSlug)
+      .maybeSingle()
+
+    if (data) return mapStory(data)
+  } catch {}
+
+  return null
 }
 
 // ==========================================
