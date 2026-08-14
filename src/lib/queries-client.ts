@@ -12,7 +12,7 @@ export async function getPublicTripCaptains(): Promise<TripCaptain[]> {
       .from("trip_captains")
       .select("*")
       .eq("is_active", true)
-      .order("rating", { ascending: false });
+      .order("full_name", { ascending: true });
 
     if (error) {
       console.warn("[queries-client] Error fetching public trip captains:", error);

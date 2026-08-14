@@ -99,8 +99,8 @@ export const CAPTAIN_LEADERBOARD: CaptainLeaderboardItem[] = [];
 
 export const DESTINATION_LEADERBOARD: DestinationLeaderboardItem[] = [
   { rank: 1, name: "Udaipur", slug: "udaipur", rating: 4.95, reviews_count: 430, cover_image: "/images/udaipur-palace.png" },
-  { rank: 2, name: "Chopta", slug: "chopta", rating: 4.91, reviews_count: 380, cover_image: "/images/chopta-tungnath-temple.jpg" },
-  { rank: 3, name: "Jibhi", slug: "jibhi", rating: 4.89, reviews_count: 310, cover_image: "/images/jibhi/jibhi-waterfall-bridge.jpg" },
+  { rank: 2, name: "Chopta", slug: "chopta", rating: 4.91, reviews_count: 380, cover_image: "/images/destinations/chopta-tungnath-temple.jpg" },
+  { rank: 3, name: "Jibhi", slug: "jibhi", rating: 4.89, reviews_count: 310, cover_image: "/images/jibhi/jibhi-raghupur-fort-temple.jpg" },
   { rank: 4, name: "Manali", slug: "manali", rating: 4.88, reviews_count: 520, cover_image: "/images/manali/manali-snow-valley.jpg" },
   { rank: 5, name: "McLeod Ganj", slug: "mcleodganj", rating: 4.85, reviews_count: 240, cover_image: "/images/mcleodganj/mcleodganj-town-view.jpg" },
 ];
@@ -137,9 +137,6 @@ export async function getApprovedReviews(options?: {
       if (isUuid) {
         query = query.eq("destination_id", options.destinationId);
       }
-    }
-    if (options?.featured) {
-      query = query.eq("is_featured", true);
     }
 
     const { data: dbReviews, error } = await query;

@@ -24,6 +24,7 @@ import { Route as DestinationsRouteImport } from './routes/destinations'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CancellationRouteImport } from './routes/cancellation'
 import { Route as CampusTripsRouteImport } from './routes/campus-trips'
+import { Route as BlogRouteImport } from './routes/blog'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as AboutRouteImport } from './routes/about'
@@ -154,6 +155,11 @@ const CancellationRoute = CancellationRouteImport.update({
 const CampusTripsRoute = CampusTripsRouteImport.update({
   id: '/campus-trips',
   path: '/campus-trips',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BlogRoute = BlogRouteImport.update({
+  id: '/blog',
+  path: '/blog',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -443,6 +449,7 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/account': typeof AccountRoute
   '/admin': typeof AdminRouteWithChildren
+  '/blog': typeof BlogRoute
   '/campus-trips': typeof CampusTripsRoute
   '/cancellation': typeof CancellationRoute
   '/contact': typeof ContactRoute
@@ -515,6 +522,7 @@ export interface FileRoutesByTo {
   '/$slug': typeof SlugRoute
   '/about': typeof AboutRoute
   '/account': typeof AccountRoute
+  '/blog': typeof BlogRoute
   '/campus-trips': typeof CampusTripsRoute
   '/cancellation': typeof CancellationRoute
   '/contact': typeof ContactRoute
@@ -589,6 +597,7 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/account': typeof AccountRoute
   '/admin': typeof AdminRouteWithChildren
+  '/blog': typeof BlogRoute
   '/campus-trips': typeof CampusTripsRoute
   '/cancellation': typeof CancellationRoute
   '/contact': typeof ContactRoute
@@ -664,6 +673,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/account'
     | '/admin'
+    | '/blog'
     | '/campus-trips'
     | '/cancellation'
     | '/contact'
@@ -736,6 +746,7 @@ export interface FileRouteTypes {
     | '/$slug'
     | '/about'
     | '/account'
+    | '/blog'
     | '/campus-trips'
     | '/cancellation'
     | '/contact'
@@ -809,6 +820,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/account'
     | '/admin'
+    | '/blog'
     | '/campus-trips'
     | '/cancellation'
     | '/contact'
@@ -883,6 +895,7 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   AccountRoute: typeof AccountRoute
   AdminRoute: typeof AdminRouteWithChildren
+  BlogRoute: typeof BlogRoute
   CampusTripsRoute: typeof CampusTripsRoute
   CancellationRoute: typeof CancellationRoute
   ContactRoute: typeof ContactRoute
@@ -1013,6 +1026,13 @@ declare module '@tanstack/react-router' {
       path: '/campus-trips'
       fullPath: '/campus-trips'
       preLoaderRoute: typeof CampusTripsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blog': {
+      id: '/blog'
+      path: '/blog'
+      fullPath: '/blog'
+      preLoaderRoute: typeof BlogRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -1510,6 +1530,7 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   AccountRoute: AccountRoute,
   AdminRoute: AdminRouteWithChildren,
+  BlogRoute: BlogRoute,
   CampusTripsRoute: CampusTripsRoute,
   CancellationRoute: CancellationRoute,
   ContactRoute: ContactRoute,
