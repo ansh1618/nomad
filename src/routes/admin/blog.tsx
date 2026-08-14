@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { DataTable, exportToCSV } from '@/components/admin/DataTable'
 import type { ColumnDef } from '@tanstack/react-table'
 import { getBlogs, deleteBlog } from '@/lib/queries/admin'
+import { getAdminBlogsListFn, deleteBlogFn } from '@/lib/server-fns'
 import type { Blog } from '@/types/supabase'
 import { toast } from 'sonner'
 import {
@@ -46,22 +47,34 @@ function BlogPage() {
 
   const { data: result, isLoading } = useQuery({
     queryKey: ['blogs_list', page, pageSize, search, sortBy, sortDir, publishedFilter],
-    queryFn: () =>
-      getBlogs({
+    queryFn: async () => {
+      const params = {
         page,
         pageSize,
         search,
         sortBy,
         sortDir,
         published: publishedFilter === 'PUBLISHED' ? true : publishedFilter === 'DRAFT' ? false : undefined,
-      }),
+      }
+      try {
+        return await getAdminBlogsListFn({ data: params })
+      } catch {
+        return await getBlogs(params)
+      }
+    },
     placeholderData: (prev) => prev,
   })
 
   const blogs = result?.data ?? []
 
   const deleteMutation = useMutation({
-    mutationFn: deleteBlog,
+    mutationFn: async (idToDelete: string) => {
+      try {
+        return await deleteBlogFn({ data: idToDelete })
+      } catch {
+        return await deleteBlog(idToDelete)
+      }
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['blogs_list'] })
       toast.success('Blog post deleted successfully')

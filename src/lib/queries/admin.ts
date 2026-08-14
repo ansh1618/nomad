@@ -475,8 +475,9 @@ export async function bulkDeleteInquiries(ids: string[]): Promise<void> {
 // ==========================================
 export async function getBlogs(params: PaginationParams & { published?: boolean } = {}): Promise<PaginatedResult<Blog>> {
   const { page = 1, pageSize = 20, search, sortBy = 'created_at', sortDir = 'desc', published } = params
+  const dbClient = getSupabaseAdmin() || supabase;
 
-  let query = supabase.from('blogs').select('*', { count: 'exact' })
+  let query = dbClient.from('blogs').select('*', { count: 'exact' })
   if (search) query = query.or(`title.ilike.%${search}%,excerpt.ilike.%${search}%`)
   if (published !== undefined) query = query.eq('is_published', published)
   query = query.order(sortBy, { ascending: sortDir === 'asc' })
@@ -489,35 +490,102 @@ export async function getBlogs(params: PaginationParams & { published?: boolean 
 }
 
 export async function getBlogBySlug(slug: string): Promise<Blog | null> {
-  const { data, error } = await supabase.from('blogs').select('*').eq('slug', slug).eq('is_published', true).single()
+  const dbClient = getSupabaseAdmin() || supabase;
+  const { data, error } = await dbClient.from('blogs').select('*').eq('slug', slug).eq('is_published', true).single()
   if (error) { if (error.code === 'PGRST116') return null; throw new Error(error.message) }
   // Increment view count
-  await supabase.from('blogs').update({ view_count: (data.view_count ?? 0) + 1 }).eq('id', data.id)
+  await dbClient.from('blogs').update({ view_count: (data.view_count ?? 0) + 1 }).eq('id', data.id)
   return data as Blog
 }
 
 export async function getBlogById(id: string): Promise<Blog | null> {
-  const { data, error } = await supabase.from('blogs').select('*').eq('id', id).single()
+  if (!id) return null;
+  const dbClient = getSupabaseAdmin() || supabase;
+  const { data, error } = await dbClient.from('blogs').select('*').eq('id', id).single()
   if (error) { if (error.code === 'PGRST116') return null; throw new Error(error.message) }
   return data as Blog
 }
 
 export async function createBlog(payload: BlogInsert): Promise<Blog> {
-  const { data, error } = await supabase.from('blogs').insert(payload).select('*').single()
-  if (error) throw new Error(error.message)
+  if (!payload || typeof payload !== 'object') {
+    throw new Error('Invalid blog payload');
+  }
+  if (!payload.title || !payload.title.trim()) {
+    throw new Error('Article title is required');
+  }
+  if (!payload.slug || !payload.slug.trim()) {
+    throw new Error('Slug URL is required');
+  }
+  if (!payload.content || !payload.content.trim()) {
+    throw new Error('Content body is required');
+  }
+
+  const dbClient = getSupabaseAdmin() || supabase;
+  const cleanPayload = {
+    ...payload,
+    title: payload.title.trim(),
+    slug: payload.slug.trim().toLowerCase(),
+    content: payload.content.trim(),
+    is_published: payload.is_published ?? false,
+    is_featured: payload.is_featured ?? false,
+    published_at: payload.is_published ? (payload.published_at || new Date().toISOString()) : (payload.published_at || null),
+    updated_at: new Date().toISOString(),
+  };
+
+  const { data, error } = await dbClient.from('blogs').insert(cleanPayload).select('*').single()
+  if (error) {
+    console.error('[createBlog] Supabase error:', error.message);
+    throw new Error(error.message);
+  }
   return data as Blog
 }
 
 export async function updateBlog(id: string, payload: BlogUpdate): Promise<Blog> {
-  const { data, error } = await supabase.from('blogs')
-    .update({ ...payload, updated_at: new Date().toISOString() }).eq('id', id).select('*').single()
-  if (error) throw new Error(error.message)
+  if (!id) throw new Error('Blog ID is required for update');
+  if (payload.title !== undefined && (!payload.title || !payload.title.trim())) {
+    throw new Error('Article title cannot be empty');
+  }
+  if (payload.slug !== undefined && (!payload.slug || !payload.slug.trim())) {
+    throw new Error('Slug URL cannot be empty');
+  }
+  if (payload.content !== undefined && (!payload.content || !payload.content.trim())) {
+    throw new Error('Content body cannot be empty');
+  }
+
+  const dbClient = getSupabaseAdmin() || supabase;
+  const cleanPayload: Record<string, any> = {
+    ...payload,
+    updated_at: new Date().toISOString(),
+  };
+  if (payload.title) cleanPayload.title = payload.title.trim();
+  if (payload.slug) cleanPayload.slug = payload.slug.trim().toLowerCase();
+  if (payload.content) cleanPayload.content = payload.content.trim();
+  if (payload.is_published !== undefined) {
+    cleanPayload.published_at = payload.is_published ? (payload.published_at || new Date().toISOString()) : payload.published_at;
+  }
+
+  const { data, error } = await dbClient
+    .from('blogs')
+    .update(cleanPayload)
+    .eq('id', id)
+    .select('*')
+    .single()
+
+  if (error) {
+    console.error('[updateBlog] Supabase error:', error.message);
+    throw new Error(error.message);
+  }
   return data as Blog
 }
 
 export async function deleteBlog(id: string): Promise<void> {
-  const { error } = await supabase.from('blogs').delete().eq('id', id)
-  if (error) throw new Error(error.message)
+  if (!id) throw new Error('Blog ID is required for deletion');
+  const dbClient = getSupabaseAdmin() || supabase;
+  const { error } = await dbClient.from('blogs').delete().eq('id', id)
+  if (error) {
+    console.error('[deleteBlog] Supabase error:', error.message);
+    throw new Error(error.message);
+  }
 }
 
 // ==========================================

@@ -23,6 +23,7 @@ import {
   Eye,
 } from 'lucide-react'
 import { getBlogById, createBlog, updateBlog } from '@/lib/queries/admin'
+import { getAdminBlogDetailFn, createBlogFn, updateBlogFn } from '@/lib/server-fns'
 import { useAdminAuth } from '@/hooks/use-admin-auth'
 
 export const Route = createFileRoute('/admin/blog_/$id')({
@@ -53,7 +54,13 @@ function BlogFormPage() {
 
   const { data: blog, isLoading: loadingData } = useQuery({
     queryKey: ['blog', id],
-    queryFn: () => getBlogById(id),
+    queryFn: async () => {
+      try {
+        return await getAdminBlogDetailFn({ data: id })
+      } catch {
+        return await getBlogById(id)
+      }
+    },
     enabled: !isNew,
   })
 
@@ -106,21 +113,35 @@ function BlogFormPage() {
         ...rest,
         seo: seo_title || seo_description ? { title: seo_title, description: seo_description } : null,
         author_id: admin?.id ?? null,
+        author_name: admin?.full_name ?? admin?.email ?? 'Nomadik Admin',
         gallery: blog?.gallery || [],
       }
 
       if (isNew) {
-        return createBlog(payload as Parameters<typeof createBlog>[0])
+        try {
+          return await createBlogFn({ data: payload })
+        } catch (serverErr: any) {
+          console.warn('[BlogFormPage] createBlogFn fallback:', serverErr?.message || serverErr)
+          return await createBlog(payload as any)
+        }
       }
-      return updateBlog(id, payload as Parameters<typeof updateBlog>[1])
+      try {
+        return await updateBlogFn({ data: { id, payload } })
+      } catch (serverErr: any) {
+        console.warn('[BlogFormPage] updateBlogFn fallback:', serverErr?.message || serverErr)
+        return await updateBlog(id, payload as any)
+      }
     },
-    onSuccess: () => {
+    onSuccess: (savedBlog) => {
       qc.invalidateQueries({ queryKey: ['blogs_list'] })
       qc.invalidateQueries({ queryKey: ['blog', id] })
       toast.success(isNew ? 'Blog post published!' : 'Blog post updated!')
       navigate({ to: '/admin/blog' })
     },
-    onError: (err: Error) => toast.error(err.message),
+    onError: (err: Error) => {
+      console.error('[BlogFormPage] Blog save failed:', err)
+      toast.error(err.message || 'Failed to save blog post')
+    },
   })
 
   const onInvalid = (errors: any) => {

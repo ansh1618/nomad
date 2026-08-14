@@ -85,7 +85,7 @@ export const submitCallbackRequestFn = createServerFn({ method: "POST" })
 
 // ── Admin Server Functions (Secure Service Role Access) ──
 import { getBookings, getBookingById } from "@/lib/queries/bookings";
-import { getPayments, getCouponUsagesAndAnalytics } from "@/lib/queries/admin";
+import { getPayments, getCouponUsagesAndAnalytics, getBlogs, getBlogById, createBlog, updateBlog, deleteBlog } from "@/lib/queries/admin";
 
 export const getAdminBookingsListFn = createServerFn({ method: "POST" })
   .validator((params: any) => params)
@@ -109,6 +109,37 @@ export const getAdminCouponAnalyticsFn = createServerFn({ method: "POST" })
   .validator((params: any) => params)
   .handler(async ({ data: params }) => {
     return await getCouponUsagesAndAnalytics(params);
+  });
+
+// ── Admin Blog CMS Server Functions (Secure Service Role Access) ──
+export const getAdminBlogsListFn = createServerFn({ method: "POST" })
+  .validator((params: any) => params)
+  .handler(async ({ data: params }) => {
+    return await getBlogs(params);
+  });
+
+export const getAdminBlogDetailFn = createServerFn({ method: "POST" })
+  .validator((id: string) => id)
+  .handler(async ({ data: id }) => {
+    return await getBlogById(id);
+  });
+
+export const createBlogFn = createServerFn({ method: "POST" })
+  .validator((payload: any) => payload)
+  .handler(async ({ data: payload }) => {
+    return await createBlog(payload);
+  });
+
+export const updateBlogFn = createServerFn({ method: "POST" })
+  .validator((data: { id: string; payload: any }) => data)
+  .handler(async ({ data }) => {
+    return await updateBlog(data.id, data.payload);
+  });
+
+export const deleteBlogFn = createServerFn({ method: "POST" })
+  .validator((id: string) => id)
+  .handler(async ({ data: id }) => {
+    return await deleteBlog(id);
   });
 
 
