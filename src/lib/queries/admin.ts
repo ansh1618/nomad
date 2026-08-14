@@ -520,7 +520,11 @@ export async function createBlog(payload: BlogInsert): Promise<Blog> {
     throw new Error('Content body is required');
   }
 
-  const dbClient = getSupabaseAdmin() || supabase;
+  const dbClient = getSupabaseAdmin();
+  if (!dbClient) {
+    throw new Error('Server Admin client unavailable. SUPABASE_SERVICE_ROLE_KEY is required for blog mutations.');
+  }
+
   const cleanPayload = {
     ...payload,
     title: payload.title.trim(),
@@ -552,7 +556,11 @@ export async function updateBlog(id: string, payload: BlogUpdate): Promise<Blog>
     throw new Error('Content body cannot be empty');
   }
 
-  const dbClient = getSupabaseAdmin() || supabase;
+  const dbClient = getSupabaseAdmin();
+  if (!dbClient) {
+    throw new Error('Server Admin client unavailable. SUPABASE_SERVICE_ROLE_KEY is required for blog mutations.');
+  }
+
   const cleanPayload: Record<string, any> = {
     ...payload,
     updated_at: new Date().toISOString(),
@@ -580,7 +588,11 @@ export async function updateBlog(id: string, payload: BlogUpdate): Promise<Blog>
 
 export async function deleteBlog(id: string): Promise<void> {
   if (!id) throw new Error('Blog ID is required for deletion');
-  const dbClient = getSupabaseAdmin() || supabase;
+  const dbClient = getSupabaseAdmin();
+  if (!dbClient) {
+    throw new Error('Server Admin client unavailable. SUPABASE_SERVICE_ROLE_KEY is required for blog mutations.');
+  }
+
   const { error } = await dbClient.from('blogs').delete().eq('id', id)
   if (error) {
     console.error('[deleteBlog] Supabase error:', error.message);

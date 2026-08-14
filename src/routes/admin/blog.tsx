@@ -47,34 +47,24 @@ function BlogPage() {
 
   const { data: result, isLoading } = useQuery({
     queryKey: ['blogs_list', page, pageSize, search, sortBy, sortDir, publishedFilter],
-    queryFn: async () => {
-      const params = {
-        page,
-        pageSize,
-        search,
-        sortBy,
-        sortDir,
-        published: publishedFilter === 'PUBLISHED' ? true : publishedFilter === 'DRAFT' ? false : undefined,
-      }
-      try {
-        return await getAdminBlogsListFn({ data: params })
-      } catch {
-        return await getBlogs(params)
-      }
-    },
+    queryFn: () =>
+      getAdminBlogsListFn({
+        data: {
+          page,
+          pageSize,
+          search,
+          sortBy,
+          sortDir,
+          published: publishedFilter === 'PUBLISHED' ? true : publishedFilter === 'DRAFT' ? false : undefined,
+        },
+      }),
     placeholderData: (prev) => prev,
   })
 
   const blogs = result?.data ?? []
 
   const deleteMutation = useMutation({
-    mutationFn: async (idToDelete: string) => {
-      try {
-        return await deleteBlogFn({ data: idToDelete })
-      } catch {
-        return await deleteBlog(idToDelete)
-      }
-    },
+    mutationFn: (idToDelete: string) => deleteBlogFn({ data: idToDelete }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['blogs_list'] })
       toast.success('Blog post deleted successfully')

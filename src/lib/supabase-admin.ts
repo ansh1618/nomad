@@ -20,7 +20,7 @@ export function getSupabaseAdmin(): SupabaseClient | null {
   if (adminClientInstance) return adminClientInstance;
 
   const url = getEnvVar("VITE_SUPABASE_URL") || getEnvVar("SUPABASE_URL");
-  const serviceKey = getEnvVar("SUPABASE_SERVICE_ROLE_KEY");
+  const serviceKey = getEnvVar("SUPABASE_SERVICE_ROLE_KEY") || getEnvVar("VITE_SUPABASE_SERVICE_ROLE_KEY");
 
   if (!url || !serviceKey) {
     if (typeof window === "undefined") {

@@ -54,13 +54,7 @@ function BlogFormPage() {
 
   const { data: blog, isLoading: loadingData } = useQuery({
     queryKey: ['blog', id],
-    queryFn: async () => {
-      try {
-        return await getAdminBlogDetailFn({ data: id })
-      } catch {
-        return await getBlogById(id)
-      }
-    },
+    queryFn: () => getAdminBlogDetailFn({ data: id }),
     enabled: !isNew,
   })
 
@@ -118,19 +112,9 @@ function BlogFormPage() {
       }
 
       if (isNew) {
-        try {
-          return await createBlogFn({ data: payload })
-        } catch (serverErr: any) {
-          console.warn('[BlogFormPage] createBlogFn fallback:', serverErr?.message || serverErr)
-          return await createBlog(payload as any)
-        }
+        return await createBlogFn({ data: payload })
       }
-      try {
-        return await updateBlogFn({ data: { id, payload } })
-      } catch (serverErr: any) {
-        console.warn('[BlogFormPage] updateBlogFn fallback:', serverErr?.message || serverErr)
-        return await updateBlog(id, payload as any)
-      }
+      return await updateBlogFn({ data: { id, payload } })
     },
     onSuccess: (savedBlog) => {
       qc.invalidateQueries({ queryKey: ['blogs_list'] })
