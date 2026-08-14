@@ -748,15 +748,114 @@ export async function updateSettings(settings: Record<string, unknown>): Promise
 // ANALYTICS
 // ==========================================
 export async function getDashboardStats(): Promise<DashboardStats> {
-  const { data, error } = await supabase.from('v_dashboard_stats').select('*').single()
-  if (error) throw new Error(error.message)
-  return data as DashboardStats
+  const dbClient = getSupabaseAdmin() || supabase;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayIso = today.toISOString();
+
+  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString();
+
+  // Run all queries in parallel directly from source tables — avoids relying on the v_dashboard_stats view
+  const [
+    successPayments,
+    todayPayments,
+    monthPayments,
+    todayBookingsResult,
+    confirmedBookingsResult,
+    pendingBookingsResult,
+    customersResult,
+    activePackagesResult,
+    upcomingDepsResult,
+    todayLeadsResult,
+    weekLeadsResult,
+  ] = await Promise.all([
+    // All-time revenue from captured payments
+    dbClient.from('payments').select('amount').eq('status', 'SUCCESS'),
+    // Today's revenue
+    dbClient.from('payments').select('amount').eq('status', 'SUCCESS').gte('created_at', todayIso),
+    // This month's revenue
+    dbClient.from('payments').select('amount').eq('status', 'SUCCESS').gte('created_at', startOfMonth),
+    // Today's bookings count
+    dbClient.from('bookings').select('id', { count: 'exact', head: true }).gte('created_at', todayIso),
+    // Confirmed bookings count
+    dbClient.from('bookings').select('id', { count: 'exact', head: true }).eq('booking_status', 'CONFIRMED'),
+    // Pending bookings count
+    dbClient.from('bookings').select('id', { count: 'exact', head: true }).eq('booking_status', 'PENDING'),
+    // Total customers
+    dbClient.from('customers').select('id', { count: 'exact', head: true }),
+    // Active packages
+    dbClient.from('journeys').select('id', { count: 'exact', head: true }).eq('is_active', true),
+    // Upcoming departures
+    dbClient.from('departures').select('id', { count: 'exact', head: true }).gte('departure_date', todayIso),
+    // Today's leads
+    dbClient.from('inquiries').select('id', { count: 'exact', head: true }).gte('created_at', todayIso),
+    // This week's leads
+    dbClient.from('inquiries').select('id', { count: 'exact', head: true })
+      .gte('created_at', new Date(Date.now() - 7 * 86400000).toISOString()),
+  ]);
+
+  const totalRevenue = (successPayments.data ?? []).reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
+  const todayRevenue = (todayPayments.data ?? []).reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
+  const monthlyRevenue = (monthPayments.data ?? []).reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
+
+  const stats: DashboardStats = {
+    today_bookings: todayBookingsResult.count ?? 0,
+    today_revenue: todayRevenue,
+    monthly_revenue: monthlyRevenue,
+    total_revenue: totalRevenue,
+    confirmed_bookings: confirmedBookingsResult.count ?? 0,
+    pending_bookings: pendingBookingsResult.count ?? 0,
+    completed_trips: 0,
+    total_customers: customersResult.count ?? 0,
+    active_packages: activePackagesResult.count ?? 0,
+    upcoming_departures: upcomingDepsResult.count ?? 0,
+    today_leads: todayLeadsResult.count ?? 0,
+    week_leads: weekLeadsResult.count ?? 0,
+    lead_conversion_rate: 0,
+  } as unknown as DashboardStats;
+
+  return stats;
 }
 
 export async function getMonthlyRevenue(): Promise<MonthlyRevenue[]> {
-  const { data, error } = await supabase.from('v_monthly_revenue').select('*')
-  if (error) throw new Error(error.message)
-  return (data ?? []) as MonthlyRevenue[]
+  // Try the view first; fall back to direct computation if it fails or returns nothing
+  try {
+    const dbClient = getSupabaseAdmin() || supabase;
+    const { data: viewData, error: viewErr } = await dbClient.from('v_monthly_revenue').select('*');
+    if (!viewErr && viewData && viewData.length > 0) {
+      return viewData as MonthlyRevenue[];
+    }
+  } catch { /* fall through to direct computation */ }
+
+  // Direct computation: last 12 months of SUCCESS payments grouped by month
+  const dbClient = getSupabaseAdmin() || supabase;
+  const twelveMonthsAgo = new Date();
+  twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+  twelveMonthsAgo.setDate(1);
+  twelveMonthsAgo.setHours(0, 0, 0, 0);
+
+  const { data: payments } = await dbClient
+    .from('payments')
+    .select('amount, created_at')
+    .eq('status', 'SUCCESS')
+    .gte('created_at', twelveMonthsAgo.toISOString())
+    .order('created_at', { ascending: true });
+
+  const monthMap = new Map<string, { revenue: number; bookings: number }>();
+
+  for (const p of payments ?? []) {
+    const d = new Date(p.created_at);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+    const existing = monthMap.get(key) ?? { revenue: 0, bookings: 0 };
+    existing.revenue += p.amount || 0;
+    existing.bookings += 1;
+    monthMap.set(key, existing);
+  }
+
+  return Array.from(monthMap.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([month, stats]) => ({ month, ...stats } as unknown as MonthlyRevenue));
 }
 
 export async function getRevenueByDestination() {
