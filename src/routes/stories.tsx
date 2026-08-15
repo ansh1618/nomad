@@ -107,13 +107,14 @@ function StoryCard({ story, index }: { story: Story; index: number }) {
             {/* Author */}
             <div className="flex items-center justify-between border-t border-border/30 pt-3 mt-auto">
               <div className="flex items-center gap-2.5">
-                {story.author_image ? (
-                  <img src={story.author_image} alt={story.author_name || ""} className="w-7 h-7 rounded-full object-cover" />
-                ) : (
-                  <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-[10px]">
-                    {story.author_name?.[0]?.toUpperCase() || "E"}
-                  </div>
-                )}
+                <img
+                  src={story.author_image || "/nomadik-favicon.png"}
+                  alt={story.author_name || "Nomadik Captain"}
+                  className="w-7 h-7 rounded-full object-cover border border-border/50"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = "/nomadik-favicon.png";
+                  }}
+                />
                 <div>
                   <p className="text-[11px] font-semibold text-foreground leading-none">{story.author_name || "Explorer"}</p>
                   {story.college_name && (

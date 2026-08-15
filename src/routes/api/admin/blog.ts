@@ -43,12 +43,21 @@ export const APIRoute = createAPIFileRoute("/api/admin/blog")({
           );
         }
 
+        // Merge author_image into seo JSONB (blogs table has no author_image column)
+        const existingSeo = typeof blogData.seo === 'object' && blogData.seo !== null ? blogData.seo : {};
+        const mergedSeo = {
+          ...existingSeo,
+          ...(blogData.seo_title ? { title: blogData.seo_title } : {}),
+          ...(blogData.seo_description ? { description: blogData.seo_description } : {}),
+          author_image: blogData.author_image || existingSeo.author_image || null,
+        };
+
         const cleanPayload = {
           title: String(blogData.title).trim(),
           slug: String(blogData.slug).trim().toLowerCase(),
           content: String(blogData.content).trim(),
           excerpt: blogData.excerpt ? String(blogData.excerpt).trim() : null,
-          featured_image: blogData.featured_image || null,
+          featured_image: blogData.featured_image || blogData.cover_image || null,
           category: blogData.category || "SOLO TRAVEL",
           gallery: Array.isArray(blogData.gallery) ? blogData.gallery : [],
           tags: Array.isArray(blogData.tags) ? blogData.tags : null,
@@ -56,7 +65,7 @@ export const APIRoute = createAPIFileRoute("/api/admin/blog")({
           author_name: blogData.author_name || "Nomadik Admin",
           destination_id: blogData.destination_id || null,
           journey_id: blogData.journey_id || null,
-          seo: blogData.seo || null,
+          seo: mergedSeo,
           is_published: Boolean(blogData.is_published),
           is_featured: Boolean(blogData.is_featured),
           published_at: blogData.is_published
@@ -104,10 +113,24 @@ export const APIRoute = createAPIFileRoute("/api/admin/blog")({
           );
         }
 
+        // Merge author_image into seo JSONB for update (blogs table has no author_image column)
+        const existingUpdateSeo = typeof payload?.seo === 'object' && payload?.seo !== null ? payload.seo : {};
+        const mergedUpdateSeo = {
+          ...existingUpdateSeo,
+          author_image: payload?.author_image || existingUpdateSeo.author_image || null,
+        };
+
         const cleanPayload: Record<string, any> = {
           ...payload,
+          seo: mergedUpdateSeo,
           updated_at: new Date().toISOString(),
         };
+
+        // Remove non-existent columns from payload
+        delete cleanPayload.author_image;
+        delete cleanPayload.cover_image;
+        delete cleanPayload.seo_title;
+        delete cleanPayload.seo_description;
 
         if (payload?.title) cleanPayload.title = String(payload.title).trim();
         if (payload?.slug) cleanPayload.slug = String(payload.slug).trim().toLowerCase();

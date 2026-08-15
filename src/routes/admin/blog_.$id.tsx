@@ -36,6 +36,8 @@ const blogSchema = z.object({
   excerpt: z.string().optional(),
   content: z.string().min(10, 'Content is required'),
   featured_image: z.string().optional(),
+  author_name: z.string().optional(),
+  author_image: z.string().optional(),
   category: z.string().min(1, 'Category is required'),
   is_published: z.boolean().default(false),
   is_featured: z.boolean().default(false),
@@ -71,6 +73,8 @@ function BlogFormPage() {
       is_published: false,
       is_featured: false,
       category: 'SOLO TRAVEL',
+      author_name: admin?.full_name ?? 'The Nomadik Traveller',
+      author_image: '',
     },
   })
 
@@ -82,7 +86,9 @@ function BlogFormPage() {
         slug: blog.slug,
         excerpt: blog.excerpt ?? '',
         content: blog.content,
-        featured_image: blog.featured_image ?? '',
+        featured_image: blog.featured_image || (blog as any).cover_image || '',
+        author_name: blog.author_name || admin?.full_name || 'The Nomadik Traveller',
+        author_image: blog.author_image || (blog as any).author_avatar || '',
         category: blog.category || 'SOLO TRAVEL',
         is_published: blog.is_published,
         is_featured: blog.is_featured || false,
@@ -90,7 +96,7 @@ function BlogFormPage() {
         seo_description: blog.seo?.description ?? '',
       })
     }
-  }, [blog, reset])
+  }, [blog, reset, admin])
 
   // Slug generator
   const titleValue = watch('title')
@@ -105,9 +111,12 @@ function BlogFormPage() {
       const { seo_title, seo_description, ...rest } = values
       const payload = {
         ...rest,
+        author_name: values.author_name || admin?.full_name || 'The Nomadik Traveller',
+        author_image: values.author_image || null,
+        featured_image: values.featured_image || null,
+        cover_image: values.featured_image || null,
         seo: seo_title || seo_description ? { title: seo_title, description: seo_description } : null,
         author_id: admin?.id ?? null,
-        author_name: admin?.full_name ?? admin?.email ?? 'Nomadik Admin',
         gallery: blog?.gallery || [],
       }
 
@@ -262,10 +271,25 @@ function BlogFormPage() {
                   </div>
                 </div>
 
+                <div className="grid grid-cols-2 gap-4 border-t pt-4 border-b pb-4">
+                  <div className="space-y-1.5">
+                    <Label>Author Name</Label>
+                    <Input {...register('author_name')} placeholder="e.g. Harsh Kumar Jha or Ansh Goyal" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <ImageField
+                      label="Author Avatar / Image"
+                      value={watch('author_image') ?? ''}
+                      onChange={(url) => setValue('author_image', url, { shouldDirty: true })}
+                      folder="/authors"
+                    />
+                  </div>
+                </div>
+
                 <ImageField
-                  label="Featured Image"
+                  label="Featured Cover Image"
                   value={watch('featured_image') ?? ''}
-                  onChange={(url) => setValue('featured_image', url)}
+                  onChange={(url) => setValue('featured_image', url, { shouldDirty: true })}
                   folder="/blogs"
                 />
 

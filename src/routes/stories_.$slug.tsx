@@ -464,13 +464,14 @@ function SingleStoryRoute() {
             <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-border/50">
               {/* Author */}
               <div className="flex items-center gap-3">
-                {story.author_image ? (
-                  <img src={story.author_image} alt={story.author_name || ""} className="w-12 h-12 rounded-full object-cover ring-2 ring-border" />
-                ) : (
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-lg">
-                    {story.author_name?.[0]?.toUpperCase() || "E"}
-                  </div>
-                )}
+                <img
+                  src={story.author_image || "/nomadik-favicon.png"}
+                  alt={story.author_name || "Nomadik Captain"}
+                  className="w-12 h-12 rounded-full object-cover ring-2 ring-border"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = "/nomadik-favicon.png";
+                  }}
+                />
                 <div>
                   <p className="font-semibold text-foreground font-poppins flex items-center gap-1.5">
                     <User className="h-3.5 w-3.5 text-muted-foreground" />
