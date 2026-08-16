@@ -400,7 +400,7 @@ function SingleStoryRoute() {
     );
   }
 
-  const currentUrl = `${typeof window !== "undefined" ? window.location.origin : "https://nomadik.co.in"}/stories/${slug}`;
+  const currentUrl = `${typeof window !== "undefined" ? window.location.origin : "https://gonomadik.in"}/stories/${slug}`;
 
   return (
     <div className="bg-background min-h-screen flex flex-col">
