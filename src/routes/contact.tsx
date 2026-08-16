@@ -13,13 +13,41 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { submitContactInquiryFn, submitConsultationRequestFn, submitCallbackRequestFn } from "@/lib/server-fns";
 import { BRAND } from "@/config/brand";
 
+import { BASE_URL, getCanonicalUrl, generateBreadcrumbSchema } from "@/lib/seo";
+
 export const Route = createFileRoute("/contact")({
-  head: () => ({
-    meta: [
-      { title: "Contact Us & Book Consultation | Nomadik" },
-      { name: "description", content: "Contact Nomadik. Schedule a free consultation call, request callback, or message our Trip Captains directly on WhatsApp." },
-    ],
-  }),
+  head: () => {
+    const canonicalUrl = getCanonicalUrl("/contact");
+    const title = "Contact GoNomadik — Trip Support & Consultation";
+    const description = "Get in touch with GoNomadik. Speak to our Trip Captains, request callbacks, or inquire about custom group road trips from Delhi NCR.";
+    const breadcrumbs = [
+      { name: "Home", url: "/" },
+      { name: "Contact", url: "/contact" }
+    ];
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:url", content: canonicalUrl },
+        { property: "og:type", content: "website" },
+        { property: "og:image", content: `${BASE_URL}/images/manali/manali-snow-valley.jpg` },
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:title", content: title },
+        { name: "twitter:description", content: description }
+      ],
+      links: [
+        { rel: "canonical", href: canonicalUrl }
+      ],
+      scripts: [
+        {
+          type: "application/ld+json",
+          children: JSON.stringify(generateBreadcrumbSchema(breadcrumbs))
+        }
+      ]
+    };
+  },
   component: ContactRoute,
 });
 

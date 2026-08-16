@@ -1,4 +1,4 @@
-export const BASE_URL = "https://nomadik.co.in";
+export const BASE_URL = "https://gonomadik.in";
 
 /**
  * Returns clean canonical URL without query parameters (e.g. ?book=true).

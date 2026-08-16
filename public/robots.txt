@@ -12,4 +12,4 @@ Disallow: /*?*book=
 Disallow: /*?*ref=
 
 # XML Sitemap Location
-Sitemap: https://nomadik.co.in/sitemap.xml
+Sitemap: https://gonomadik.in/sitemap.xml

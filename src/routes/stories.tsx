@@ -25,20 +25,41 @@ import { getPublishedStories } from "@/lib/queries/stories";
 import type { Story } from "@/types/supabase";
 import { motion, AnimatePresence } from "motion/react";
 
+import { BASE_URL, getCanonicalUrl, generateBreadcrumbSchema } from "@/lib/seo";
+
 export const Route = createFileRoute("/stories")({
-  head: () => ({
-    meta: [
-      { title: "Trip Experience Hub & Traveler Stories | Nomadik" },
-      {
-        name: "description",
-        content:
-          "Explore real-time traveler stories, photo galleries, trip reels, and reviews. Dive into our active student and college travel community.",
-      },
-      { property: "og:title", content: "Trip Experience Hub | Nomadik" },
-      { property: "og:description", content: "Real Experiences. Real Memories. Real People." },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
+  head: () => {
+    const canonicalUrl = getCanonicalUrl("/stories");
+    const title = "Travel Guides & Stories — Road Trips from Delhi | GoNomadik";
+    const description = "Read ultimate travel guides, weekend trip itineraries, and real explorer stories for Udaipur, Manali, Jibhi, Chopta & McLeod Ganj.";
+    const breadcrumbs = [
+      { name: "Home", url: "/" },
+      { name: "Stories", url: "/stories" }
+    ];
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:url", content: canonicalUrl },
+        { property: "og:type", content: "website" },
+        { property: "og:image", content: `${BASE_URL}/images/manali/manali-snow-valley.jpg` },
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:title", content: title },
+        { name: "twitter:description", content: description }
+      ],
+      links: [
+        { rel: "canonical", href: canonicalUrl }
+      ],
+      scripts: [
+        {
+          type: "application/ld+json",
+          children: JSON.stringify(generateBreadcrumbSchema(breadcrumbs))
+        }
+      ]
+    };
+  },
   component: StoriesRoute,
 });
 

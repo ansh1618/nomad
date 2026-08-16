@@ -42,30 +42,28 @@ export const Route = createFileRoute("/")({
   },
   pendingComponent: RouteLoadingState,
   errorComponent: RouteErrorState,
-  head: () => ({
-    meta: [
-      { title: "GoNomadik — Premium Curated Road Trips & Group Journeys from Delhi" },
-      {
-        name: "description",
-        content:
-          "Book curated road trips from Delhi to Manali, Jibhi, Chopta, McLeod Ganj & Udaipur. Enjoy verified stays, experienced Trip Captains & 24×7 explorer support.",
-      },
-      { property: "og:title", content: "GoNomadik — Premium Curated Road Trips Across India" },
-      {
-        property: "og:description",
-        content:
-          "Some roads change you forever. Join 15,000+ explorers on curated road trips and group journeys from Delhi.",
-      },
-      { property: "og:url", content: "https://nomadik.co.in" },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "GoNomadik — Premium Curated Road Trips & Group Journeys" },
-      { name: "twitter:description", content: "Curated road trip adventures from Delhi to Manali, Jibhi, Chopta, McLeod Ganj & Udaipur." },
-    ],
-    links: [
-      { rel: "canonical", href: "https://nomadik.co.in" }
-    ],
-  }),
+  head: () => {
+    const canonicalUrl = getCanonicalUrl("/");
+    const title = "GoNomadik — Premium Curated Road Trips & Weekend Trips from Delhi";
+    const description = "Book curated road trips & weekend getaways from Delhi to Udaipur, Manali, Jibhi, Chopta & McLeod Ganj. Verified stays, expert Trip Captains & group travel.";
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:url", content: canonicalUrl },
+        { property: "og:type", content: "website" },
+        { property: "og:image", content: `${BASE_URL}/images/manali/manali-snow-valley.jpg` },
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:title", content: title },
+        { name: "twitter:description", content: description }
+      ],
+      links: [
+        { rel: "canonical", href: canonicalUrl }
+      ]
+    };
+  },
   component: Index,
 });
 

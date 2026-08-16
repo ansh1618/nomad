@@ -5,13 +5,41 @@ import { FloatingUI } from "@/components/site/FloatingUI";
 import { Reveal } from "@/components/site/Reveal";
 import { Compass, Users, ShieldCheck, Instagram, Linkedin, Mail, Mountain, Bus, Star, MapPin } from "lucide-react";
 
+import { BASE_URL, getCanonicalUrl, generateBreadcrumbSchema } from "@/lib/seo";
+
 export const Route = createFileRoute("/about")({
-  head: () => ({
-    meta: [
-      { title: "About Us | Nomadik Founders & Story" },
-      { name: "description", content: "Meet Harsh Kumar Jha and Ansh Goyal, the founders behind Nomadik, creating safer, simpler, and meaningful road travel experiences." },
-    ],
-  }),
+  head: () => {
+    const canonicalUrl = getCanonicalUrl("/about");
+    const title = "About GoNomadik — Our Story, Founders & Vision";
+    const description = "Meet Harsh Kumar Jha and Ansh Goyal, founders of GoNomadik. Learn how we craft safer, curated, and community-driven road trips from Delhi.";
+    const breadcrumbs = [
+      { name: "Home", url: "/" },
+      { name: "About", url: "/about" }
+    ];
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:url", content: canonicalUrl },
+        { property: "og:type", content: "website" },
+        { property: "og:image", content: `${BASE_URL}/images/manali/manali-snow-valley.jpg` },
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:title", content: title },
+        { name: "twitter:description", content: description }
+      ],
+      links: [
+        { rel: "canonical", href: canonicalUrl }
+      ],
+      scripts: [
+        {
+          type: "application/ld+json",
+          children: JSON.stringify(generateBreadcrumbSchema(breadcrumbs))
+        }
+      ]
+    };
+  },
   component: AboutRoute,
 });
 

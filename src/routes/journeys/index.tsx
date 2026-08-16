@@ -22,12 +22,38 @@ export const Route = createFileRoute('/journeys/')({
   },
   pendingComponent: RouteLoadingState,
   errorComponent: RouteErrorState,
-  head: () => ({
-    meta: [
-      { title: "Curated Road Journeys & Packages | Nomadik Expeditions" },
-      { name: "description", content: "Explore all hand-crafted road travel packages across India. Manali, Jibhi, Udaipur, McLeod Ganj & Chopta." },
-    ],
-  }),
+  head: () => {
+    const canonicalUrl = getCanonicalUrl("/journeys");
+    const title = "Road Trip Packages & Weekend Getaways from Delhi | GoNomadik";
+    const description = "Discover curated road trip packages from Delhi to Manali, Jibhi, Udaipur, Chopta & McLeod Ganj. Inclusive of transport, stays, trip captain & experiences.";
+    const breadcrumbs = [
+      { name: "Home", url: "/" },
+      { name: "Journeys", url: "/journeys" }
+    ];
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:url", content: canonicalUrl },
+        { property: "og:type", content: "website" },
+        { property: "og:image", content: `${BASE_URL}/images/manali/manali-snow-valley.jpg` },
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:title", content: title },
+        { name: "twitter:description", content: description }
+      ],
+      links: [
+        { rel: "canonical", href: canonicalUrl }
+      ],
+      scripts: [
+        {
+          type: "application/ld+json",
+          children: JSON.stringify(generateBreadcrumbSchema(breadcrumbs))
+        }
+      ]
+    };
+  },
   component: JourneysCatalogPage,
 })
 
