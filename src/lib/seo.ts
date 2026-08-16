@@ -21,11 +21,14 @@ export function generateOrganizationSchema() {
     "@type": "Organization",
     "@id": `${BASE_URL}/#organization`,
     name: "GoNomadik",
-    alternateName: ["Nomadik", "GoNomadik Road Trips"],
-    url: BASE_URL,
-    logo: `${BASE_URL}/nomadik-favicon.png`,
-    image: `${BASE_URL}/images/manali/manali-snow-valley.jpg`,
-    description: "Nomadik crafts premium, curated road trips and group journeys across India. Join our community of explorers on unforgettable road travel experiences.",
+    alternateName: ["Go Nomadik", "GoNomadik Road Trips"],
+    url: `${BASE_URL}/`,
+    logo: {
+      "@type": "ImageObject",
+      url: `${BASE_URL}/images/gonomadik-round-emblem.png`
+    },
+    image: `${BASE_URL}/images/gonomadik-full-logo.png`,
+    description: "GoNomadik crafts premium, curated road trips and group journeys across India. Join our community of explorers on unforgettable road travel experiences.",
     email: "support.nomadik@gmail.com",
     telephone: "+91-7982850767",
     sameAs: [
@@ -49,9 +52,9 @@ export function generateWebSiteSchema() {
     "@context": "https://schema.org",
     "@type": "WebSite",
     "@id": `${BASE_URL}/#website`,
-    url: BASE_URL,
-    name: "GoNomadik Road Trips",
-    alternateName: "Nomadik Travel",
+    name: "GoNomadik",
+    alternateName: ["Go Nomadik", "GoNomadik"],
+    url: `${BASE_URL}/`,
     publisher: {
       "@id": `${BASE_URL}/#organization`
     },
@@ -194,14 +197,14 @@ export function generateArticleSchema(article: {
     dateModified: modDate,
     author: {
       "@type": "Person",
-      name: article.author_name || "The Nomadik Traveller"
+      name: article.author_name || "GoNomadik Team"
     },
     publisher: {
       "@type": "Organization",
       name: "GoNomadik",
       logo: {
         "@type": "ImageObject",
-        url: `${BASE_URL}/nomadik-favicon.png`
+        url: `${BASE_URL}/images/gonomadik-round-emblem.png`
       }
     }
   };

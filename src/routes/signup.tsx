@@ -185,7 +185,7 @@ function SignupPage() {
         </div>
 
         <p className="relative text-white/40 text-xs font-poppins">
-          © {new Date().getFullYear()} The Nomadik Traveller
+          © {new Date().getFullYear()} GoNomadik
         </p>
       </div>
 

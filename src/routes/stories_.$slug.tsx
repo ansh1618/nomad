@@ -69,7 +69,7 @@ export const Route = createFileRoute("/stories_/$slug")({
       content: story?.content,
       featured_image: coverImage,
       published_at: story?.published_at || story?.created_at,
-      author_name: story?.author_name || "The Nomadik Traveller"
+      author_name: story?.author_name || "GoNomadik Team"
     });
 
     const breadcrumbSchema = generateBreadcrumbSchema(breadcrumbs);
@@ -87,7 +87,7 @@ export const Route = createFileRoute("/stories_/$slug")({
         { name: "twitter:title", content: title },
         { name: "twitter:description", content: description },
         { name: "twitter:image", content: coverImage },
-        { name: "author", content: story?.author_name || "The Nomadik Traveller" },
+        { name: "author", content: story?.author_name || "GoNomadik Team" },
       ],
       links: [
         { rel: "canonical", href: canonicalUrl }

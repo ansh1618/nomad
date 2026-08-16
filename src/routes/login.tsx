@@ -105,7 +105,7 @@ function LoginPage() {
         </div>
 
         <p className="relative text-white/40 text-xs font-poppins">
-          © {new Date().getFullYear()} The Nomadik Traveller. All rights reserved.
+          © {new Date().getFullYear()} GoNomadik. All rights reserved.
         </p>
       </div>
 

@@ -51,11 +51,12 @@ export const Route = createFileRoute("/")({
       meta: [
         { title },
         { name: "description", content: description },
+        { property: "og:site_name", content: "GoNomadik" },
         { property: "og:title", content: title },
         { property: "og:description", content: description },
         { property: "og:url", content: canonicalUrl },
         { property: "og:type", content: "website" },
-        { property: "og:image", content: `${BASE_URL}/images/manali/manali-snow-valley.jpg` },
+        { property: "og:image", content: `${BASE_URL}/images/gonomadik-full-logo.png` },
         { name: "twitter:card", content: "summary_large_image" },
         { name: "twitter:title", content: title },
         { name: "twitter:description", content: description }

@@ -42,7 +42,7 @@ export function Footer() {
   const address = settings?.address || "Delhi NCR, India";
   
   const logoUrl = settings?.logo_url || logoFallback;
-  const copyrightText = settings?.footer_copyright || `© ${year} The Nomadik Traveller. All rights reserved.`;
+  const copyrightText = settings?.footer_copyright || `© ${year} GoNomadik. All rights reserved.`;
   const footerQuote = settings?.footer_quote || "Life is short. Take the scenic route.";
 
   // Social links from settings or BRAND fallback
