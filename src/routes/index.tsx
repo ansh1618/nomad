@@ -23,6 +23,7 @@ import { LoadingScreen } from "@/components/site/LoadingScreen";
 import { getDestinations, getJourneys, STATIC_FALLBACK_DESTINATIONS, STATIC_FALLBACK_JOURNEYS } from "@/lib/queries-client";
 import { withTimeout } from "@/lib/promise-timeout";
 import { RouteLoadingState, RouteErrorState } from "@/components/site/RouteStates";
+import { BASE_URL, getCanonicalUrl } from "@/lib/seo";
 
 export const Route = createFileRoute("/")({
   loader: async () => {

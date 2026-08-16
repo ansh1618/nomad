@@ -1,13 +1,15 @@
 export const BASE_URL = "https://gonomadik.in";
+export const SITE_URL = BASE_URL;
 
 /**
- * Returns clean canonical URL without query parameters (e.g. ?book=true).
+ * Returns clean canonical URL without query parameters or trailing slashes.
  */
-export function getCanonicalUrl(path: string = ""): string {
+export function getCanonicalUrl(path: string = "/"): string {
+  if (!path || path === "/") return BASE_URL;
   const cleanPath = path.split("?")[0].split("#")[0];
   const normalizedPath = cleanPath.startsWith("/") ? cleanPath : `/${cleanPath}`;
-  if (normalizedPath === "/") return BASE_URL;
-  return `${BASE_URL}${normalizedPath.replace(/\/+$/, "")}`;
+  const trimmed = normalizedPath.replace(/\/+$/, "");
+  return trimmed === "" ? BASE_URL : `${BASE_URL}${trimmed}`;
 }
 
 /**

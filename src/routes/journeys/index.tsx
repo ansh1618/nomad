@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { RouteLoadingState, RouteErrorState } from '@/components/site/RouteStates'
 import { withTimeout } from '@/lib/promise-timeout'
 import { motion } from 'framer-motion'
+import { BASE_URL, getCanonicalUrl, generateBreadcrumbSchema } from '@/lib/seo'
 
 export const Route = createFileRoute('/journeys/')({
   loader: async () => {
