@@ -18,6 +18,7 @@ import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PaymentDemoRouteImport } from './routes/payment-demo'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as GoNomadikXMhRouteImport } from './routes/go-nomadik-x-mh'
+import { Route as GoNomadikXBpitRouteImport } from './routes/go-nomadik-x-bpit'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as ExplorerRouteImport } from './routes/explorer'
 import { Route as DestinationsRouteImport } from './routes/destinations'
@@ -71,6 +72,7 @@ import { Route as AdminBlogRouteImport } from './routes/admin/blog'
 import { Route as AdminBannersRouteImport } from './routes/admin/banners'
 import { Route as AdminAnalyticsRouteImport } from './routes/admin/analytics'
 import { Route as AdminActivityRouteImport } from './routes/admin/activity'
+import { Route as AdminWebsiteCollege_specialsRouteImport } from './routes/admin/website_.college_specials'
 import { Route as AdminWebsiteSectionRouteImport } from './routes/admin/website_.$section'
 import { Route as AdminStoriesIdRouteImport } from './routes/admin/stories_.$id'
 import { Route as AdminPackagesIdRouteImport } from './routes/admin/packages_.$id'
@@ -125,6 +127,11 @@ const LoginRoute = LoginRouteImport.update({
 const GoNomadikXMhRoute = GoNomadikXMhRouteImport.update({
   id: '/go-nomadik-x-mh',
   path: '/go-nomadik-x-mh',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GoNomadikXBpitRoute = GoNomadikXBpitRouteImport.update({
+  id: '/go-nomadik-x-bpit',
+  path: '/go-nomadik-x-bpit',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
@@ -392,6 +399,12 @@ const AdminActivityRoute = AdminActivityRouteImport.update({
   path: '/activity',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminWebsiteCollege_specialsRoute =
+  AdminWebsiteCollege_specialsRouteImport.update({
+    id: '/website_/college_specials',
+    path: '/website/college_specials',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const AdminWebsiteSectionRoute = AdminWebsiteSectionRouteImport.update({
   id: '/website_/$section',
   path: '/website/$section',
@@ -456,6 +469,7 @@ export interface FileRoutesByFullPath {
   '/destinations': typeof DestinationsRoute
   '/explorer': typeof ExplorerRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/go-nomadik-x-bpit': typeof GoNomadikXBpitRoute
   '/go-nomadik-x-mh': typeof GoNomadikXMhRoute
   '/login': typeof LoginRoute
   '/payment-demo': typeof PaymentDemoRoute
@@ -516,6 +530,7 @@ export interface FileRoutesByFullPath {
   '/admin/packages/$id': typeof AdminPackagesIdRoute
   '/admin/stories/$id': typeof AdminStoriesIdRoute
   '/admin/website/$section': typeof AdminWebsiteSectionRoute
+  '/admin/website/college_specials': typeof AdminWebsiteCollege_specialsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -529,6 +544,7 @@ export interface FileRoutesByTo {
   '/destinations': typeof DestinationsRoute
   '/explorer': typeof ExplorerRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/go-nomadik-x-bpit': typeof GoNomadikXBpitRoute
   '/go-nomadik-x-mh': typeof GoNomadikXMhRoute
   '/login': typeof LoginRoute
   '/payment-demo': typeof PaymentDemoRoute
@@ -589,6 +605,7 @@ export interface FileRoutesByTo {
   '/admin/packages/$id': typeof AdminPackagesIdRoute
   '/admin/stories/$id': typeof AdminStoriesIdRoute
   '/admin/website/$section': typeof AdminWebsiteSectionRoute
+  '/admin/website/college_specials': typeof AdminWebsiteCollege_specialsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -604,6 +621,7 @@ export interface FileRoutesById {
   '/destinations': typeof DestinationsRoute
   '/explorer': typeof ExplorerRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/go-nomadik-x-bpit': typeof GoNomadikXBpitRoute
   '/go-nomadik-x-mh': typeof GoNomadikXMhRoute
   '/login': typeof LoginRoute
   '/payment-demo': typeof PaymentDemoRoute
@@ -664,6 +682,7 @@ export interface FileRoutesById {
   '/admin/packages_/$id': typeof AdminPackagesIdRoute
   '/admin/stories_/$id': typeof AdminStoriesIdRoute
   '/admin/website_/$section': typeof AdminWebsiteSectionRoute
+  '/admin/website_/college_specials': typeof AdminWebsiteCollege_specialsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -680,6 +699,7 @@ export interface FileRouteTypes {
     | '/destinations'
     | '/explorer'
     | '/forgot-password'
+    | '/go-nomadik-x-bpit'
     | '/go-nomadik-x-mh'
     | '/login'
     | '/payment-demo'
@@ -740,6 +760,7 @@ export interface FileRouteTypes {
     | '/admin/packages/$id'
     | '/admin/stories/$id'
     | '/admin/website/$section'
+    | '/admin/website/college_specials'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -753,6 +774,7 @@ export interface FileRouteTypes {
     | '/destinations'
     | '/explorer'
     | '/forgot-password'
+    | '/go-nomadik-x-bpit'
     | '/go-nomadik-x-mh'
     | '/login'
     | '/payment-demo'
@@ -813,6 +835,7 @@ export interface FileRouteTypes {
     | '/admin/packages/$id'
     | '/admin/stories/$id'
     | '/admin/website/$section'
+    | '/admin/website/college_specials'
   id:
     | '__root__'
     | '/'
@@ -827,6 +850,7 @@ export interface FileRouteTypes {
     | '/destinations'
     | '/explorer'
     | '/forgot-password'
+    | '/go-nomadik-x-bpit'
     | '/go-nomadik-x-mh'
     | '/login'
     | '/payment-demo'
@@ -887,6 +911,7 @@ export interface FileRouteTypes {
     | '/admin/packages_/$id'
     | '/admin/stories_/$id'
     | '/admin/website_/$section'
+    | '/admin/website_/college_specials'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -902,6 +927,7 @@ export interface RootRouteChildren {
   DestinationsRoute: typeof DestinationsRoute
   ExplorerRoute: typeof ExplorerRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
+  GoNomadikXBpitRoute: typeof GoNomadikXBpitRoute
   GoNomadikXMhRoute: typeof GoNomadikXMhRoute
   LoginRoute: typeof LoginRoute
   PaymentDemoRoute: typeof PaymentDemoRoute
@@ -984,6 +1010,13 @@ declare module '@tanstack/react-router' {
       path: '/go-nomadik-x-mh'
       fullPath: '/go-nomadik-x-mh'
       preLoaderRoute: typeof GoNomadikXMhRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/go-nomadik-x-bpit': {
+      id: '/go-nomadik-x-bpit'
+      path: '/go-nomadik-x-bpit'
+      fullPath: '/go-nomadik-x-bpit'
+      preLoaderRoute: typeof GoNomadikXBpitRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/forgot-password': {
@@ -1357,6 +1390,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminActivityRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/website_/college_specials': {
+      id: '/admin/website_/college_specials'
+      path: '/website/college_specials'
+      fullPath: '/admin/website/college_specials'
+      preLoaderRoute: typeof AdminWebsiteCollege_specialsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/website_/$section': {
       id: '/admin/website_/$section'
       path: '/website/$section'
@@ -1474,6 +1514,7 @@ interface AdminRouteChildren {
   AdminPackagesIdRoute: typeof AdminPackagesIdRoute
   AdminStoriesIdRoute: typeof AdminStoriesIdRoute
   AdminWebsiteSectionRoute: typeof AdminWebsiteSectionRoute
+  AdminWebsiteCollege_specialsRoute: typeof AdminWebsiteCollege_specialsRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
@@ -1520,6 +1561,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminPackagesIdRoute: AdminPackagesIdRoute,
   AdminStoriesIdRoute: AdminStoriesIdRoute,
   AdminWebsiteSectionRoute: AdminWebsiteSectionRoute,
+  AdminWebsiteCollege_specialsRoute: AdminWebsiteCollege_specialsRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
@@ -1537,6 +1579,7 @@ const rootRouteChildren: RootRouteChildren = {
   DestinationsRoute: DestinationsRoute,
   ExplorerRoute: ExplorerRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
+  GoNomadikXBpitRoute: GoNomadikXBpitRoute,
   GoNomadikXMhRoute: GoNomadikXMhRoute,
   LoginRoute: LoginRoute,
   PaymentDemoRoute: PaymentDemoRoute,

@@ -16,7 +16,8 @@ import {
   FileText,
   ArrowRight,
   Globe,
-  Settings
+  Settings,
+  GraduationCap
 } from 'lucide-react'
 
 export const Route = createFileRoute('/admin/website')({
@@ -114,6 +115,13 @@ const CMS_MODULES = [
     icon: Globe,
     href: '/admin/website/special_offers',
     color: 'text-red-600 bg-red-50',
+  },
+  {
+    title: 'College Specials Manager',
+    description: 'Create, edit & manage campus collaborations (Miranda House, BPIT & future colleges).',
+    icon: GraduationCap,
+    href: '/admin/website/college_specials',
+    color: 'text-blue-600 bg-blue-50',
   },
   {
     title: 'Nomadik Experience Steps',
