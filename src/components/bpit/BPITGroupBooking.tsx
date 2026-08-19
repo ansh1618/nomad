@@ -1,5 +1,4 @@
 import { Users, Phone, MessageSquare, GraduationCap } from "lucide-react";
-import { BRAND } from "@/config/brand";
 
 export function BPITGroupBooking() {
   const whatsappMsg = encodeURIComponent(
@@ -22,7 +21,7 @@ export function BPITGroupBooking() {
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
           <a
-            href={`https://wa.me/${BRAND.whatsapp}?text=${whatsappMsg}`}
+            href={`https://wa.me/919971046607?text=${whatsappMsg}`}
             target="_blank"
             rel="noopener noreferrer"
             className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/30"
@@ -32,11 +31,11 @@ export function BPITGroupBooking() {
           </a>
 
           <a
-            href={`tel:${BRAND.phones[0]}`}
+            href="tel:+919971046607"
             className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-sm transition-all flex items-center justify-center gap-2 backdrop-blur-md"
           >
             <Phone className="h-4 w-4 text-[#C8A96A]" />
-            <span>Call Us: {BRAND.phones[0]}</span>
+            <span>Call Us: +91 99710 46607</span>
           </a>
         </div>
       </div>
