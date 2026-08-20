@@ -22,8 +22,8 @@ import {
   CalendarDays,
   Hotel,
   Bus,
-  Armchair,
-  BedDouble,
+
+
   ClipboardList,
   MessageSquare,
   Users,
@@ -36,14 +36,14 @@ import {
   Settings,
   BarChart3,
   CreditCard,
-  Activity,
+
   LogOut,
   Mountain,
   UserCog,
   Receipt,
   Wallet,
   Shield,
-  ShieldCheck,
+
   TrendingDown,
   Globe,
   Megaphone,
@@ -84,8 +84,6 @@ const NAV_SECTIONS = [
     items: [
       { title: "Hotels", href: "/admin/hotels", icon: Hotel },
       { title: "Buses", href: "/admin/buses", icon: Bus },
-      { title: "Seats", href: "/admin/seats", icon: Armchair },
-      { title: "Rooms", href: "/admin/rooms", icon: BedDouble },
     ],
   },
   {
@@ -114,7 +112,6 @@ const NAV_SECTIONS = [
   {
     label: "People",
     items: [
-      { title: "Trip Captains", href: "/admin/trip-captains", icon: ShieldCheck },
       { title: "Employees", href: "/admin/employees", icon: UserCog },
     ],
   },
@@ -133,7 +130,7 @@ const NAV_SECTIONS = [
     items: [
       { title: "Media Library", href: "/admin/media", icon: Image },
       { title: "Analytics", href: "/admin/analytics", icon: BarChart3 },
-      { title: "Activity Log", href: "/admin/activity", icon: Activity },
+
       { title: "Settings", href: "/admin/settings", icon: Settings },
       { title: "Super Admin", href: "/admin/super-admin", icon: Shield },
     ],
