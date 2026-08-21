@@ -2351,8 +2351,8 @@ function PackageDocumentsTab({ packageId, packageSlug, isNew, adminId }: Package
         toast.error('Only PDF files are supported');
         return;
       }
-      if (file.size > 30 * 1024 * 1024) {
-        toast.error('File size cannot exceed 30 MB');
+      if (file.size > 35 * 1024 * 1024) {
+        toast.error('PDF must be 35 MB or smaller.');
         return;
       }
       setSelectedFile(file);
@@ -2501,7 +2501,7 @@ function PackageDocumentsTab({ packageId, packageSlug, isNew, adminId }: Package
             </div>
 
             <div className="space-y-1.5">
-              <Label>Select PDF File (Max 30MB) *</Label>
+              <Label>Select PDF File (Max 35MB) *</Label>
               <Input
                 type="file"
                 accept="application/pdf"

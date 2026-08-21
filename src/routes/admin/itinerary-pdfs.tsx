@@ -110,8 +110,8 @@ function AdminPremiumDocumentsPage() {
         toast.error('Only PDF files are supported');
         return;
       }
-      if (file.size > 50 * 1024 * 1024) {
-        toast.error('File size cannot exceed 50 MB');
+      if (file.size > 35 * 1024 * 1024) {
+        toast.error('PDF must be 35 MB or smaller.');
         return;
       }
       setSelectedFile(file);
@@ -647,7 +647,7 @@ function AdminPremiumDocumentsPage() {
               </div>
 
               <div className="space-y-1.5">
-                <Label>Select PDF File (Max 50MB) *</Label>
+                <Label>Select PDF File (Max 35MB) *</Label>
                 <Input
                   type="file"
                   accept="application/pdf"
