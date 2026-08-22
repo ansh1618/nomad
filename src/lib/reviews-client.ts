@@ -492,27 +492,31 @@ export async function getAdminReviewsList(options?: {
   journeyId?: string;
   rating?: number;
 }): Promise<Review[]> {
-  let list = [...SEED_REVIEWS, ...sessionReviews];
+  try {
+    const { getAdminReviewsFn } = await import("@/lib/server-fns");
+    const res = await getAdminReviewsFn({
+      data: {
+        status: options?.status,
+        search: options?.search,
+      },
+    });
 
+    if (res && res.success && res.reviews) {
+      let list = res.reviews as Review[];
+      if (options?.rating) {
+        list = list.filter((r) => Math.round(r.overall_rating) === options.rating);
+      }
+      return list;
+    }
+  } catch (err: any) {
+    console.warn("[getAdminReviewsList] Failed to fetch server reviews:", err);
+  }
+
+  let list = [...SEED_REVIEWS, ...sessionReviews];
   if (options?.status && options.status !== "ALL") {
     const s = options.status.toLowerCase();
-    list = list.filter((r) => r.status.toLowerCase() === s);
+    list = list.filter((r) => (r.status || "").toLowerCase() === s);
   }
-
-  if (options?.rating) {
-    list = list.filter((r) => Math.round(r.overall_rating) === options.rating);
-  }
-
-  if (options?.search) {
-    const q = options.search.toLowerCase();
-    list = list.filter(
-      (r) =>
-        r.author_name.toLowerCase().includes(q) ||
-        (r.title && r.title.toLowerCase().includes(q)) ||
-        (r.review && r.review.toLowerCase().includes(q))
-    );
-  }
-
   return list;
 }
 
@@ -523,7 +527,8 @@ export async function adminApproveReview(reviewId: string): Promise<boolean> {
     rev.is_approved = true;
   }
   try {
-    await supabaseAdmin.from("reviews").update({ is_approved: true }).eq("id", reviewId);
+    const { adminApproveReviewFn } = await import("@/lib/server-fns");
+    await adminApproveReviewFn({ data: { reviewId } });
   } catch {}
   return true;
 }
@@ -535,7 +540,8 @@ export async function adminRejectReview(reviewId: string): Promise<boolean> {
     rev.is_approved = false;
   }
   try {
-    await supabaseAdmin.from("reviews").update({ is_approved: false }).eq("id", reviewId);
+    const { adminRejectReviewFn } = await import("@/lib/server-fns");
+    await adminRejectReviewFn({ data: { reviewId } });
   } catch {}
   return true;
 }
@@ -546,5 +552,18 @@ export async function adminFeatureReview(reviewId: string, isFeatured: boolean):
     rev.featured = isFeatured;
     rev.is_featured = isFeatured;
   }
+  try {
+    const { adminFeatureReviewFn } = await import("@/lib/server-fns");
+    await adminFeatureReviewFn({ data: { reviewId, isFeatured } });
+  } catch {}
   return true;
 }
+
+export async function adminDeleteReview(reviewId: string): Promise<boolean> {
+  try {
+    const { adminDeleteReviewFn } = await import("@/lib/server-fns");
+    await adminDeleteReviewFn({ data: { reviewId } });
+  } catch {}
+  return true;
+}
+

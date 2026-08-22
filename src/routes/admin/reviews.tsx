@@ -48,27 +48,52 @@ function ReviewsPage() {
   const [replyRole, setReplyRole] = useState<'Nomadik Team' | 'Trip Captain' | 'Operations Team' | 'Support Specialist'>('Nomadik Team')
   const [replyInput, setReplyInput] = useState('')
 
+  const { data: allReviewsList = [] } = useQuery({
+    queryKey: ['admin_reviews_all'],
+    queryFn: () => getAdminReviewsList({ status: 'ALL' }),
+  })
+
   const { data: reviewsList = [], refetch } = useQuery({
     queryKey: ['admin_reviews', tab, search],
     queryFn: () => getAdminReviewsList({ status: tab, search }),
   })
 
+  const pendingCount = allReviewsList.filter((r) => r.status === 'pending' || !r.is_approved).length
+  const avgRatingVal =
+    allReviewsList.length > 0
+      ? (allReviewsList.reduce((acc, r) => acc + (r.overall_rating || 5), 0) / allReviewsList.length).toFixed(1)
+      : '4.9'
+
+  const invalidateAll = () => {
+    qc.invalidateQueries({ queryKey: ['admin_reviews'] })
+    qc.invalidateQueries({ queryKey: ['admin_reviews_all'] })
+    qc.invalidateQueries({ queryKey: ['package_stories'] })
+    qc.invalidateQueries({ queryKey: ['stories'] })
+    refetch()
+  }
+
   const handleApprove = async (id: string) => {
     await adminApproveReview(id)
-    toast.success('Review approved and published!')
-    refetch()
+    toast.success('Review approved and published to Traveler Stories!')
+    invalidateAll()
   }
 
   const handleReject = async (id: string) => {
     await adminRejectReview(id)
     toast.success('Review moved to rejected queue.')
-    refetch()
+    invalidateAll()
   }
 
   const handleToggleFeature = async (id: string, current: boolean) => {
     await adminFeatureReview(id, !current)
     toast.success(!current ? 'Review featured on Homepage!' : 'Unfeatured review.')
-    refetch()
+    invalidateAll()
+  }
+
+  const handleDelete = async (id: string) => {
+    await adminDeleteReview(id)
+    toast.success('Review deleted.')
+    invalidateAll()
   }
 
   const handleSendReply = async (id: string) => {
@@ -78,7 +103,7 @@ function ReviewsPage() {
     toast.success(`Reply posted as ${replyRole}!`)
     setReplyInput('')
     setActiveReplyId(null)
-    refetch()
+    invalidateAll()
   }
 
   return (
@@ -101,11 +126,11 @@ function ReviewsPage() {
         <div className="flex items-center gap-3">
           <div className="bg-emerald-50 border border-emerald-200 px-3.5 py-2 rounded-2xl text-center">
             <span className="text-[10px] uppercase font-bold text-emerald-800 block">Avg Rating</span>
-            <span className="text-lg font-bold text-emerald-950 font-display">4.9 ★</span>
+            <span className="text-lg font-bold text-emerald-950 font-display">{avgRatingVal} ★</span>
           </div>
           <div className="bg-amber-50 border border-amber-200 px-3.5 py-2 rounded-2xl text-center">
             <span className="text-[10px] uppercase font-bold text-amber-800 block">Pending Queue</span>
-            <span className="text-lg font-bold text-amber-950 font-display">2</span>
+            <span className="text-lg font-bold text-amber-950 font-display">{pendingCount}</span>
           </div>
         </div>
       </div>
@@ -261,6 +286,15 @@ function ReviewsPage() {
                         <X className="h-3.5 w-3.5 mr-1" /> Reject
                       </Button>
                     )}
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleDelete(rev.id)}
+                      className="text-xs font-bold text-red-600 hover:bg-red-50 hover:text-red-700 border-red-200"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
                   </div>
                 </div>
 
