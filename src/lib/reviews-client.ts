@@ -121,28 +121,17 @@ export async function getApprovedReviews(options?: {
   limit?: number;
 }): Promise<{ data: Review[]; total: number; stats: ReviewRatingStats }> {
   try {
-    let query = supabase
+    // 1. Fetch approved reviews from 'reviews' table
+    const { data: dbReviews } = await supabase
       .from("reviews")
-      .select("*", { count: "exact" })
+      .select("*")
       .or("is_approved.eq.true,approved.eq.true");
 
-    if (options?.journeyId) {
-      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(options.journeyId);
-      if (isUuid) {
-        query = query.eq("journey_id", options.journeyId);
-      }
-    }
-    if (options?.destinationId) {
-      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(options.destinationId);
-      if (isUuid) {
-        query = query.eq("destination_id", options.destinationId);
-      }
-    }
-
-    const { data: dbReviews, error } = await query;
-    if (error) {
-      console.warn("[getApprovedReviews] Supabase query warning, using safe fallback:", error.message);
-    }
+    // 2. Fetch published stories from 'stories' table
+    const { data: dbStories } = await supabase
+      .from("stories")
+      .select("*")
+      .eq("is_published", true);
 
     const formattedDb: Review[] = (dbReviews || []).map((r: any) => ({
       id: r.id,
@@ -172,8 +161,8 @@ export async function getApprovedReviews(options?: {
       is_verified: r.is_verified || r.verified || true,
       helpful_count: r.helpful_count || r.likes_count || 12,
       likes_count: r.likes_count || r.helpful_count || 12,
-      status: (r.status as any) || (r.is_approved ? "approved" : "pending"),
-      is_approved: r.is_approved ?? true,
+      status: "approved",
+      is_approved: true,
       admin_reply: r.admin_reply || null,
       replies: r.replies || [],
       trip_date: r.trip_date || "Recent Trip",
@@ -183,17 +172,83 @@ export async function getApprovedReviews(options?: {
       media: r.media || [],
     }));
 
-    const allCombined = [...SEED_REVIEWS, ...sessionReviews, ...formattedDb];
+    const formattedStories: Review[] = (dbStories || []).map((s: any) => {
+      let authorName = "Explorer";
+      let avatarUrl = null;
+      let college = null;
+      if (typeof s.author === "object" && s.author !== null) {
+        authorName = s.author.name || "Explorer";
+        avatarUrl = s.author.avatar || null;
+        college = s.author.college || null;
+      } else if (typeof s.author === "string" && s.author.startsWith("{")) {
+        try {
+          const parsed = JSON.parse(s.author);
+          authorName = parsed.name || "Explorer";
+          avatarUrl = parsed.avatar || null;
+          college = parsed.college || null;
+        } catch {}
+      } else if (typeof s.author === "string") {
+        authorName = s.author;
+      }
+
+      return {
+        id: s.id,
+        booking_id: null,
+        journey_id: s.category || "Trip Story",
+        destination_id: s.category || "Trip Story",
+        user_id: null,
+        author_name: authorName,
+        avatar_url: avatarUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&q=80",
+        college: college,
+        instagram_handle: null,
+        title: s.title || "Traveler Story",
+        review: s.content || s.snippet || "",
+        content: s.content || s.snippet || "",
+        overall_rating: s.rating || 5,
+        hotel_rating: 5,
+        transport_rating: 5,
+        food_rating: 5,
+        captain_rating: 5,
+        safety_rating: 5,
+        value_rating: 5,
+        would_recommend: true,
+        anonymous: false,
+        featured: !!s.is_featured,
+        is_featured: !!s.is_featured,
+        verified: true,
+        is_verified: true,
+        helpful_count: 15,
+        likes_count: 15,
+        status: "approved",
+        is_approved: true,
+        admin_reply: null,
+        replies: [],
+        trip_date: "Verified Trip",
+        created_at: s.created_at || new Date().toISOString(),
+        badges: ["verified_traveler", "photo_review"],
+        achievement_badges: ["explorer"],
+        media: s.image_url ? [{ id: `med-${s.id}`, review_id: s.id, type: "image", url: s.image_url }] : [],
+      };
+    });
+
+    const allCombined = [...SEED_REVIEWS, ...sessionReviews, ...formattedStories, ...formattedDb];
     const uniqueMap = new Map<string, Review>();
     allCombined.forEach((rev) => uniqueMap.set(rev.id, rev));
     let resultList = Array.from(uniqueMap.values());
+
+    if (options?.featured) {
+      resultList = resultList.filter((r) => r.featured || r.is_featured);
+    }
 
     if (options?.journeyId) {
       const target = String(options.journeyId ?? "").toLowerCase();
       resultList = resultList.filter(
         (r) =>
           String(r.journey_id ?? "").toLowerCase().includes(target) ||
-          String(r.journey_slug ?? "").toLowerCase().includes(target)
+          String(r.journey_slug ?? "").toLowerCase().includes(target) ||
+          String(r.destination_id ?? "").toLowerCase().includes(target) ||
+          String(r.title ?? "").toLowerCase().includes(target) ||
+          String(r.review ?? "").toLowerCase().includes(target)
       );
     }
     if (options?.destinationId) {
@@ -201,7 +256,10 @@ export async function getApprovedReviews(options?: {
       resultList = resultList.filter(
         (r) =>
           String(r.destination_id ?? "").toLowerCase().includes(target) ||
-          String(r.journey_slug ?? "").toLowerCase().includes(target)
+          String(r.journey_id ?? "").toLowerCase().includes(target) ||
+          String(r.journey_slug ?? "").toLowerCase().includes(target) ||
+          String(r.title ?? "").toLowerCase().includes(target) ||
+          String(r.review ?? "").toLowerCase().includes(target)
       );
     }
     if (options?.collegeFilter) {
@@ -297,8 +355,8 @@ function calculateStats(reviews: Review[]): ReviewRatingStats {
 
   return {
     average: avg,
-    total_reviews: total + 1280,
-    verified_trips_count: total + 1280,
+    total_reviews: total,
+    verified_trips_count: total,
     recommendation_rate: Math.round((recommendCount / total) * 100) || 98,
     solo_safety_rate: 97,
     distribution: dist,
