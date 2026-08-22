@@ -19,21 +19,15 @@ interface ReviewSummaryHeaderProps {
   stats: ReviewRatingStats;
   journeyOrDestName?: string;
   onOpenWriteReview?: () => void;
-  onFilterCollege?: (college: string | null) => void;
-  activeCollege?: string | null;
 }
 
 export function ReviewSummaryHeader({
   stats,
   journeyOrDestName,
   onOpenWriteReview,
-  onFilterCollege,
-  activeCollege,
 }: ReviewSummaryHeaderProps) {
   const aiSummary = getAISummary(journeyOrDestName);
   const [showAiCard, setShowAiCard] = useState(true);
-
-  const collegesList = ["NSUT", "DTU", "IIT Delhi", "DU", "BPIT", "IPU"];
 
   return (
     <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#E4E2DA] shadow-soft space-y-7 font-poppins text-left">
@@ -218,41 +212,7 @@ export function ReviewSummaryHeader({
         </div>
       )}
 
-      {/* 5. Campus & College Filter Chips */}
-      {onFilterCollege && (
-        <div className="space-y-2 pt-1 border-t border-[#E4E2DA]">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-            Filter by College Community:
-          </span>
-          <div className="flex items-center gap-2 flex-wrap">
-            <button
-              type="button"
-              onClick={() => onFilterCollege(null)}
-              className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
-                activeCollege === null
-                  ? "bg-[#102A43] text-white shadow-sm"
-                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-              }`}
-            >
-              All Colleges
-            </button>
-            {collegesList.map((col) => (
-              <button
-                key={col}
-                type="button"
-                onClick={() => onFilterCollege(activeCollege === col ? null : col)}
-                className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${
-                  activeCollege === col
-                    ? "bg-[#102A43] text-white shadow-sm"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                }`}
-              >
-                🎓 {col}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+
     </div>
   );
 }

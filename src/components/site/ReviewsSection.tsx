@@ -39,7 +39,6 @@ export function ReviewsSection({
   // Filters & State
   const [sort, setSort] = useState<ReviewFilterState["sort"]>("newest");
   const [ratingFilter, setRatingFilter] = useState<number | null>(null);
-  const [collegeFilter, setCollegeFilter] = useState<string | null>(null);
   const [mediaOnly, setMediaOnly] = useState(false);
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -51,7 +50,7 @@ export function ReviewsSection({
 
   useEffect(() => {
     fetchReviews();
-  }, [journeyId, destinationId, sort, ratingFilter, collegeFilter, mediaOnly, verifiedOnly, searchQuery, page]);
+  }, [journeyId, destinationId, sort, ratingFilter, mediaOnly, verifiedOnly, searchQuery, page]);
 
   const fetchReviews = async () => {
     setLoading(true);
@@ -61,7 +60,6 @@ export function ReviewsSection({
         destinationId,
         sort,
         ratingFilter,
-        collegeFilter,
         mediaOnly,
         verifiedOnly,
         searchQuery,
@@ -110,8 +108,6 @@ export function ReviewsSection({
           stats={stats}
           journeyOrDestName={journeyName}
           onOpenWriteReview={() => setIsWriteModalOpen(true)}
-          onFilterCollege={setCollegeFilter}
-          activeCollege={collegeFilter}
         />
       )}
 
