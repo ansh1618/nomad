@@ -11,6 +11,7 @@ import {
   adminApproveReview,
   adminRejectReview,
   adminFeatureReview,
+  adminDeleteReview,
   addReviewReply,
 } from '@/lib/reviews-client'
 import { toast } from 'sonner'
