@@ -8,9 +8,10 @@ import {
   ShieldCheck,
   Building,
   Bus,
+  // GraduationCap removed (college field removed)
   Utensils,
   Award,
-  GraduationCap,
+
   Instagram,
   Trophy,
   Loader2,
@@ -43,7 +44,7 @@ export function ReviewFormModal({
 
   // Form State
   const [authorName, setAuthorName] = useState("");
-  const [college, setCollege] = useState("NSUT");
+
   const [instagram, setInstagram] = useState("");
   const [title, setTitle] = useState("");
   const [reviewText, setReviewText] = useState("");
@@ -93,7 +94,6 @@ export function ReviewFormModal({
         journey_id: journeyId,
         destination_id: destinationId,
         author_name: authorName || "Explorer",
-        college,
         instagram_handle: instagram,
         title,
         review: reviewText,
@@ -267,38 +267,17 @@ export function ReviewFormModal({
         {/* Step 2: Story & Author Details */}
         {step === 2 && (
           <div className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Your Full Name *
-                </label>
-                <input
-                  type="text"
-                  value={authorName}
-                  onChange={(e) => setAuthorName(e.target.value)}
-                  placeholder="e.g. Ananya Sharma"
-                  className="w-full p-2.5 border rounded-xl text-xs font-poppins focus:outline-none focus:border-amber-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1">
-                  <GraduationCap className="h-3.5 w-3.5 text-amber-600" /> College / University
-                </label>
-                <select
-                  value={college}
-                  onChange={(e) => setCollege(e.target.value)}
-                  className="w-full p-2.5 border rounded-xl text-xs font-poppins bg-white focus:outline-none focus:border-amber-500 font-semibold"
-                >
-                  <option value="NSUT">NSUT Delhi</option>
-                  <option value="DTU">DTU Delhi</option>
-                  <option value="IIT Delhi">IIT Delhi</option>
-                  <option value="DU">Delhi University (DU)</option>
-                  <option value="BPIT">BPIT Delhi</option>
-                  <option value="IPU">GGSIPU</option>
-                  <option value="Other">Other College / University</option>
-                </select>
-              </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Your Full Name *
+              </label>
+              <input
+                type="text"
+                value={authorName}
+                onChange={(e) => setAuthorName(e.target.value)}
+                placeholder="e.g. Ananya Sharma"
+                className="w-full p-2.5 border rounded-xl text-xs font-poppins focus:outline-none focus:border-amber-500"
+              />
             </div>
 
             <div>

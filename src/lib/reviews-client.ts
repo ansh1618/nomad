@@ -396,25 +396,49 @@ export async function submitReview(input: SubmitReviewInput): Promise<{ success:
       replies: [],
     };
 
+    // Keep in local session for instant UI feedback
     sessionReviews.unshift(newReview);
 
+    // Submit via secure server function (bypasses RLS)
     try {
-      await supabaseAdmin.from("reviews").insert({
-        journey_id: input.journey_id,
-        author_name: newReview.author_name,
-        content: input.review,
-        rating: input.overall_rating,
-        verified: true,
-        is_approved: !isFlagged,
-        created_at: nowStr,
+      const { submitReviewFn } = await import("@/lib/server-fns");
+      const result = await submitReviewFn({
+        data: {
+          journey_id: input.journey_id,
+          destination_id: input.destination_id,
+          booking_id: input.booking_id,
+          author_name: input.author_name || "Explorer",
+          instagram_handle: input.instagram_handle,
+          title: input.title,
+          review: input.review,
+          overall_rating: input.overall_rating,
+          hotel_rating: input.hotel_rating,
+          transport_rating: input.transport_rating,
+          food_rating: input.food_rating,
+          captain_rating: input.captain_rating,
+          safety_rating: input.safety_rating,
+          value_rating: input.value_rating,
+          would_recommend: input.would_recommend,
+          anonymous: input.anonymous,
+          media_files: input.media_files,
+        },
       });
-    } catch {}
+
+      if (result && !result.success) {
+        console.warn("[submitReview] Server function returned error:", result.error);
+      } else if (result?.reviewId) {
+        newReview.id = result.reviewId;
+      }
+    } catch (serverErr: any) {
+      console.warn("[submitReview] Server function call failed, review saved locally:", serverErr?.message);
+    }
 
     return { success: true, review: newReview };
   } catch (err: any) {
     return { success: false, error: err.message || "Failed to submit review." };
   }
 }
+
 
 // ==================== HELPFUL VOTES, REPORT & REPLIES ====================
 export async function voteHelpfulReview(reviewId: string): Promise<number> {
