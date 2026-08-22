@@ -22,9 +22,11 @@ import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
 
 interface ReviewFormModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  journeyId: string;
+  open?: boolean;
+  isOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  onClose?: () => void;
+  journeyId?: string;
   destinationId?: string;
   journeyName?: string;
   bookingId?: string;
@@ -33,13 +35,21 @@ interface ReviewFormModalProps {
 
 export function ReviewFormModal({
   open,
+  isOpen,
   onOpenChange,
-  journeyId,
+  onClose,
+  journeyId = "general",
   destinationId,
   journeyName,
   bookingId,
   onSuccess,
 }: ReviewFormModalProps) {
+  const isModalOpen = open ?? isOpen ?? false;
+  const handleClose = () => {
+    onOpenChange?.(false);
+    onClose?.();
+  };
+
   const [step, setStep] = useState<1 | 2 | 3>(1);
 
   // Form State
@@ -63,7 +73,7 @@ export function ReviewFormModal({
   const [mediaFiles, setMediaFiles] = useState<{ type: "image" | "video"; url: string }[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  if (!open) return null;
+  if (!isModalOpen) return null;
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -112,7 +122,7 @@ export function ReviewFormModal({
       if (res.success) {
         toast.success("Review submitted! You earned +200 XP & Explorer Badge! 🎉");
         onSuccess?.();
-        onOpenChange(false);
+        handleClose();
       } else {
         toast.error(res.error || "Failed to submit review.");
       }
@@ -147,7 +157,7 @@ export function ReviewFormModal({
 
           <button
             type="button"
-            onClick={() => onOpenChange(false)}
+            onClick={handleClose}
             className="p-2 rounded-full hover:bg-slate-100 text-slate-500 transition-colors"
           >
             <X className="h-5 w-5" />
