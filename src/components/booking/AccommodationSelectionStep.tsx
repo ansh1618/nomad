@@ -223,12 +223,12 @@ export function AccommodationSelectionStep({ data, updateData, onNext, onPrev, j
         </div>
       )}
 
-      <div className={cn("flex justify-between pt-4 gap-3", isSidebar && "flex-col-reverse w-full")}>
-        <Button variant="outline" onClick={onPrev} className={cn(isSidebar && "w-full h-10")}>Back to Traveller Details</Button>
+      <div className={cn("flex flex-col-reverse sm:flex-row justify-between pt-4 gap-3 w-full", isSidebar && "flex-col-reverse w-full")}>
+        <Button variant="outline" onClick={onPrev} className={cn("w-full sm:w-auto h-11", isSidebar && "w-full h-10")}>Back to Traveller Details</Button>
         <Button 
           onClick={onNext} 
           disabled={rooms.length > 0 && data.selectedRooms.length === 0}
-          className={cn("bg-primary hover:bg-primary/90", isSidebar && "w-full h-10")}
+          className={cn("w-full sm:w-auto bg-primary hover:bg-primary/90 h-11", isSidebar && "w-full h-10")}
         >
           Continue to Add-ons
         </Button>

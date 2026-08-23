@@ -132,14 +132,14 @@ export function TravellerDetailsStep({ data, updateData, onNext, isSidebar = fal
             <div className={cn("grid grid-cols-1 md:grid-cols-2 gap-4", isSidebar && "md:grid-cols-1")}>
               <div className="space-y-1">
                 <label className="text-[11px] font-semibold uppercase text-muted-foreground">Full Name (As per ID) *</label>
-                <Input value={t.fullName} onChange={e => updateTraveller(t.id, 'fullName', e.target.value)} />
+                <Input className="text-base sm:text-sm" value={t.fullName} onChange={e => updateTraveller(t.id, 'fullName', e.target.value)} />
                 {errors[`${t.id}-fullName`] && <p className="text-[10px] text-red-500 mt-0.5">{errors[`${t.id}-fullName`]}</p>}
               </div>
-              <div className={cn("grid grid-cols-2 gap-4", isSidebar && "grid-cols-1")}>
+              <div className={cn("grid grid-cols-1 sm:grid-cols-2 gap-4", isSidebar && "grid-cols-1")}>
                 <div className="space-y-1">
                   <label className="text-[11px] font-semibold uppercase text-muted-foreground">Gender *</label>
                   <Select value={t.gender} onValueChange={val => updateTraveller(t.id, 'gender', val)}>
-                    <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectTrigger className="text-base sm:text-sm"><SelectValue placeholder="Select" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="male">Male</SelectItem>
                       <SelectItem value="female">Female</SelectItem>
@@ -150,30 +150,30 @@ export function TravellerDetailsStep({ data, updateData, onNext, isSidebar = fal
                 </div>
                 <div className="space-y-1">
                   <label className="text-[11px] font-semibold uppercase text-muted-foreground">Date of Birth *</label>
-                  <Input type="date" value={t.dob} onChange={e => updateTraveller(t.id, 'dob', e.target.value)} />
+                  <Input type="date" className="text-base sm:text-sm" value={t.dob} onChange={e => updateTraveller(t.id, 'dob', e.target.value)} />
                   {errors[`${t.id}-dob`] && <p className="text-[10px] text-red-500 mt-0.5">{errors[`${t.id}-dob`]}</p>}
                 </div>
               </div>
 
               <div className="space-y-1">
                 <label className="text-[11px] font-semibold uppercase text-muted-foreground">Phone Number {t.isPrimary && "*"}</label>
-                <Input value={t.phone} onChange={e => updateTraveller(t.id, 'phone', e.target.value)} />
+                <Input className="text-base sm:text-sm" value={t.phone} onChange={e => updateTraveller(t.id, 'phone', e.target.value)} />
                 {errors[`${t.id}-phone`] && <p className="text-[10px] text-red-500 mt-0.5">{errors[`${t.id}-phone`]}</p>}
               </div>
               <div className="space-y-1">
                 <label className="text-[11px] font-semibold uppercase text-muted-foreground">Email Address {t.isPrimary && "*"}</label>
-                <Input type="email" value={t.email} onChange={e => updateTraveller(t.id, 'email', e.target.value)} />
+                <Input type="email" className="text-base sm:text-sm" value={t.email} onChange={e => updateTraveller(t.id, 'email', e.target.value)} />
                 {errors[`${t.id}-email`] && <p className="text-[10px] text-red-500 mt-0.5">{errors[`${t.id}-email`]}</p>}
               </div>
 
               <div className="space-y-1">
                 <label className="text-[11px] font-semibold uppercase text-[#E53E3E]">Aadhaar Number *</label>
-                <Input value={t.aadhaarNumber} onChange={e => updateTraveller(t.id, 'aadhaarNumber', e.target.value)} />
+                <Input className="text-base sm:text-sm" value={t.aadhaarNumber} onChange={e => updateTraveller(t.id, 'aadhaarNumber', e.target.value)} />
                 {errors[`${t.id}-aadhaarNumber`] && <p className="text-[10px] text-red-500 mt-0.5">{errors[`${t.id}-aadhaarNumber`]}</p>}
               </div>
               <div className="space-y-1">
                 <label className="text-[11px] font-semibold uppercase text-muted-foreground">Passport (Optional)</label>
-                <Input value={t.passportNumber} onChange={e => updateTraveller(t.id, 'passportNumber', e.target.value)} />
+                <Input className="text-base sm:text-sm" value={t.passportNumber} onChange={e => updateTraveller(t.id, 'passportNumber', e.target.value)} />
               </div>
             </div>
 
@@ -181,7 +181,7 @@ export function TravellerDetailsStep({ data, updateData, onNext, isSidebar = fal
               <div className="space-y-1">
                 <label className="text-[11px] font-semibold uppercase text-muted-foreground">Food Preference</label>
                 <Select value={t.foodPreference} onValueChange={val => updateTraveller(t.id, 'foodPreference', val)}>
-                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectTrigger className="text-base sm:text-sm"><SelectValue placeholder="Select" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="veg">Vegetarian</SelectItem>
                     <SelectItem value="non-veg">Non-Vegetarian</SelectItem>
@@ -192,7 +192,7 @@ export function TravellerDetailsStep({ data, updateData, onNext, isSidebar = fal
               </div>
               <div className="space-y-1">
                 <label className="text-[11px] font-semibold uppercase text-muted-foreground">Medical Conditions (If any)</label>
-                <Input value={t.medicalConditions} onChange={e => updateTraveller(t.id, 'medicalConditions', e.target.value)} placeholder="e.g. Asthma, allergies" />
+                <Input className="text-base sm:text-sm" value={t.medicalConditions} onChange={e => updateTraveller(t.id, 'medicalConditions', e.target.value)} placeholder="e.g. Asthma, allergies" />
               </div>
             </div>
 
@@ -200,12 +200,12 @@ export function TravellerDetailsStep({ data, updateData, onNext, isSidebar = fal
               <div className={cn("border-t border-border pt-4 grid grid-cols-1 md:grid-cols-2 gap-4", isSidebar && "md:grid-cols-1")}>
                 <div className="space-y-1">
                   <label className="text-[11px] font-semibold uppercase text-[#E53E3E]">Emergency Contact Name *</label>
-                  <Input value={t.emergencyContactName} onChange={e => updateTraveller(t.id, 'emergencyContactName', e.target.value)} />
+                  <Input className="text-base sm:text-sm" value={t.emergencyContactName} onChange={e => updateTraveller(t.id, 'emergencyContactName', e.target.value)} />
                   {errors[`${t.id}-emergencyContactName`] && <p className="text-[10px] text-red-500 mt-0.5">{errors[`${t.id}-emergencyContactName`]}</p>}
                 </div>
                 <div className="space-y-1">
                   <label className="text-[11px] font-semibold uppercase text-[#E53E3E]">Emergency Contact Phone *</label>
-                  <Input value={t.emergencyContactPhone} onChange={e => updateTraveller(t.id, 'emergencyContactPhone', e.target.value)} />
+                  <Input className="text-base sm:text-sm" value={t.emergencyContactPhone} onChange={e => updateTraveller(t.id, 'emergencyContactPhone', e.target.value)} />
                   {errors[`${t.id}-emergencyContactPhone`] && <p className="text-[10px] text-red-500 mt-0.5">{errors[`${t.id}-emergencyContactPhone`]}</p>}
                 </div>
               </div>
@@ -214,17 +214,17 @@ export function TravellerDetailsStep({ data, updateData, onNext, isSidebar = fal
         ))}
       </div>
 
-      <div className={cn("flex justify-between items-center pt-2 gap-3", isSidebar && "flex-col w-full")}>
+      <div className={cn("flex flex-col-reverse sm:flex-row justify-between items-center pt-2 gap-3 w-full", isSidebar && "flex-col w-full")}>
         <Button 
           variant="outline" 
           onClick={addTraveller} 
-          className={cn("text-xs font-poppins gap-2", isSidebar && "w-full justify-center h-10")}
+          className={cn("w-full sm:w-auto text-xs font-poppins gap-2 h-11", isSidebar && "w-full justify-center h-10")}
         >
           <UserPlus className="h-4 w-4" /> Add Co-Explorer
         </Button>
         <Button 
           onClick={handleNext} 
-          className={cn("bg-primary text-white hover:bg-primary/90 px-8", isSidebar && "w-full justify-center h-10")}
+          className={cn("w-full sm:w-auto bg-primary text-white hover:bg-primary/90 px-8 h-11", isSidebar && "w-full justify-center h-10")}
         >
           Proceed to Accommodation
         </Button>

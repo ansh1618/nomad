@@ -478,7 +478,7 @@ export function BookingWizard({
               <select
                 value={bookingData.departureId || ""}
                 onChange={(e) => handleDepartureChange(e.target.value)}
-                className="w-full h-11 px-4 pr-10 border border-border rounded-xl bg-white text-xs font-semibold font-poppins text-foreground focus:outline-none appearance-none cursor-pointer"
+                className="w-full h-11 px-4 pr-10 border border-border rounded-xl bg-white text-base sm:text-xs font-semibold font-poppins text-foreground focus:outline-none appearance-none cursor-pointer"
               >
                 {departures.length === 0 ? (
                   <option value="">No departures available</option>
@@ -510,7 +510,7 @@ export function BookingWizard({
         </div>
 
         {/* Stepper progress */}
-        <div className="bg-white p-4 rounded-2xl shadow-sm border border-border flex justify-between items-center overflow-x-auto">
+        <div className="bg-white p-3.5 sm:p-4 rounded-2xl shadow-sm border border-border flex justify-between items-center overflow-x-auto w-full max-w-full box-border">
           {STEPS.map((step, index) => {
             const isActive = index === currentStep;
             const isPast = index < currentStep;
@@ -539,7 +539,7 @@ export function BookingWizard({
         </div>
 
         {/* Form Container */}
-        <div className="bg-white p-4 sm:p-8 rounded-3xl shadow-sm border border-border min-h-[400px]">
+        <div className="bg-white p-4 sm:p-8 rounded-3xl shadow-sm border border-border min-h-[400px] w-full max-w-full overflow-hidden box-border">
           {currentStep === 0 && <TravellerDetailsStep data={bookingData} updateData={setBookingData} onNext={nextStep} isSidebar={isSidebar} pricing={pricing} departures={departures} />}
           {currentStep === 1 && <AccommodationSelectionStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} isSidebar={isSidebar} pricing={pricing} />}
           {currentStep === 2 && <AddonsAndCouponsStep data={bookingData} updateData={setBookingData} onNext={nextStep} onPrev={prevStep} journey={journey} isSidebar={isSidebar} pricing={pricing} />}
@@ -600,7 +600,7 @@ export function BookingWizard({
           </div>
 
           {/* Tab Content Panel */}
-          <div className="p-5 flex-1 max-h-[50vh] overflow-y-auto min-h-[250px]">
+          <div className="p-4 sm:p-5 flex-1 max-h-[60vh] lg:max-h-[50vh] overflow-y-auto min-h-[200px]">
             
             {/* BILLING LEDGER TAB */}
             {activeSummaryTab === "billing" && (

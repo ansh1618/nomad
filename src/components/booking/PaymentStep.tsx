@@ -250,7 +250,7 @@ export function PaymentStep({
       )}
 
       {/* ── PAYMENT SUMMARY CARD ── */}
-      <div className="w-full bg-white border border-border/80 p-6 sm:p-7 rounded-[20px] shadow-soft space-y-6 box-border">
+      <div className="w-full bg-white border border-border/80 p-4 sm:p-7 rounded-[20px] shadow-soft space-y-5 sm:space-y-6 box-border">
         {/* Total Amount — show Total Payable (incl. GST) */}
         <div className="bg-muted/30 border border-border/60 p-5 rounded-[16px] space-y-1">
           <span className="text-[11px] font-poppins font-bold uppercase tracking-wider text-muted-foreground block">

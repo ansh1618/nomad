@@ -2002,18 +2002,20 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
         </div>
       </section>
 
-      {/* Sticky Bottom CTA for Mobile */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-[#E4E2DA] p-4 z-50 flex items-center justify-between shadow-elegant">
-        <div>
-          <p className="text-[10px] text-muted-foreground uppercase font-poppins">Starting from</p>
-          <p className="text-lg font-bold text-primary font-poppins">
-            ₹{finalPrice.toLocaleString("en-IN")}
-          </p>
+      {/* Sticky Bottom CTA for Mobile (Hidden while actively completing booking wizard) */}
+      {!isBooking && (
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-[#E4E2DA] p-4 z-50 flex items-center justify-between shadow-elegant pb-[calc(1rem+env(safe-area-inset-bottom))]">
+          <div>
+            <p className="text-[10px] text-muted-foreground uppercase font-poppins">Starting from</p>
+            <p className="text-lg font-bold text-primary font-poppins">
+              ₹{finalPrice.toLocaleString("en-IN")}
+            </p>
+          </div>
+          <Button onClick={handleBookNowClick} size="sm" className="font-poppins">
+            Book Now →
+          </Button>
         </div>
-        <Button onClick={handleBookNowClick} size="sm" className="font-poppins">
-          Book Now →
-        </Button>
-      </div>
+      )}
     </div>
   );
 }

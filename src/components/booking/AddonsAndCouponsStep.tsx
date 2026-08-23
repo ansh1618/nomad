@@ -123,7 +123,7 @@ export function AddonsAndCouponsStep({ data, updateData, onNext, onPrev, journey
                   key={addon.id} 
                   onClick={() => toggleAddon(addon)}
                   className={cn(
-                    "w-full max-w-none box-border overflow-hidden rounded-[20px] p-5 flex justify-between items-start gap-4 min-h-[150px] cursor-pointer transition-all border-2",
+                    "w-full max-w-none box-border overflow-hidden rounded-[20px] p-4 sm:p-5 flex justify-between items-start gap-3 sm:gap-4 min-h-[140px] cursor-pointer transition-all border-2",
                     isSelected ? "border-accent bg-accent/5" : "border-border hover:border-accent/50 bg-white"
                   )}
                 >
@@ -150,7 +150,7 @@ export function AddonsAndCouponsStep({ data, updateData, onNext, onPrev, journey
           <h3 className="font-poppins font-bold text-secondary flex items-center gap-2">
             <TicketPercent className="h-5 w-5 text-accent" /> Apply Coupon
           </h3>
-          <div className="w-full max-w-full bg-white border border-border p-5 rounded-[20px] shadow-soft space-y-4 box-border overflow-hidden">
+          <div className="w-full max-w-full bg-white border border-border p-4 sm:p-5 rounded-[20px] shadow-soft space-y-4 box-border overflow-hidden">
             {data.coupon ? (
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-green-50 border border-green-200 rounded-xl text-green-800 gap-3 w-full box-border">
                 <div className="flex items-center gap-2">
@@ -169,7 +169,7 @@ export function AddonsAndCouponsStep({ data, updateData, onNext, onPrev, journey
                     placeholder="Enter Coupon Code" 
                     value={couponInput}
                     onChange={(e) => setCouponInput(e.target.value)}
-                    className="uppercase w-full h-11 text-sm rounded-xl border-border"
+                    className="uppercase w-full h-11 text-base sm:text-sm rounded-xl border-border"
                   />
                   <Button onClick={applyCoupon} variant="secondary" className="w-full sm:w-auto h-11 px-6 text-sm font-semibold shrink-0 rounded-xl">Apply</Button>
                 </div>
@@ -182,9 +182,9 @@ export function AddonsAndCouponsStep({ data, updateData, onNext, onPrev, journey
 
       </div>
 
-      <div className={cn("flex justify-between pt-4 border-t border-border mt-8 gap-3 w-full", isSidebar && "flex-col-reverse w-full")}>
-        <Button variant="outline" onClick={onPrev} className={cn(isSidebar && "w-full h-10")}>Back to Accommodation</Button>
-        <Button onClick={onNext} className={cn("bg-primary hover:bg-primary/90", isSidebar && "w-full h-10")}>Continue to Review</Button>
+      <div className={cn("flex flex-col-reverse sm:flex-row justify-between pt-4 border-t border-border mt-8 gap-3 w-full", isSidebar && "flex-col-reverse w-full")}>
+        <Button variant="outline" onClick={onPrev} className={cn("w-full sm:w-auto h-11", isSidebar && "w-full h-10")}>Back to Accommodation</Button>
+        <Button onClick={onNext} className={cn("w-full sm:w-auto bg-primary hover:bg-primary/90 h-11", isSidebar && "w-full h-10")}>Continue to Review</Button>
       </div>
     </div>
   );
