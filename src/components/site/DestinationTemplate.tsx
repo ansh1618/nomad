@@ -17,6 +17,7 @@ import { ItineraryLoginModal } from "./ItineraryLoginModal";
 import { ItineraryPdfViewerModal } from "./ItineraryPdfViewerModal";
 import { ReviewsSection } from "./ReviewsSection";
 import { UniversalLightboxModal } from "./UniversalLightboxModal";
+import { getTripCaptainFaqs } from "@/lib/faq-helper";
 
 interface DestinationTemplateProps {
   slug: string;
@@ -489,79 +490,39 @@ export function DestinationTemplate({ slug }: DestinationTemplateProps) {
         </Reveal>
       </section>
 
-      {/* 5. Google Reviews Style Section */}
-      <section className="bg-muted/30 py-20">
-        <div className="max-w-4xl mx-auto px-5">
-          <Reveal className="text-center max-w-2xl mx-auto">
-            <span className="text-xs font-poppins font-bold uppercase tracking-[0.25em] text-gold font-semibold">Guest Stories</span>
-            <h2 className="mt-2 font-display text-3xl font-bold text-primary sm:text-4xl">
-              Explorer Reviews
-            </h2>
-            <p className="mt-2 text-muted-foreground text-xs">Verified ratings on Google reviews</p>
-          </Reveal>
+      {/* FAQ Section */}
+      {(() => {
+        const resolvedFaqs = getTripCaptainFaqs(slug || dest?.name || '', dest?.faqs);
+        return (
+          <section className="max-w-3xl mx-auto px-5 py-20 border-t border-[#E4E2DA]">
+            <Reveal className="text-center">
+              <h2 className="font-display text-3xl font-bold text-primary sm:text-4xl">
+                Trip Captain FAQ
+              </h2>
+              <p className="mt-2 text-xs text-muted-foreground">Essential details for this route</p>
+            </Reveal>
 
-          <div className="mt-12 space-y-6">
-            {dest.reviews.map((r, i) => (
-              <Reveal key={r.name} delay={i}>
-                <div className="bg-white border border-border p-6 rounded-2xl shadow-soft">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <span className="grid h-10 w-10 place-items-center rounded-full bg-gold-gradient font-bold text-gold-foreground font-poppins text-sm">
-                        {r.avatar}
-                      </span>
-                      <div>
-                        <h4 className="font-poppins font-bold text-sm text-primary">{r.name}</h4>
-                        <span className="text-[10px] text-muted-foreground">{r.date}</span>
-                      </div>
-                    </div>
-                    {/* Google G Icon and Stars */}
-                    <div className="flex flex-col items-end gap-1">
-                      <div className="flex">
-                        {Array.from({ length: r.rating }).map((_, starIdx) => (
-                          <Star key={starIdx} className="h-3.5 w-3.5 fill-gold text-gold" />
-                        ))}
-                      </div>
-                      <span className="text-[9px] font-poppins text-muted-foreground font-bold tracking-wide">VERIFIED GOOGLE REVIEW</span>
-                    </div>
-                  </div>
-                  <p className="mt-4 text-sm text-foreground/80 leading-relaxed italic">
-                    "{r.text}"
-                  </p>
-                </div>
-              </Reveal>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* 6. FAQ Section */}
-      <section className="max-w-3xl mx-auto px-5 py-20">
-        <Reveal className="text-center">
-          <h2 className="font-display text-3xl font-bold text-primary sm:text-4xl">
-            Trip Captain FAQ
-          </h2>
-          <p className="mt-2 text-xs text-muted-foreground">Essential details for this route</p>
-        </Reveal>
-
-        <Reveal className="mt-10">
-          <Accordion type="single" collapsible className="space-y-3">
-            {dest.faqs.map((faq, i) => (
-              <AccordionItem
-                key={i}
-                value={`faq-${i}`}
-                className="overflow-hidden rounded-2xl border border-border bg-card px-5"
-              >
-                <AccordionTrigger className="py-4 text-left font-display text-base font-bold text-primary hover:no-underline">
-                  {faq.q}
-                </AccordionTrigger>
-                <AccordionContent className="pb-4 text-xs text-muted-foreground leading-relaxed">
-                  {faq.a}
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
-        </Reveal>
-      </section>
+            <Reveal className="mt-10">
+              <Accordion type="single" collapsible className="space-y-3">
+                {resolvedFaqs.map((faq, i) => (
+                  <AccordionItem
+                    key={i}
+                    value={`faq-${i}`}
+                    className="overflow-hidden rounded-2xl border border-border bg-card px-5"
+                  >
+                    <AccordionTrigger className="py-4 text-left font-display text-base font-bold text-primary hover:no-underline">
+                      {faq.q}
+                    </AccordionTrigger>
+                    <AccordionContent className="pb-4 text-xs text-muted-foreground leading-relaxed">
+                      {faq.a}
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            </Reveal>
+          </section>
+        );
+      })()}
 
       {/* Verified Traveler Reviews & Rating System */}
       <section className="bg-white border-t border-[#E4E2DA] py-16">

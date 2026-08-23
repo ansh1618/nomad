@@ -40,6 +40,8 @@ import {
   Luggage,
   Award,
 } from "lucide-react";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { getTripCaptainFaqs } from "@/lib/faq-helper";
 import { ReviewsSection } from "@/components/site/ReviewsSection";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -1943,6 +1945,40 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
           </div>
         </section>
       )}
+
+      {/* Trip Captain FAQ Section */}
+      {(() => {
+        const resolvedFaqs = getTripCaptainFaqs(slug || journey?.name || '', parsedFaqs);
+        return (
+          <section className="max-w-3xl mx-auto px-5 py-16 border-t border-[#E4E2DA]">
+            <div className="text-center">
+              <h2 className="font-display text-3xl font-bold text-primary sm:text-4xl">
+                Trip Captain FAQ
+              </h2>
+              <p className="mt-2 text-xs text-muted-foreground">Essential details for this route</p>
+            </div>
+
+            <div className="mt-10">
+              <Accordion type="single" collapsible className="space-y-3">
+                {resolvedFaqs.map((faq, i) => (
+                  <AccordionItem
+                    key={i}
+                    value={`faq-${i}`}
+                    className="overflow-hidden rounded-2xl border border-border bg-card px-5"
+                  >
+                    <AccordionTrigger className="py-4 text-left font-display text-base font-bold text-primary hover:no-underline">
+                      {faq.q}
+                    </AccordionTrigger>
+                    <AccordionContent className="pb-4 text-xs text-muted-foreground leading-relaxed">
+                      {faq.a}
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            </div>
+          </section>
+        );
+      })()}
 
       {/* Verified Traveler Reviews & Rating System */}
       <div className="bg-white border-t border-[#E4E2DA]">
