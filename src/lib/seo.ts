@@ -1,4 +1,4 @@
-export const BASE_URL = "https://gonomadik.in";
+export const BASE_URL = "https://www.gonomadik.in";
 export const SITE_URL = BASE_URL;
 
 /**

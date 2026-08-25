@@ -50,11 +50,23 @@ export const APIRoute = createAPIFileRoute("/api/verify-payment")({
 
       // Optional: If booking_id is provided, confirm booking in Supabase
       if (booking_id) {
-        const { data: booking, error: fetchErr } = await supabaseAdmin
+        let { data: booking, error: fetchErr } = await supabaseAdmin
           .from("bookings")
           .select("id, booking_id, booking_status, customer_id, total_amount, amount_paid")
           .eq("id", booking_id)
-          .single();
+          .maybeSingle();
+
+        if (!booking) {
+          const { data: byDisplayId } = await supabaseAdmin
+            .from("bookings")
+            .select("id, booking_id, booking_status, customer_id, total_amount, amount_paid")
+            .eq("booking_id", booking_id)
+            .maybeSingle();
+          if (byDisplayId) {
+            booking = byDisplayId;
+            fetchErr = null;
+          }
+        }
 
         if (fetchErr || !booking) {
           console.error("[Razorpay Verification] Booking not found:", booking_id);

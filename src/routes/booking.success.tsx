@@ -61,7 +61,7 @@ function BookingSuccessPage() {
   const { data: booking, isLoading } = useQuery({
     queryKey: ['booking_success', booking_id, pollCount],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('bookings')
         .select(`
           *,
@@ -74,7 +74,31 @@ function BookingSuccessPage() {
           booking_travellers (full_name, phone, gender, age, room_sharing)
         `)
         .eq('id', booking_id)
-        .single()
+        .maybeSingle()
+
+      if (!data) {
+        const { data: byDisplayId, error: displayErr } = await supabase
+          .from('bookings')
+          .select(`
+            *,
+            customers (name, email, phone),
+            departures (
+              departure_date,
+              return_date,
+              journeys (name)
+            ),
+            booking_travellers (full_name, phone, gender, age, room_sharing)
+          `)
+          .eq('booking_id', booking_id)
+          .maybeSingle()
+
+        if (byDisplayId) {
+          data = byDisplayId
+          error = null
+        } else if (displayErr) {
+          error = displayErr
+        }
+      }
 
       if (error) throw error
       return data as FullBookingData

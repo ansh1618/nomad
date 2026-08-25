@@ -238,15 +238,27 @@ export async function confirmBookingAfterPayment(
   const paymentId = input.paymentId ?? input.cashfreePaymentId ?? "";
   const { bookingId, amountPaid, gatewayResponse, signature } = input;
 
-  // 1. Fetch booking — ONLY columns that actually exist in the real schema
-  const { data: booking, error: fetchErr } = await adminClient
+  // 1. Fetch booking — handles both internal UUID id and display booking_id
+  let { data: booking, error: fetchErr } = await adminClient
     .from("bookings")
     .select("id, booking_id, customer_id, departure_id, amount, discount_amount, total_amount, booking_status, customer_name, phone, email, coupon_code")
     .eq("id", bookingId)
-    .single();
+    .maybeSingle();
 
-  if (fetchErr || !booking) {
-    throw new Error(`Booking not found: ${fetchErr?.message}`);
+  if (!booking) {
+    const { data: byDisplayId } = await adminClient
+      .from("bookings")
+      .select("id, booking_id, customer_id, departure_id, amount, discount_amount, total_amount, booking_status, customer_name, phone, email, coupon_code")
+      .eq("booking_id", bookingId)
+      .maybeSingle();
+    if (byDisplayId) {
+      booking = byDisplayId;
+      fetchErr = null;
+    }
+  }
+
+  if (!booking) {
+    throw new Error(`Booking not found: ${fetchErr?.message || bookingId}`);
   }
 
   // Idempotency: skip if already CONFIRMED

@@ -209,7 +209,7 @@ function PaymentDemoRoute() {
         },
         prefill: {
           name: "Nomadik Explorer",
-          email: "explorer@nomadik.co.in",
+          email: "explorer@gonomadik.in",
           contact: "9999999999",
         },
         theme: {
