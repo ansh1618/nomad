@@ -18,7 +18,6 @@ export function ReviewSummaryStep({ data, updateData, onNext, onPrev, onGoToStep
 
   const travellersCount = data?.travellers?.length || 1;
   const effectiveBasePrice = pricing?.effectiveBasePrice ?? pricing?.accommodationPrice ?? 0;
-  const payableAmount = pricing?.grandTotal ?? pricing?.total ?? 0;
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-fade-in w-full max-w-full overflow-hidden box-border">

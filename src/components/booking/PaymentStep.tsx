@@ -16,6 +16,7 @@ import {
 import { createBookingFn } from "@/lib/booking-fns";
 import { createRazorpayOrderFn, verifyRazorpayPaymentFn, releaseBookingLocksFn } from "@/lib/mutations/payment";
 import { supabase } from "@/lib/supabase";
+import { trackEvent, getBookingAttribution } from "@/lib/analytics";
 
 declare global {
   interface Window {

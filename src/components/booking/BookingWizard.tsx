@@ -26,6 +26,7 @@ import { PaymentStep } from "./PaymentStep";
 import { SuccessConfirmationStep } from "./SuccessConfirmationStep";
 import { resolveBookingPricing } from "@/lib/pricing-fns";
 import { saveBookingDraftFn } from "@/lib/booking-fns";
+import { trackEvent } from "@/lib/analytics";
 
 // Context or simple state for the wizard
 export type BookingState = {
@@ -104,8 +105,6 @@ export function BookingWizard({
     addons: [],
     coupon: null,
   });
-
-import { trackEvent } from "@/lib/analytics";
 
   // Restore local storage draft on initial mount & track booking_started
   useEffect(() => {
