@@ -23,7 +23,16 @@ interface DestinationTemplateProps {
   slug: string;
 }
 
+import { useEffect } from "react";
+import { trackEvent } from "@/lib/analytics";
+
 export function DestinationTemplate({ slug }: DestinationTemplateProps) {
+  useEffect(() => {
+    if (slug) {
+      trackEvent("destination_view", { destination_slug: slug });
+    }
+  }, [slug]);
+
   const { isAuthenticated } = useAuth();
   const loaderData = (useLoaderData({ strict: false }) || {}) as any;
 

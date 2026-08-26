@@ -8,6 +8,8 @@ import { getSiteSettings, getFooterSections } from "@/lib/queries/cms";
 import { getDestinations } from "@/lib/queries/destinations";
 import { GoNomadikLogo } from "./GoNomadikLogo";
 
+import { trackEvent } from "@/lib/analytics";
+
 export function Footer() {
   const [email, setEmail] = useState("");
   const year = new Date().getFullYear();

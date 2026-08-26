@@ -211,12 +211,15 @@ function MainAppLayout() {
 }
 
 
+import { AnalyticsProvider } from "@/components/analytics/AnalyticsProvider";
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <AnalyticsProvider />
         <MainAppLayout />
       </AuthProvider>
     </QueryClientProvider>

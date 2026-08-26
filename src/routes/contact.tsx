@@ -101,6 +101,8 @@ function ContactRoute() {
       return;
     }
 
+import { trackEvent } from "@/lib/analytics";
+
     setSubmittingInquiry(true);
     try {
       await submitContactInquiryFn({
@@ -112,6 +114,7 @@ function ContactRoute() {
           message: message.trim()
         }
       });
+      trackEvent("enquiry_submitted", { source: "contact_page" });
       toast.success("Inquiry submitted successfully! A confirmation email has been sent.");
       setName("");
       setEmail("");

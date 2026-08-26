@@ -5,6 +5,8 @@ import { Tag, Plus, Check, TicketPercent } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 
+import { trackEvent } from "@/lib/analytics";
+
 export function AddonsAndCouponsStep({ data, updateData, onNext, onPrev, journey, isSidebar = false, pricing }: any) {
   const slug = (journey?.slug || data?.journeySlug || data?.selectedJourney?.slug || '').toLowerCase();
 
@@ -41,6 +43,7 @@ export function AddonsAndCouponsStep({ data, updateData, onNext, onPrev, journey
         newAddons = [...prev.addons, addon];
       }
 
+      trackEvent("addon_selected", { addon_count: newAddons.length });
       return { ...prev, addons: newAddons };
     });
   };
@@ -58,6 +61,7 @@ export function AddonsAndCouponsStep({ data, updateData, onNext, onPrev, journey
 
       if (error || !coupon) {
         setCouponError("Invalid or expired coupon code.");
+        trackEvent("coupon_applied", { coupon_code: couponInput.toUpperCase(), success: false });
         return;
       }
 
@@ -65,20 +69,24 @@ export function AddonsAndCouponsStep({ data, updateData, onNext, onPrev, journey
       const now = new Date();
       if (new Date(coupon.valid_from) > now || (coupon.valid_until && new Date(coupon.valid_until) < now)) {
         setCouponError("This coupon is expired or not active yet.");
+        trackEvent("coupon_applied", { coupon_code: couponInput.toUpperCase(), success: false });
         return;
       }
 
       if (coupon.max_redemptions && coupon.current_redemptions >= coupon.max_redemptions) {
         setCouponError("Coupon redemption limit reached.");
+        trackEvent("coupon_applied", { coupon_code: couponInput.toUpperCase(), success: false });
         return;
       }
 
       if (pricing?.subtotal && pricing.subtotal < coupon.min_order_amount) {
         setCouponError(`Minimum order amount for this coupon is ₹${coupon.min_order_amount}`);
+        trackEvent("coupon_applied", { coupon_code: couponInput.toUpperCase(), success: false });
         return;
       }
 
       // Apply
+      trackEvent("coupon_applied", { coupon_code: couponInput.toUpperCase(), success: true });
       updateData((prev: any) => {
         return {
           ...prev,
@@ -87,6 +95,7 @@ export function AddonsAndCouponsStep({ data, updateData, onNext, onPrev, journey
       });
     } catch (err) {
       setCouponError("Error validating coupon. Please try again.");
+      trackEvent("coupon_applied", { coupon_code: couponInput.toUpperCase(), success: false });
     }
   };
 

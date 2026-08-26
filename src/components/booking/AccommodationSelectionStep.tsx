@@ -5,6 +5,8 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 import { GoNomadikLoadingScreen } from "@/components/site/GoNomadikLoadingScreen";
 
+import { trackEvent } from "@/lib/analytics";
+
 export function AccommodationSelectionStep({ data, updateData, onNext, onPrev, journey, isSidebar = false }: any) {
   const [rooms, setRooms] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -150,6 +152,7 @@ export function AccommodationSelectionStep({ data, updateData, onNext, onPrev, j
 
     const absPrice = Number(selectedObj.price || selectedObj.pricePerPerson || 6500);
 
+    trackEvent("accommodation_selected", { room_type: selectedObj.sharing_type || selectedObj.type });
     updateData((prev: any) => ({
       ...prev,
       selectedRooms: [roomId],

@@ -103,6 +103,8 @@ interface JourneyDetailTemplateProps {
   onBookNow?: () => void;
 }
 
+import { trackEvent } from "@/lib/analytics";
+
 export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplateProps) {
   const navigate = useNavigate();
   const [isBooking, setIsBooking] = useState(false);
@@ -113,7 +115,15 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
     }
   }, []);
 
+  useEffect(() => {
+    if (slug) {
+      trackEvent("journey_view", { journey_slug: slug });
+    }
+  }, [slug]);
+
   const handleBookNowClick = () => {
+    trackEvent("book_now_clicked", { journey_slug: slug });
+    trackEvent("cta_clicked", { cta_type: "book_now", journey_slug: slug });
     setIsBooking(true);
     if (typeof window !== "undefined") {
       const newUrl = `${window.location.pathname}?book=true`;

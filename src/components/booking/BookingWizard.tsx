@@ -105,8 +105,11 @@ export function BookingWizard({
     coupon: null,
   });
 
-  // Restore local storage draft on initial mount
+import { trackEvent } from "@/lib/analytics";
+
+  // Restore local storage draft on initial mount & track booking_started
   useEffect(() => {
+    trackEvent("booking_started", { journey_slug: journey?.slug, departure_id: bookingData.departureId || undefined });
     if (typeof window === "undefined") return;
     let saved: string | null = null;
     try { saved = localStorage.getItem(storageKey); } catch { return; }

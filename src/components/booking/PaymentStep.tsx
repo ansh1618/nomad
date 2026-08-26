@@ -60,6 +60,8 @@ export function PaymentStep({
     let createdBookingId: string | null = null;
 
     try {
+      trackEvent("payment_started", { amount: pricing.total });
+
       // ── Step 1: Get optional user (guest booking allowed, never throws auth error) ──
       let userId: string | null = null;
       try {
@@ -105,6 +107,24 @@ export function PaymentStep({
 
       createdBookingId = booking.bookingId;
       const currentBookingId = booking.bookingId;
+
+      // Persist booking attribution (UTM parameters, referrer, device)
+      try {
+        const attr = getBookingAttribution();
+        await supabase.from("booking_attributions").insert({
+          booking_id: currentBookingId,
+          session_id: attr.session_id || null,
+          utm_source: attr.utm_source || null,
+          utm_medium: attr.utm_medium || null,
+          utm_campaign: attr.utm_campaign || null,
+          utm_content: attr.utm_content || null,
+          utm_term: attr.utm_term || null,
+          referrer: attr.referrer || null,
+          device_category: attr.device_category || null,
+        });
+      } catch (attrErr) {
+        console.warn("[PaymentStep] Non-fatal attribution save warning:", attrErr);
+      }
 
       // ── Step 4: Create Razorpay Order (backend adds GST) ──────────────────
       // Send pricing.total (subtotal + GST) to Razorpay
@@ -162,6 +182,9 @@ export function PaymentStep({
                 return;
               }
 
+              trackEvent("payment_success", { amount: pricing.total, booking_id: currentBookingId });
+              trackEvent("booking_completed", { booking_id: currentBookingId, amount: pricing.total });
+
               updateData((prev: any) => ({
                 ...prev,
                 bookingId: currentBookingId,
@@ -186,6 +209,7 @@ export function PaymentStep({
       onNext();
     } catch (err: any) {
       console.error("[Booking] Payment flow error:", err);
+      trackEvent("payment_failed", { reason: err.message || "failed" });
       // Call server to unlock seats immediately on payment failure or modal dismissal
       if (createdBookingId) {
         try {

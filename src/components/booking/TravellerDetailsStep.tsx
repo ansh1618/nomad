@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { UserPlus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { trackEvent } from "@/lib/analytics";
 
 export function TravellerDetailsStep({ data, updateData, onNext, isSidebar = false }: any) {
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -105,6 +106,7 @@ export function TravellerDetailsStep({ data, updateData, onNext, isSidebar = fal
 
     setErrors({});
     updateData((prev: any) => ({ ...prev, travellers }));
+    trackEvent("traveller_details_completed", { traveller_count: travellers.length });
     onNext();
   };
 

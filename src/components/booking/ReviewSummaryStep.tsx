@@ -2,8 +2,16 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle2, User, MapPin, Calendar, Users, Armchair, Tag, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+import { useEffect } from "react";
+import { trackEvent } from "@/lib/analytics";
+
 export function ReviewSummaryStep({ data, updateData, onNext, onPrev, onGoToStep, journey, isSidebar = false, pricing }: any) {
-  
+  const payableAmount = pricing?.grandTotal ?? pricing?.total ?? 0;
+
+  useEffect(() => {
+    trackEvent("booking_summary_viewed", { amount: payableAmount });
+  }, [payableAmount]);
+
   const handleNext = () => {
     onNext();
   };
