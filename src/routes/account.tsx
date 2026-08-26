@@ -13,7 +13,7 @@ import { supabase } from "@/lib/supabase";
 import { 
   User, Calendar, MapPin, Phone, Heart, Users, ShieldAlert, LogOut, Lock, 
   ChevronRight, Compass, MessageCircle, CircleHelp, FileText, CheckCircle2, Settings,
-  Eye, Loader2, XCircle, Star, Sparkles
+  Eye, Loader2, XCircle, Star, Sparkles, CreditCard
 } from "lucide-react";
 import { getJourneys } from "@/lib/queries-client";
 import { cancelBookingCustomerFn } from "@/lib/mutations/payment";
