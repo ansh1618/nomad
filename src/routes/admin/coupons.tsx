@@ -19,7 +19,7 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { getCoupons, createCoupon, deleteCoupon, getCouponUsagesAndAnalytics } from '@/lib/queries/admin'
 import { getAdminCouponAnalyticsFn } from '@/lib/server-fns'
 import { getPublishedDestinations } from '@/lib/queries/destinations'
-import type { Coupon, CouponUsageItem } from '@/types/supabase'
+import type { Coupon } from '@/types/supabase'
 import { toast } from 'sonner'
 import {
   Plus,
@@ -286,7 +286,7 @@ function CouponsPage() {
         const c = row.original
         return (
           <Badge className="bg-primary/10 text-primary border-0 font-semibold text-xs">
-            {c.discount_type === 'PERCENTAGE' || c.discount_type === 'PERCENT'
+            {(c.discount_type as string) === 'PERCENTAGE' || (c.discount_type as string) === 'PERCENT'
               ? `${c.discount_value}% OFF`
               : `₹${c.discount_value} FLAT`}
           </Badge>
@@ -298,7 +298,7 @@ function CouponsPage() {
       header: 'Threshold Rules',
       cell: ({ row }) => {
         const c = row.original
-        const minVal = c.min_order_amount ?? c.min_amount ?? 0
+        const minVal = c.min_order_amount ?? (c as any).min_amount ?? 0
         return (
           <div className="text-xs space-y-0.5">
             <p>Min order: ₹{minVal.toLocaleString('en-IN')}</p>
@@ -331,8 +331,8 @@ function CouponsPage() {
       header: 'Redemptions',
       cell: ({ row }) => {
         const c = row.original
-        const used = c.used_count ?? c.current_redemptions ?? 0
-        const max = c.max_uses ?? c.max_redemptions
+        const used = (c as any).used_count ?? c.current_redemptions ?? 0
+        const max = (c as any).max_uses ?? c.max_redemptions
         return (
           <span className="text-xs font-semibold">
             {used} {max ? `/ ${max}` : 'used'}
@@ -690,7 +690,7 @@ function CouponsPage() {
         {/* Tab 2: Individual Usage Logs Table */}
         {activeTab === 'usages' && (
           <DataTable
-            columns={usageColumns}
+            columns={usageColumns as any}
             data={analyticsResult?.usages ?? []}
             total={analyticsResult?.totalUsages ?? 0}
             page={page}
@@ -698,8 +698,7 @@ function CouponsPage() {
             totalPages={analyticsResult?.totalPages ?? 1}
             isLoading={loadingAnalytics}
             searchPlaceholder="Search by customer name, phone, email or booking ID..."
-            searchValue={search}
-            onSearchChange={setSearch}
+            onSearch={setSearch}
             onPageChange={setPage}
             onPageSizeChange={(s) => { setPageSize(s); setPage(1) }}
           />
@@ -716,8 +715,7 @@ function CouponsPage() {
             totalPages={couponsResult?.totalPages ?? 1}
             isLoading={loadingCoupons}
             searchPlaceholder="Search coupon code..."
-            searchValue={search}
-            onSearchChange={setSearch}
+            onSearch={setSearch}
             onPageChange={setPage}
             onPageSizeChange={(s) => { setPageSize(s); setPage(1) }}
           />

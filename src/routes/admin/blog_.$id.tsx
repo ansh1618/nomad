@@ -73,7 +73,7 @@ function BlogFormPage() {
       is_published: false,
       is_featured: false,
       category: 'SOLO TRAVEL',
-      author_name: admin?.full_name ?? 'GoNomadik Team',
+      author_name: ((admin as any)?.full_name || (admin as any)?.name) ?? 'GoNomadik Team',
       author_image: '',
     },
   })
@@ -87,8 +87,8 @@ function BlogFormPage() {
         excerpt: blog.excerpt ?? '',
         content: blog.content,
         featured_image: blog.featured_image || (blog as any).cover_image || '',
-        author_name: blog.author_name || admin?.full_name || 'GoNomadik Team',
-        author_image: blog.author_image || (blog as any).author_avatar || '',
+        author_name: blog.author_name || (admin as any)?.full_name || (admin as any)?.name || 'GoNomadik Team',
+        author_image: (blog as any).author_image || (blog as any).author_avatar || '',
         category: blog.category || 'SOLO TRAVEL',
         is_published: blog.is_published,
         is_featured: blog.is_featured || false,
@@ -111,7 +111,7 @@ function BlogFormPage() {
       const { seo_title, seo_description, ...rest } = values
       const payload = {
         ...rest,
-        author_name: values.author_name || admin?.full_name || 'GoNomadik Team',
+        author_name: values.author_name || (admin as any)?.full_name || (admin as any)?.name || 'GoNomadik Team',
         author_image: values.author_image || null,
         featured_image: values.featured_image || null,
         cover_image: values.featured_image || null,

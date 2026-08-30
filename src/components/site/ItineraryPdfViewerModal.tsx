@@ -77,7 +77,6 @@ export function ItineraryPdfViewerModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        showCloseButton={false}
         className="max-w-[100vw] w-screen h-[100vh] max-h-screen bg-[#020617] text-white p-0 rounded-none border-none shadow-2xl flex flex-col overflow-hidden z-[100]"
       >
         <DialogTitle className="sr-only">{titleText}</DialogTitle>

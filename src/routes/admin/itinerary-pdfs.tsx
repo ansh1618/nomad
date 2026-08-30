@@ -103,6 +103,15 @@ function AdminPremiumDocumentsPage() {
     onError: (err: Error) => toast.error(err.message)
   });
 
+  const updateSettingsMutation = useMutation({
+    mutationFn: (data: any) => createOrUpdateDocumentFn({ data }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin_documents'] });
+      toast.success('Settings updated');
+    },
+    onError: (err: Error) => toast.error(err.message)
+  });
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -409,7 +418,7 @@ function AdminPremiumDocumentsPage() {
                   <CardContent className="p-5 flex items-center justify-between">
                     <div>
                       <p className="text-xs text-muted-foreground font-poppins font-bold uppercase tracking-wider">Unique Readers</p>
-                      <h3 className="text-2xl font-bold text-primary mt-1">{analytics?.uniqueUsers}</h3>
+                      <h3 className="text-2xl font-bold text-primary mt-1">{(analytics as any)?.uniqueUsers}</h3>
                     </div>
                     <div className="p-3 rounded-2xl bg-emerald-50 text-emerald-600">
                       <Users className="h-5 w-5" />
@@ -420,7 +429,7 @@ function AdminPremiumDocumentsPage() {
                   <CardContent className="p-5 flex items-center justify-between">
                     <div>
                       <p className="text-xs text-muted-foreground font-poppins font-bold uppercase tracking-wider">Total PDF Downloads</p>
-                      <h3 className="text-2xl font-bold text-primary mt-1">{analytics?.totalDownloads}</h3>
+                      <h3 className="text-2xl font-bold text-primary mt-1">{(analytics as any)?.totalDownloads}</h3>
                     </div>
                     <div className="p-3 rounded-2xl bg-amber-50 text-amber-600">
                       <FileDown className="h-5 w-5" />
@@ -431,7 +440,7 @@ function AdminPremiumDocumentsPage() {
                   <CardContent className="p-5 flex items-center justify-between">
                     <div>
                       <p className="text-xs text-muted-foreground font-poppins font-bold uppercase tracking-wider">Average Reading Time</p>
-                      <h3 className="text-2xl font-bold text-primary mt-1">{Math.round((analytics?.avgReadingTime ?? 0) / 60)}m { (analytics?.avgReadingTime ?? 0) % 60 }s</h3>
+                      <h3 className="text-2xl font-bold text-primary mt-1">{Math.round(((analytics as any)?.avgReadingTime ?? 0) / 60)}m { ((analytics as any)?.avgReadingTime ?? 0) % 60 }s</h3>
                     </div>
                     <div className="p-3 rounded-2xl bg-blue-50 text-blue-600">
                       <Clock className="h-5 w-5" />
@@ -461,7 +470,7 @@ function AdminPremiumDocumentsPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {analytics?.allDocuments.map((doc: any) => (
+                        {(analytics as any)?.allDocuments?.map((doc: any) => (
                           <TableRow key={doc.id}>
                             <TableCell>
                               <div className="font-semibold text-primary">{doc.title}</div>
@@ -489,7 +498,7 @@ function AdminPremiumDocumentsPage() {
                     <CardTitle className="text-base font-bold font-poppins">Most Active Itineraries</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {analytics?.topDocuments.map((doc: any, i: number) => (
+                    {(analytics as any)?.topDocuments?.map((doc: any, i: number) => (
                       <div key={doc.id} className="flex justify-between items-center pb-3 border-b last:border-0 last:pb-0">
                         <div className="flex gap-2.5 items-center min-w-0">
                           <span className="h-6 w-6 rounded-full bg-accent/15 text-accent flex items-center justify-center font-bold text-xs">{i+1}</span>

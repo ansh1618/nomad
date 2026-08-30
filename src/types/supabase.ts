@@ -470,6 +470,18 @@ export interface HotelRoom {
   updated_at: string
 }
 
+export type AccommodationType = 'QUAD' | 'TRIPLE' | 'DOUBLE' | 'SINGLE' | 'DORM'
+
+export interface JourneyAccommodationPrice {
+  id: string
+  journey_id: string
+  accommodation_type: AccommodationType
+  price: number
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
 export interface Departure {
   id: string
   journey_id: string

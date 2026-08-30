@@ -268,12 +268,12 @@ function CampusTripsPage() {
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <Link to={`/journeys/${pkg.slug}`}>
+                        <Link to="/journeys/$journeyId" params={{ journeyId: pkg.slug }}>
                           <Button variant="outline" className="rounded-xl text-xs font-poppins font-bold px-4 py-2">
                             View Details
                           </Button>
                         </Link>
-                        <Link to={`/journeys/${pkg.slug}`}>
+                        <Link to="/journeys/$journeyId" params={{ journeyId: pkg.slug }}>
                           <Button className="rounded-xl bg-gold-gradient text-gold-foreground font-poppins font-bold text-xs px-4 py-2 shadow-gold hover:scale-105 transition-transform">
                             Book Now
                           </Button>

@@ -1,0 +1,22 @@
+{
+  "appId": "in.gonomadik.app",
+  "appName": "GoNomadik",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "url": "https://gonomadik.in",
+    "cleartext": true,
+    "androidScheme": "https",
+    "iosScheme": "https"
+  },
+  "plugins": {
+    "PushNotifications": {
+      "presentationOptions": ["badge", "sound", "alert"]
+    },
+    "SplashScreen": {
+      "launchShowDuration": 2000,
+      "backgroundColor": "#0A192F",
+      "showSpinner": false
+    }
+  }
+}

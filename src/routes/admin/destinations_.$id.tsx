@@ -428,7 +428,7 @@ function DestinationFormPage() {
                 <div className="space-y-1.5">
                   <Label>Short Description (shown on cards)</Label>
                   <Textarea
-                    {...register('short_description')}
+                    {...register('subtitle')}
                     placeholder="2-3 sentence teaser shown on destination cards..."
                     rows={3}
                   />
@@ -544,7 +544,6 @@ function DestinationFormPage() {
                 setGalleryPickerOpen(false)
               }}
               accept="image"
-              folder="/destinations"
             />
           </TabsContent>
 

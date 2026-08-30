@@ -16,7 +16,8 @@ import { ReviewCard } from "./ReviewCard";
 import { ReviewStarRating } from "./ReviewStarRating";
 import { DESTINATION_LEADERBOARD, getApprovedReviews } from "@/lib/reviews-client";
 import { getPublicTripCaptains } from "@/lib/queries-client";
-import type { TripCaptain, Review } from "@/types/supabase";
+import type { TripCaptain } from "@/types/supabase";
+import type { Review } from "@/types/reviews";
 import { Button } from "@/components/ui/button";
 import { motion } from "motion/react";
 

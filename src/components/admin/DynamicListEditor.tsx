@@ -173,7 +173,7 @@ export function DynamicListEditor({
             <Button
               type="button"
               variant="outline"
-              size="xs"
+              size="sm"
               className="h-8 gap-1.5 text-[11px]"
               onClick={handleReset}
             >
@@ -184,7 +184,7 @@ export function DynamicListEditor({
           <Button
             type="button"
             variant="outline"
-            size="xs"
+            size="sm"
             className="h-8 gap-1.5 text-[11px] text-indigo-600 hover:text-indigo-700"
             onClick={() => setShowBulkPaste(!showBulkPaste)}
           >

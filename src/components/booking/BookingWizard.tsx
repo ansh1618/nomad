@@ -446,7 +446,7 @@ export function BookingWizard({
                 <ArrowLeft className="h-5 w-5 text-muted-foreground" />
               </button>
             ) : (
-              <Link to="/journeys/$journeySlug" params={{ journeySlug: journey.slug }} className="p-2 bg-white rounded-full shadow-sm hover:bg-muted transition">
+              <Link to="/journeys/$journeyId" params={{ journeyId: journey.slug }} className="p-2 bg-white rounded-full shadow-sm hover:bg-muted transition">
                 <ArrowLeft className="h-5 w-5 text-muted-foreground" />
               </Link>
             )}

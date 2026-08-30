@@ -9,7 +9,7 @@ import { confirmBookingAfterPayment } from '@/lib/booking-api'
 // ==========================================
 const createOrderSchema = z.object({
   bookingId: z.string(),
-  amount: z.number().positive(),
+  amount: z.number().optional(),
   currency: z.string().default('INR'),
   paymentType: z.enum(['ADVANCE', 'FULL', 'BALANCE']).default('FULL'),
 })
@@ -17,7 +17,7 @@ const createOrderSchema = z.object({
 export const createRazorpayOrderFn = createServerFn({ method: 'POST' })
   .validator((data: z.infer<typeof createOrderSchema>) => createOrderSchema.parse(data))
   .handler(async ({ data }) => {
-    const { bookingId, amount, currency, paymentType } = data
+    const { bookingId, amount: clientAmount, currency, paymentType } = data
 
     const keyId = process.env.RAZORPAY_KEY_ID
     const keySecret = process.env.RAZORPAY_KEY_SECRET
@@ -26,7 +26,45 @@ export const createRazorpayOrderFn = createServerFn({ method: 'POST' })
       throw new Error('Razorpay credentials not configured. Please add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to environment variables.')
     }
 
-    const amountInPaise = Math.round(amount * 100)
+    // 1. Fetch authoritative booking record from DB to prevent client price tampering
+    let dbBookingId = bookingId;
+    let authoritativeAmount = clientAmount ?? 0;
+    
+    try {
+      let { data: bRow } = await supabaseAdmin
+        .from('bookings')
+        .select('id, booking_id, total_amount, amount, booking_status')
+        .eq('id', bookingId)
+        .maybeSingle();
+
+      if (!bRow) {
+        const { data: byDisplayId } = await supabaseAdmin
+          .from('bookings')
+          .select('id, booking_id, total_amount, amount, booking_status')
+          .eq('booking_id', bookingId)
+          .maybeSingle();
+        if (byDisplayId) bRow = byDisplayId;
+      }
+
+      if (bRow) {
+        dbBookingId = bRow.id;
+        const dbTotal = Number(bRow.total_amount ?? bRow.amount ?? 0);
+        if (dbTotal > 0) {
+          if (clientAmount && Math.abs(clientAmount - dbTotal) > 1) {
+            console.warn(`[createRazorpayOrderFn] Price mismatch detected! Client sent ₹${clientAmount}, server authoritative DB total is ₹${dbTotal}. Enforcing DB total.`);
+          }
+          authoritativeAmount = dbTotal;
+        }
+      }
+    } catch (err: any) {
+      console.warn('[createRazorpayOrderFn] Booking fetch for order creation warning:', err?.message);
+    }
+
+    if (!authoritativeAmount || authoritativeAmount <= 0) {
+      throw new Error('Invalid booking total amount. Order creation aborted.');
+    }
+
+    const amountInPaise = Math.round(authoritativeAmount * 100);
 
     const response = await fetch('https://api.razorpay.com/v1/orders', {
       method: 'POST',
@@ -38,7 +76,7 @@ export const createRazorpayOrderFn = createServerFn({ method: 'POST' })
         amount: amountInPaise,
         currency,
         receipt: `rcpt_${bookingId.slice(0, 8)}_${Date.now()}`,
-        notes: { booking_id: bookingId, payment_type: paymentType },
+        notes: { booking_id: dbBookingId, payment_type: paymentType },
       }),
     })
 
@@ -53,19 +91,8 @@ export const createRazorpayOrderFn = createServerFn({ method: 'POST' })
 
     const order = await response.json()
 
-    // 1. Immediately link razorpay_order_id to booking row (handles both UUID id and display booking_id)
-    let dbBookingId = bookingId;
+    // 2. Immediately link razorpay_order_id to booking row
     try {
-      const { data: bRow } = await supabaseAdmin
-        .from('bookings')
-        .select('id')
-        .or(`id.eq.${bookingId},booking_id.eq.${bookingId}`)
-        .maybeSingle();
-
-      if (bRow?.id) {
-        dbBookingId = bRow.id;
-      }
-
       const { error: updateErr } = await supabaseAdmin
         .from('bookings')
         .update({
@@ -83,11 +110,11 @@ export const createRazorpayOrderFn = createServerFn({ method: 'POST' })
       console.warn("[createRazorpayOrderFn] Booking razorpay_order_id update warning:", bErr?.message);
     }
 
-    // 2. Insert initial PENDING payment record with exact real schema columns
+    // 3. Insert initial PENDING payment record with exact real schema columns
     try {
       await supabaseAdmin.from('payments').insert({
         booking_id: dbBookingId,
-        amount,
+        amount: authoritativeAmount,
         status: 'PENDING',
         method: 'ONLINE',
         gateway: 'razorpay',

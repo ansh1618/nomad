@@ -288,10 +288,10 @@ export async function getJourneyBySlug(slug: string) {
     return null;
   }
 
-  const rawItinerary = (Array.isArray(data.itinerary_days) && data.itinerary_days.length > 0)
-    ? data.itinerary_days
-    : (Array.isArray(data.itinerary) && data.itinerary.length > 0)
-    ? data.itinerary
+  const rawItinerary = (Array.isArray((data as any).itinerary_days) && (data as any).itinerary_days.length > 0)
+    ? (data as any).itinerary_days
+    : (Array.isArray((data as any).itinerary) && (data as any).itinerary.length > 0)
+    ? (data as any).itinerary
     : [];
 
   const it = rawItinerary.map((day: any, idx: number) => ({
@@ -306,9 +306,9 @@ export async function getJourneyBySlug(slug: string) {
   }));
 
   const rawImg = data.hero_banner || (data.destinations as any)?.hero_image || (data.gallery as any)?.[0]?.url || (data.gallery as any)?.[0] || "";
-  const rawPrice = data.price || data.starting_price || data.base_price || 6499;
+  const rawPrice = data.price || data.starting_price || (data as any).base_price || 6499;
 
-  const rawTransport = data.transport || (data.transports as any)?.title || (data.transports as any)?.name;
+  const rawTransport = (data as any).transport || (data as any).transports?.title || (data as any).transports?.name;
   let cleanTransport = "AC Luxury Tempo Traveller";
   if (typeof rawTransport === "string") {
     if (rawTransport.startsWith("{")) {
@@ -357,11 +357,11 @@ export async function getJourneyBySlug(slug: string) {
           : []),
     hotel_id: data.hotel_id || null,
     hotels: data.hotels || null,
-    hotel: data.hotels || data.accommodation || data.hotel || null,
-    accommodation: data.accommodation || data.hotels || data.hotel || null,
+    hotel: data.hotels || (data as any).accommodation || (data as any).hotel || null,
+    accommodation: (data as any).accommodation || data.hotels || (data as any).hotel || null,
     food: data.food,
     dayByDay: it,
-    stayInfo: data.hotels?.name || (Array.isArray(data.accommodation) ? data.accommodation[0]?.hotel_name : data.accommodation?.hotel_name) || (typeof data.hotel === 'string' ? data.hotel : data.hotel?.name) || "",
+    stayInfo: data.hotels?.name || (Array.isArray((data as any).accommodation) ? (data as any).accommodation[0]?.hotel_name : (data as any).accommodation?.hotel_name) || (typeof (data as any).hotel === 'string' ? (data as any).hotel : (data as any).hotel?.name) || "",
     foodInfo: data.food || "",
     transportDetails: data.transport || "",
     destinations: data.destinations || null,

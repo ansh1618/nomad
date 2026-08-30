@@ -225,7 +225,6 @@ function PaymentDemoRoute() {
         },
       };
 
-      // @ts-expect-error window.Razorpay constructor is dynamic
       const rzp = new (window as any).Razorpay(options);
 
       rzp.on("payment.failed", function (response: any) {

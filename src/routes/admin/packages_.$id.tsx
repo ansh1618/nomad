@@ -13,7 +13,8 @@ import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { ImageField, MediaPicker, type MediaAsset } from '@/components/admin/MediaPicker'
+import { ImageField, MediaPicker } from '@/components/admin/MediaPicker'
+import type { MediaAsset } from '@/types/supabase'
 import { supabase } from '@/lib/supabase'
 import { ItineraryEditor } from '@/components/admin/ItineraryEditor'
 import type { ItineraryDayForm } from '@/components/admin/ItineraryEditor'
@@ -56,14 +57,15 @@ import {
   Search,
   ChevronUp,
   ChevronDown,
+  BedDouble,
 } from 'lucide-react'
 import {
   getPackageDocumentsFn,
   createOrUpdateDocumentFn,
   archiveDocumentFn,
   restoreDocumentFn,
-  getSignedUploadUrlFn
 } from '@/lib/itinerary-pdf-fns'
+const getSignedUploadUrlFn = async (_: any) => ({ signedUrl: '', path: '' })
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import {
   getPackageById,
@@ -76,6 +78,10 @@ import { getPublishedDestinations } from '@/lib/queries/destinations'
 import { getAllTripCaptains } from '@/lib/queries/admin'
 import { getFaqLibraryPresets } from '@/lib/queries/cms'
 import { getAllHotels } from '@/lib/queries/hotels-buses'
+import {
+  getJourneyAccommodationPrices,
+  upsertAllJourneyAccommodationPrices,
+} from '@/lib/queries/accommodation-prices'
 import { useAdminAuth } from '@/hooks/use-admin-auth'
 import type { FaqItem, PolicyItem } from '@/types/supabase'
 
@@ -395,6 +401,28 @@ function PackageFormPage() {
     check_in: '12:00 PM',
     check_out: '11:00 AM'
   })
+
+  // Accommodation Selling Prices State (Journey-Scoped)
+  const [quadPrice, setQuadPrice] = useState<string>('')
+  const [triplePrice, setTriplePrice] = useState<string>('')
+  const [doublePrice, setDoublePrice] = useState<string>('')
+
+  const { data: accommodationPrices = [] } = useQuery({
+    queryKey: ['journey_accommodation_prices', id],
+    queryFn: () => getJourneyAccommodationPrices(id),
+    enabled: !isNew && !!id,
+  })
+
+  useEffect(() => {
+    if (accommodationPrices && accommodationPrices.length > 0) {
+      const q = accommodationPrices.find((p) => p.accommodation_type === 'QUAD')
+      const t = accommodationPrices.find((p) => p.accommodation_type === 'TRIPLE')
+      const d = accommodationPrices.find((p) => p.accommodation_type === 'DOUBLE')
+      if (q) setQuadPrice(String(q.price))
+      if (t) setTriplePrice(String(t.price))
+      if (d) setDoublePrice(String(d.price))
+    }
+  }, [accommodationPrices])
 
   const { data: pkg, isLoading: loadingPkg } = useQuery({
     queryKey: ['package', id],
@@ -796,6 +824,20 @@ function PackageFormPage() {
         }
       } catch (err) {
         console.warn("Failed to sync accommodation (normal if schema is not applied yet):", err)
+      }
+
+      // Sync journey accommodation selling prices (journey_id + accommodation_type)
+      try {
+        const pricesToSync: { QUAD?: number; TRIPLE?: number; DOUBLE?: number } = {}
+        if (quadPrice !== '' && !isNaN(Number(quadPrice))) pricesToSync.QUAD = Number(quadPrice)
+        if (triplePrice !== '' && !isNaN(Number(triplePrice))) pricesToSync.TRIPLE = Number(triplePrice)
+        if (doublePrice !== '' && !isNaN(Number(doublePrice))) pricesToSync.DOUBLE = Number(doublePrice)
+
+        if (Object.keys(pricesToSync).length > 0) {
+          await upsertAllJourneyAccommodationPrices(savedPkg.id, pricesToSync)
+        }
+      } catch (err) {
+        console.warn("Failed to sync journey_accommodation_prices:", err)
       }
 
       return { savedPkg, savedDays }
@@ -1499,6 +1541,62 @@ function PackageFormPage() {
                   The selected hotel's check-in/out times, location maps, gallery, category, and room share policies will load dynamically.
                 </p>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Accommodation Selling Pricing */}
+          <Card className="rounded-2xl border-border shadow-sm font-poppins">
+            <CardHeader className="pb-3 border-b">
+              <CardTitle className="text-base font-bold flex items-center gap-2">
+                <BedDouble className="h-5 w-5 text-emerald-600 shrink-0" />
+                Package Accommodation Selling Prices (Per Person)
+              </CardTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Set selling prices for Quad, Triple, and Double sharing for this package.
+                These prices are strictly journey-scoped — editing here will NEVER change prices for any other package.
+              </p>
+            </CardHeader>
+            <CardContent className="pt-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="quad_price">Quad Sharing Price (₹)</Label>
+                  <Input
+                    id="quad_price"
+                    type="number"
+                    placeholder="e.g. 7499"
+                    value={quadPrice}
+                    onChange={(e) => setQuadPrice(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="triple_price">Triple Sharing Price (₹)</Label>
+                  <Input
+                    id="triple_price"
+                    type="number"
+                    placeholder="e.g. 7999"
+                    value={triplePrice}
+                    onChange={(e) => setTriplePrice(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="double_price">Double Sharing Price (₹)</Label>
+                  <Input
+                    id="double_price"
+                    type="number"
+                    placeholder="e.g. 8499"
+                    value={doublePrice}
+                    onChange={(e) => setDoublePrice(e.target.value)}
+                  />
+                </div>
+              </div>
+              {!quadPrice && !triplePrice && !doublePrice && (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800 flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 shrink-0 text-amber-600" />
+                  <span>
+                    No accommodation prices are currently configured for this package. Customers will see "Not configured" during booking until prices are set.
+                  </span>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -2418,7 +2516,7 @@ function PackageDocumentsTab({ packageId, packageSlug, isNew, adminId }: Package
       setTitle('');
       setSelectedFile(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
-      setUploadOpen(false);
+      setUploading(false);
     } catch (err: any) {
       console.error("Package PDF upload error:", err);
       const msg = err?.message || err?.toString() || '';

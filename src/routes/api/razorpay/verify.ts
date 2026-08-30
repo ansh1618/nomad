@@ -19,6 +19,7 @@ import { createHmac } from "crypto";
 import { confirmBookingAfterPayment } from "@/lib/booking-api";
 import { sendBookingConfirmationEmail } from "@/lib/email";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const APIRoute = createAPIFileRoute("/api/razorpay/verify")({
   POST: async ({ request }) => {

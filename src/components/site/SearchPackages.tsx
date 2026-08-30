@@ -19,10 +19,10 @@ import { getDestinationsList } from "@/lib/queries-client";
 
 const budgets = ["Under ₹10,000", "₹10,000 – ₹20,000", "₹20,000 – ₹40,000", "₹40,000+"];
 const groupSizes = [
-  "Solo",
-  "Couple (2)",
-  "Small Group (3-5)",
-  "Large Group (6+)",
+  { value: "solo", label: "Solo" },
+  { value: "couple", label: "Couple (2)" },
+  { value: "small", label: "Small Group (3-5)" },
+  { value: "large", label: "Large Group (6+)" },
 ];
 
 interface FieldProps {

@@ -126,6 +126,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:image", content: `${BASE_URL}/images/gonomadik-full-logo.png` },
     ],
     links: [
+      { rel: "manifest", href: "/manifest.json" },
       { rel: "canonical", href: `${BASE_URL}/` },
       { rel: "icon", type: "image/png", href: "/images/gonomadik-round-emblem.png" },
       { rel: "apple-touch-icon", href: "/images/gonomadik-round-emblem.png" },
@@ -179,6 +180,8 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
+import { MobileBottomNav } from "@/components/site/MobileBottomNav";
+
 function MainAppLayout() {
   const { user, isEmailVerified } = useAuth();
   const navigate = useNavigate();
@@ -193,8 +196,16 @@ function MainAppLayout() {
     }
   }, [user, navigate]);
 
+  useEffect(() => {
+    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch((err) => {
+        console.warn("[PWA] Service worker registration warning:", err);
+      });
+    }
+  }, []);
+
   return (
-    <div className="relative min-h-screen flex flex-col">
+    <div className="relative min-h-screen flex flex-col pb-14 md:pb-0">
       <AnnouncementBar />
       {user && !isEmailVerified && (
         <div className="sticky top-0 z-[100] w-full bg-[#E53E3E] text-white py-2.5 px-4 text-center text-xs font-poppins font-semibold flex items-center justify-center gap-2 shadow-md animate-slide-down">
@@ -206,6 +217,7 @@ function MainAppLayout() {
         <Outlet />
       </div>
       <AuthModal />
+      <MobileBottomNav />
     </div>
   );
 }

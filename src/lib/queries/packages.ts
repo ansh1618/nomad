@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import type {
   Journey,
   JourneyInsert,
@@ -227,14 +228,14 @@ export async function getPackageBySlug(slug: string): Promise<Journey | null> {
   }
 
   // Fetch accommodation separately if not present
-  if (!journey.accommodation) {
+  if (journey && !(journey as any).accommodation) {
     try {
       const { data: acc, error: accError } = await supabase
         .from('accommodation')
         .select('*')
-        .eq('package_id', journey.id)
+        .eq('package_id', (journey as any).id)
       if (!accError && acc) {
-        journey = { ...journey, accommodation: acc as any[] }
+        (journey as any).accommodation = acc as any[]
       }
     } catch (e) {
       console.warn('[getPackageBySlug] Could not fetch accommodation separately:', e)
@@ -242,24 +243,26 @@ export async function getPackageBySlug(slug: string): Promise<Journey | null> {
   }
 
   // Fetch hotels separately if not present and journey has hotel_id
-  if (!(journey as any).hotels && journey.hotel_id) {
+  if (journey && !(journey as any).hotels && (journey as any).hotel_id) {
     try {
       const { data: hotel, error: hotelError } = await supabase
         .from('hotels')
         .select('*, hotel_rooms(*)')
-        .eq('id', journey.hotel_id)
+        .eq('id', (journey as any).hotel_id)
         .single()
       if (!hotelError && hotel) {
-        journey = { ...journey, hotels: hotel } as any
+        (journey as any).hotels = hotel
       }
     } catch (e) {
       console.warn('[getPackageBySlug] Could not fetch hotels separately:', e)
     }
   }
 
-  const j = journey as any
-  if (j.price && !journey.starting_price) journey = { ...journey, starting_price: Number(j.price) }
-  if (j.gallery?.length > 0 && !journey.hero_banner) journey = { ...journey, hero_banner: j.gallery[0] }
+  if (journey) {
+    const j = journey as any
+    if (j.price && !j.starting_price) j.starting_price = Number(j.price)
+    if (j.gallery?.length > 0 && !j.hero_banner) j.hero_banner = j.gallery[0]
+  }
 
   return journey
 }
@@ -350,7 +353,7 @@ export async function getPackageById(id: string): Promise<Journey | null> {
         .select('*')
         .eq('package_id', journey.id)
       if (!transError && trans) {
-        journey = { ...journey, transport: trans as any[] }
+        (journey as any).transport = trans as any[]
       }
     } catch (e) {
       console.warn('[getPackageById] Could not fetch transport separately:', e)
@@ -358,14 +361,14 @@ export async function getPackageById(id: string): Promise<Journey | null> {
   }
 
   // Fetch accommodation separately if not present
-  if (!journey.accommodation) {
+  if (journey && !(journey as any).accommodation) {
     try {
       const { data: acc, error: accError } = await supabase
         .from('accommodation')
         .select('*')
         .eq('package_id', journey.id)
       if (!accError && acc) {
-        journey = { ...journey, accommodation: acc as any[] }
+        (journey as any).accommodation = acc as any[]
       }
     } catch (e) {
       console.warn('[getPackageById] Could not fetch accommodation separately:', e)
@@ -373,9 +376,11 @@ export async function getPackageById(id: string): Promise<Journey | null> {
   }
 
   // Legacy price/banner compat
-  const j = journey as any
-  if (j.price && !journey.starting_price) journey = { ...journey, starting_price: Number(j.price) }
-  if (j.gallery?.length > 0 && !journey.hero_banner) journey = { ...journey, hero_banner: j.gallery[0] }
+  if (journey) {
+    const j = journey as any
+    if (j.price && !journey.starting_price) (journey as any).starting_price = Number(j.price)
+    if (j.gallery?.length > 0 && !journey.hero_banner) (journey as any).hero_banner = j.gallery[0]
+  }
 
   return journey
 }

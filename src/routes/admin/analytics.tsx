@@ -608,7 +608,7 @@ function AdminAnalyticsDashboard() {
                     exportToCsv(
                       `coupons_analytics_${dashboard.periodLabel}`,
                       ["Coupon Code", "Uses", "Discount Given (INR)", "Revenue Before Disc (INR)", "Revenue After Disc (INR)", "Bookings"],
-                      dashboard.coupons.map((c) => [c.code, c.uses, c.discountGiven, c.revenueBeforeDiscount, c.revenueAfterDiscount, c.bookingsGenerated])
+                      dashboard.coupons.map((c) => [c.code, c.uses, c.discountGiven, c.revenueBeforeDiscount, c.revenueAfterDiscount, (c as any).bookingsGenerated ?? c.uses])
                     )
                   }
                 >
@@ -638,7 +638,7 @@ function AdminAnalyticsDashboard() {
                           <td className="p-3 text-red-600 font-semibold">₹{c.discountGiven.toLocaleString("en-IN")}</td>
                           <td className="p-3">₹{c.revenueBeforeDiscount.toLocaleString("en-IN")}</td>
                           <td className="p-3 font-semibold text-emerald-700">₹{c.revenueAfterDiscount.toLocaleString("en-IN")}</td>
-                          <td className="p-3 text-right font-bold">{c.bookingsGenerated}</td>
+                          <td className="p-3 text-right font-bold">{(c as any).bookingsGenerated ?? c.uses}</td>
                         </tr>
                       ))
                     )}

@@ -688,7 +688,7 @@ export async function getMediaFolders(): Promise<string[]> {
   const { data, error } = await supabase.from('media_assets').select('folder').order('folder')
   if (error) return ['/']
   const folders = [...new Set((data ?? []).map((d) => d.folder as string))]
-  return folders
+  return folders as string[]
 }
 
 // Upload to Supabase Storage and create media record

@@ -83,8 +83,8 @@ export function TripCaptainsAdminPage() {
     if (!file) return
     setUploadingPhoto(true)
     try {
-      const asset = await uploadMedia(file, 'captains')
-      setForm((prev) => ({ ...prev, photo_url: asset.public_url }))
+      const asset = await uploadMedia(file, '/trip-captains', 'admin')
+      setForm((prev) => ({ ...prev, photo_url: asset.url }))
       toast.success('Captain photo uploaded successfully')
     } catch (err: any) {
       toast.error(err.message || 'Failed to upload photo')
@@ -191,7 +191,7 @@ export function TripCaptainsAdminPage() {
               <div className="flex items-center gap-1.5">
                 <p className="font-bold text-sm text-[#102A43]">{c.full_name}</p>
                 {c.is_verified !== false && (
-                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" title="Verified Captain" />
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
                 )}
               </div>
               <p className="text-xs text-muted-foreground line-clamp-1">{c.bio || `${c.experience_years || 1}+ years with GoNomadik`}</p>
@@ -292,12 +292,17 @@ export function TripCaptainsAdminPage() {
       {/* Main Table */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
         <DataTable
-          columns={columns}
+          columns={columns as any}
           data={captains}
+          total={captains.length}
+          page={1}
+          pageSize={100}
+          totalPages={1}
           isLoading={isLoading}
           searchPlaceholder="Search captains by name or phone..."
-          searchValue={search}
-          onSearchChange={setSearch}
+          onSearch={setSearch}
+          onPageChange={() => {}}
+          onPageSizeChange={() => {}}
         />
       </div>
 
@@ -500,7 +505,7 @@ export function TripCaptainsAdminPage() {
         open={mediaPickerOpen}
         onClose={() => setMediaPickerOpen(false)}
         onSelect={(asset) => {
-          setForm((prev) => ({ ...prev, photo_url: asset.public_url }))
+          setForm((prev) => ({ ...prev, photo_url: asset.url }))
           setMediaPickerOpen(false)
           toast.success('Photo selected from media library')
         }}

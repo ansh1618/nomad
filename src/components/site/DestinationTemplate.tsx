@@ -9,7 +9,7 @@ import { useLoaderData } from "@tanstack/react-router";
 import { useAuth } from "./AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { getCmsSection } from "@/lib/queries/cms";
-import { getRealDestinationImage } from "@/lib/queries-client";
+import { getRealDestinationImage, getDestinationBySlug, getJourneys } from "@/lib/queries-client";
 import { resolveDestinationHero, resolveGallery } from "@/lib/media-resolver";
 import { getPackageDocumentBySlugFn } from "@/lib/itinerary-pdf-fns";
 import { ItineraryPreviewCard } from "./ItineraryPreviewCard";

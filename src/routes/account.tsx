@@ -18,6 +18,7 @@ import {
 import { getJourneys } from "@/lib/queries-client";
 import { cancelBookingCustomerFn } from "@/lib/mutations/payment";
 import { ReviewFormModal } from "@/components/site/ReviewFormModal";
+import { TripDayMode } from "@/components/site/TripDayMode";
 
 
 export const Route = createFileRoute("/account")({
@@ -448,9 +449,14 @@ function AccountDashboard() {
             {/* BOOKINGS TAB */}
             {activeTab === "bookings" && (
               <div className="space-y-8">
+                {/* Active Trip Day Mode if user has a confirmed active booking */}
+                {upcomingBookings.some((b: any) => b.booking_status === "CONFIRMED" || b.status === "CONFIRMED") && (
+                  <TripDayMode booking={upcomingBookings.find((b: any) => b.booking_status === "CONFIRMED" || b.status === "CONFIRMED")!} />
+                )}
+
                 <div>
                   <h2 className="font-display text-2xl font-bold text-primary">My Bookings</h2>
-                  <p className="text-xs text-muted-foreground mt-1">Track details, invoices, and join active convoys.</p>
+                  <p className="text-xs text-muted-foreground mt-1">Track details, invoices, digital vouchers and join active convoys.</p>
                 </div>
 
                 {/* Upcoming Trips */}

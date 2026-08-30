@@ -80,7 +80,7 @@ export function DepartureCalendarView({ onSelectDeparture }: DepartureCalendarVi
   const startingDayOfWeek = firstDay.getDay() // 0 = Sun
   const daysInMonth = lastDay.getDate()
 
-  const calendarCells = []
+  const calendarCells: { isBlank: boolean; dayNum: number; dateKey: string }[] = []
 
   // Blank cells before day 1
   for (let i = 0; i < startingDayOfWeek; i++) {

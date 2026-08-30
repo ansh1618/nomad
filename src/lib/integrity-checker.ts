@@ -124,7 +124,7 @@ export async function runStartupIntegrityCheck(): Promise<SystemIntegrityReport>
       .from("journeys")
       .select("id, slug, name, destination_id");
 
-    const validDestIds = new Set((Array.from(existingSlugMap.values())).map(d => d.id));
+    const validDestIds = new Set((Array.from(existingSlugMap.values())).map((d: any) => d.id));
 
     for (const j of (journeys || [])) {
       if (!j.destination_id || !validDestIds.has(j.destination_id)) {
@@ -134,8 +134,10 @@ export async function runStartupIntegrityCheck(): Promise<SystemIntegrityReport>
         const jName = String(j.name ?? "").toLowerCase();
 
         for (const [dSlug, destObj] of existingSlugMap.entries()) {
-          if (jSlug.includes(dSlug) || jName.includes(dSlug) || jName.includes(String(destObj.name ?? "").toLowerCase())) {
-            matchedDestId = destObj.id;
+          const dSlugStr = String(dSlug);
+          const destName = String((destObj as any)?.name ?? "").toLowerCase();
+          if (jSlug.includes(dSlugStr) || jName.includes(dSlugStr) || jName.includes(destName)) {
+            matchedDestId = (destObj as any)?.id;
             break;
           }
         }

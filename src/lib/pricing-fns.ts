@@ -1,3 +1,18 @@
+/**
+ * pricing-fns.ts
+ *
+ * Booking price calculation logic.
+ *
+ * IMPORTANT:
+ * - accommodationPrice MUST come from journey_accommodation_prices table
+ *   (keyed by journey_id + accommodation_type)
+ * - hotel_rooms.price_modifier is NOT used for selling price
+ * - No starting_price + offset fallbacks
+ *
+ * If accommodationPrice is null/undefined, callers MUST reject the booking
+ * rather than inventing a price.
+ */
+
 function parseRupeeAmount(val: any): number {
   if (val === null || val === undefined) return 0;
   if (typeof val === "number") {
@@ -13,6 +28,17 @@ function parseRupeeAmount(val: any): number {
   return Math.round(num);
 }
 
+/**
+ * Resolve booking pricing given authoritative inputs.
+ *
+ * `room.price` MUST already contain the journey-scoped price from
+ * journey_accommodation_prices. If the caller provides null/0, pricing
+ * will use the journey base price (which is correct only if accommodation
+ * selection was skipped).
+ *
+ * The booking engine (booking-fns.ts) is responsible for doing the
+ * server-side DB lookup before calling this function.
+ */
 export function resolveBookingPricing({
   journey,
   departure,
@@ -23,12 +49,12 @@ export function resolveBookingPricing({
 }: {
   journey: any;
   departure: any;
-  room: any; // Room object from db or mapped object or string
+  room: any; // Must have room.price = authoritative price from journey_accommodation_prices
   travellers: any[];
   addons: any[];
   coupon: any | null;
 }) {
-  // 1. Determine base journey/departure price in whole Rupees
+  // 1. Journey base price (fallback reference — not used for accommodation pricing)
   const journeyPrice = parseRupeeAmount(journey?.starting_price ?? journey?.price) || 6500;
   let journeyBase = journeyPrice;
 
@@ -39,38 +65,24 @@ export function resolveBookingPricing({
     }
   }
 
-  // 2. Determine per-person accommodation price (absolute total package price for selected tier)
+  // 2. Accommodation price — MUST come from journey_accommodation_prices
+  //    via the server-side resolver before this function is called.
+  //    room.price = the authoritative per-person price for this journey+type.
   let accommodationPrice = journeyBase;
-  let roomModifier = 0;
 
   if (room) {
+    // Primary: use room.price which should be the authoritative DB price
     const directPrice = parseRupeeAmount(room.price ?? room.totalPrice ?? room.accommodationPrice);
-    const modPrice = parseRupeeAmount(room.priceModifier ?? room.price_modifier ?? room.pricePerPerson);
 
-    if (directPrice >= 3000) {
-      // Direct absolute per-person price (e.g. 6500, 7500, 8500)
+    if (directPrice >= 100) {
+      // Authoritative absolute price (from journey_accommodation_prices)
       accommodationPrice = directPrice;
-    } else if (modPrice >= 3000) {
-      // Direct absolute price stored in price_modifier column
-      accommodationPrice = modPrice;
-    } else if (modPrice > 0 && modPrice < 3000) {
-      // Relative delta modifier (e.g. +1000, +2000)
-      accommodationPrice = journeyBase + modPrice;
-    } else {
-      // Sharing type fallback (Quad = 6500, Triple = 7500, Double = 8500 for standard 2N/3D)
-      const st = String(room.sharing_type || room.room_type || room.type || room.sharingType || room || "").toLowerCase();
-      if (st.includes("double")) {
-        accommodationPrice = Math.max(8500, journeyBase === 6499 ? 8500 : journeyBase + 2000);
-      } else if (st.includes("triple")) {
-        accommodationPrice = Math.max(7500, journeyBase === 6499 ? 7500 : journeyBase + 1000);
-      } else if (st.includes("quad")) {
-        accommodationPrice = Math.max(6500, journeyBase === 6499 ? 6500 : journeyBase);
-      }
     }
+    // NOTE: We do NOT fall back to starting_price offsets or price_modifier.
+    // If directPrice is 0/missing, the caller should have rejected the booking first.
   }
 
-  roomModifier = 0;
-
+  const roomModifier = 0;
   const effectiveBasePrice = accommodationPrice;
   const travellersCount = Math.max(1, travellers?.length || 1);
   const roomTotal = accommodationPrice * travellersCount;
@@ -124,13 +136,13 @@ export function resolveBookingPricing({
     roomTotal,
     addonsTotal,
     couponDiscount,
-    subtotal,         // post-discount subtotal (Room * Travellers + Addons - Coupon)
+    subtotal,            // post-discount subtotal (Room * Travellers + Addons - Coupon)
     payableBeforeGst: subtotal,
     gstRate,
-    gstAmount,        // 5% of subtotal
-    gst: gstAmount,   // alias
-    grandTotal,       // subtotal + gstAmount
-    total: grandTotal, // post-GST final payable total (passed to Razorpay)
+    gstAmount,           // 5% of subtotal
+    gst: gstAmount,      // alias
+    grandTotal,          // subtotal + gstAmount
+    total: grandTotal,   // post-GST final payable total (passed to Razorpay)
     deposit,
     remaining
   };

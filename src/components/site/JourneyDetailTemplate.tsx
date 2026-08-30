@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 import { Link, useNavigate, useLoaderData } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "motion/react";
 import { useQuery } from "@tanstack/react-query";
@@ -780,8 +781,7 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
         },
       };
 
-      // @ts-expect-error window.Razorpay constructor is dynamic
-      const rzp = new window.Razorpay(options);
+      const rzp = new (window as any).Razorpay(options);
       rzp.on("payment.failed", function (response: Record<string, any>) {
         const errorDesc = response.error?.description || "Unknown error";
         toast.error("Payment failed: " + errorDesc);
@@ -1449,7 +1449,7 @@ export function JourneyDetailTemplate({ slug, onBookNow }: JourneyDetailTemplate
               day,
             };
           })
-          .filter((item): item is { url: string; src: string; caption: string; day: number | null } => item !== null);
+          .filter((item): item is { url: string; src: string; caption: string; day: any } => item !== null);
 
         if (galleryList.length === 0) {
           return (

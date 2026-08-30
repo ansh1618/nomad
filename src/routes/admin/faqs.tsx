@@ -264,17 +264,17 @@ function FaqLibraryPage() {
       {/* Data Table */}
       <div className="bg-white rounded-2xl border border-border shadow-soft overflow-hidden">
         <DataTable
-          columns={columns}
+          columns={columns as any}
           data={faqs}
-          loading={isLoading}
+          total={result?.total ?? 0}
           page={page}
           pageSize={pageSize}
+          totalPages={result?.totalPages ?? 1}
+          isLoading={isLoading}
+          onSearch={(s) => { setSearch(s); setPage(1) }}
           onPageChange={setPage}
           onPageSizeChange={setPageSize}
-          totalItems={result?.total ?? 0}
           onSort={handleSort}
-          sortBy={sortBy}
-          sortDir={sortDir}
         />
       </div>
 

@@ -234,7 +234,7 @@ function HotelFormPage() {
   }
 
   const addRoom = () => {
-    setRooms([...rooms, { room_type: '', sharing_type: 'DOUBLE', capacity: 2, price_modifier: 0 }])
+    setRooms([...rooms, { room_type: '', sharing_type: 'DOUBLE', capacity: 2, price_modifier: 7499 }])
   }
 
   const removeRoom = (index: number) => {
@@ -429,12 +429,12 @@ function HotelFormPage() {
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs">Dynamic Modifier (₹)</Label>
+                      <Label className="text-xs">Reference Price (₹) — informational only (package selling prices are configured in Package Admin)</Label>
                       <Input
                         type="number"
                         value={room.price_modifier}
                         onChange={(e) => updateRoom(i, 'price_modifier', Number(e.target.value))}
-                        placeholder="+/- amount"
+                        placeholder="e.g. 7499"
                       />
                     </div>
                   </div>

@@ -64,6 +64,12 @@ export const Route = createFileRoute("/destinations_/$slug")({
     } else if (canonicalSlug === "mcleodganj") {
       seoTitle = "McLeod Ganj & Triund Trip Package from Delhi — Dharamshala Road Trip | GoNomadik";
       seoDesc = "Explore McLeod Ganj, Dalai Lama Temple & Triund trek with GoNomadik. Premium road journeys from Delhi NCR with verified mountain stays.";
+    } else if (canonicalSlug === "winter-spiti") {
+      seoTitle = "Winter Spiti Expedition Package from Delhi — 8N/9D Snow Road Trip | GoNomadik";
+      seoDesc = "Join GoNomadik's 8N/9D White Winter Spiti Expedition. Experience frozen Spiti Valley, Key Monastery, Chicham Bridge, sub-zero Hikkim & heated homestays.";
+    } else if (canonicalSlug === "summer-spiti") {
+      seoTitle = "Summer Spiti & Chandratal Lake Trip Package from Delhi — 8N/9D Overland Circuit | GoNomadik";
+      seoDesc = "Explore Summer Spiti & Chandratal Moon Lake on an 8N/9D overland expedition. Cross Kunzum Pass, Key Monastery, Hikkim, Atal Tunnel & Swiss camps.";
     }
 
     const breadcrumbs = [

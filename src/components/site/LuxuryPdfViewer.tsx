@@ -11,6 +11,7 @@ import {
   ZoomOut,
   Download,
   Maximize2,
+  Loader2,
   Minimize2,
   Share2,
   RotateCw,

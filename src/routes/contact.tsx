@@ -12,6 +12,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { submitContactInquiryFn, submitConsultationRequestFn, submitCallbackRequestFn } from "@/lib/server-fns";
 import { BRAND } from "@/config/brand";
+import { trackEvent } from "@/lib/analytics";
 
 import { BASE_URL, getCanonicalUrl, generateBreadcrumbSchema } from "@/lib/seo";
 
@@ -100,8 +101,6 @@ function ContactRoute() {
       toast.error("Please enter a valid 10-digit phone number.");
       return;
     }
-
-import { trackEvent } from "@/lib/analytics";
 
     setSubmittingInquiry(true);
     try {

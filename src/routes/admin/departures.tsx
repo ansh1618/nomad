@@ -96,6 +96,10 @@ function DeparturesPage() {
   const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false)
   const [isBulkEditModalOpen, setIsBulkEditModalOpen] = useState(false)
   const [selectedBulkIds, setSelectedBulkIds] = useState<string[]>([])
+  const [lastBatch] = useState<{ batchId: string } | null>(null)
+  const [isUndoConfirmOpen, setIsUndoConfirmOpen] = useState(false)
+  const refetchLastBatch = () => {}
+  const undoLastGenerationBatch = async (_id: string) => ({ deletedCount: 0 })
 
   const { data: result, isLoading } = useQuery({
     queryKey: ['departures_list', page, pageSize, search, sortBy, sortDir, statusFilter, journeyFilter],

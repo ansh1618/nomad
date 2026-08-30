@@ -6,6 +6,8 @@ import kashmir from "@/assets/dest-kashmir.jpg";
 import goa from "@/assets/dest-goa.jpg";
 const manali = "/images/manali/manali-snow-valley.jpg";
 const jibhi = "/images/jibhi/jibhi-raghupur-swing.jpg";
+const honeymoon = "/images/manali/manali-snow-valley.jpg";
+const adventure = "/images/jibhi/jibhi-raghupur-swing.jpg";
 
 const images = [
   { src: kashmir, alt: "Kashmir Dal lake", label: "Kashmir" },

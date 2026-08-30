@@ -88,6 +88,7 @@ export function PaymentStep({
         userId,
         departureId: data.departureId,
         travellers: mappedTravellers,
+        addons: data.selectedAddons || data.addons || [],
         baseAmount: pricing.effectiveBasePrice * pricing.travellersCount,
         addonAmount: pricing.addonsTotal,
         gstAmount: pricing.gst,

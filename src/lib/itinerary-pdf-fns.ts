@@ -147,7 +147,7 @@ const viewHeartbeatSchema = z.object({
 export const updatePdfViewHeartbeatFn = createServerFn({ method: "POST" })
   .validator((data: z.infer<typeof viewHeartbeatSchema>) => viewHeartbeatSchema.parse(data))
   .handler(async ({ data }) => {
-    return await dbPdf.updatePdfViewHeartbeat(data);
+    return await dbPdf.updatePdfViewHeartbeat({ ...data, completed: Boolean(data.completed) });
   });
 
 // Get admin analytics

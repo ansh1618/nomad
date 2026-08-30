@@ -716,6 +716,7 @@ export async function getFullAnalyticsDashboard(
       discountGiven: data.discountGiven,
       revenueBeforeDiscount: data.revBefore,
       revenueAfterDiscount: data.revAfter,
+      bookingsCount: data.bookings,
       bookingsGenerated: data.bookings,
     }))
     .sort((a, b) => b.uses - a.uses);

@@ -316,7 +316,7 @@ export async function confirmBookingAfterPayment(
       booking_id: bookingId,
       amount: amountPaid,
       status: "SUCCESS",
-      method: method?.toUpperCase() || "ONLINE",   // Required NOT NULL
+      method: typeof method === "string" ? method.toUpperCase() : "ONLINE",   // Required NOT NULL
       gateway: gateway,
       transaction_id: paymentId || null,            // Razorpay payment_id stored here
       payment_method: method || null,
@@ -402,7 +402,7 @@ export async function confirmBookingAfterPayment(
       .single();
 
     if (dep) {
-      departureDate = dep.departure_date;
+      departureDate = (dep as any).departure_date;
       tripName = (dep as any).journeys?.name || "Nomadik Road Trip";
       pickupPoint = (dep as any).pickup_location || "";
       departureTime = (dep as any).pickup_time || "";

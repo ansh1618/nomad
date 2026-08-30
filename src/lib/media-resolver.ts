@@ -47,6 +47,22 @@ export const AUTHENTIC_DESTINATION_MEDIA: Record<string, { hero: string; gallery
       { url: "/images/destinations/chopta-tungnath-snow.jpg", caption: "Snow Trek & World's Highest Shiva Temple Summit" },
       { url: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=1200&q=80", caption: "Chopta Meadows & Himalayan Peaks" }
     ]
+  },
+  "winter-spiti": {
+    hero: "https://images.unsplash.com/photo-1578637387939-43c525550085?auto=format&fit=crop&w=2000&q=90",
+    gallery: [
+      { url: "https://images.unsplash.com/photo-1578637387939-43c525550085?auto=format&fit=crop&w=1200&q=80", caption: "Key Monastery Covered in Snow — Spiti Valley" },
+      { url: "https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?auto=format&fit=crop&w=1200&q=80", caption: "Snow Covered Chicham Bridge — Asia's Highest Bridge" },
+      { url: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=1200&q=80", caption: "Langza Golden Buddha Statue in Sub-Zero Winter" }
+    ]
+  },
+  "summer-spiti": {
+    hero: "https://images.unsplash.com/photo-1605649487212-47bdab064df7?auto=format&fit=crop&w=2000&q=90",
+    gallery: [
+      { url: "https://images.unsplash.com/photo-1605649487212-47bdab064df7?auto=format&fit=crop&w=1200&q=80", caption: "Chandratal Moon Lake — High Altitude Turquoise Waters" },
+      { url: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=1200&q=80", caption: "Key Monastery & Spiti River Bed in Summer" },
+      { url: "https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?auto=format&fit=crop&w=1200&q=80", caption: "Kunzum Pass Stupa & Himalayan Mountain Pass" }
+    ]
   }
 };
 
@@ -86,6 +102,8 @@ export function resolveDestinationHero(slug?: any, rawHero?: any): string {
     return heroStr.trim();
   }
 
+  if (s.includes("winter-spiti") || s.includes("winter spiti")) return AUTHENTIC_DESTINATION_MEDIA["winter-spiti"].hero;
+  if (s.includes("summer-spiti") || s.includes("summer spiti") || s.includes("spiti")) return AUTHENTIC_DESTINATION_MEDIA["summer-spiti"].hero;
   if (s.includes("udaipur")) return AUTHENTIC_DESTINATION_MEDIA.udaipur.hero;
   if (s.includes("manali")) return AUTHENTIC_DESTINATION_MEDIA.manali.hero;
   if (s.includes("jibhi") || s.includes("tirthan")) return AUTHENTIC_DESTINATION_MEDIA.jibhi.hero;
@@ -125,6 +143,8 @@ export function resolveGallery(arg1?: any, arg2?: any): any[] {
   }
 
   const s = String(slugStr || "").toLowerCase().trim();
+  if (s.includes("winter-spiti") || s.includes("winter spiti")) return AUTHENTIC_DESTINATION_MEDIA["winter-spiti"].gallery;
+  if (s.includes("summer-spiti") || s.includes("summer spiti") || s.includes("spiti")) return AUTHENTIC_DESTINATION_MEDIA["summer-spiti"].gallery;
   if (s.includes("udaipur")) return AUTHENTIC_DESTINATION_MEDIA.udaipur.gallery;
   if (s.includes("manali")) return AUTHENTIC_DESTINATION_MEDIA.manali.gallery;
   if (s.includes("jibhi") || s.includes("tirthan")) return AUTHENTIC_DESTINATION_MEDIA.jibhi.gallery;

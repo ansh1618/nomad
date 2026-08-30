@@ -5,6 +5,10 @@ import { supabaseAdmin } from "./supabase-admin";
 import { z } from "zod";
 import { resolveBookingPricing } from "./pricing-fns";
 import { recordCouponUsage } from "./queries/admin";
+import {
+  resolveJourneyAccommodationPrice,
+  normalizeAccommodationType,
+} from "./queries/accommodation-prices";
 
 // Helper: Extract 3-letter destination code from slug/name
 function getDestinationCode(slugOrName: any = ""): string {
@@ -363,11 +367,36 @@ export const createBookingFn = createServerFn({ method: "POST" })
       const journey = (dep as any).journeys || {};
       const destCode = getDestinationCode(journey.slug || journey.name || "");
 
-      // 2. Pricing calculation
+      // 2. Server-authoritative accommodation price lookup
+      // Key: journey_id + accommodation_type (NOT hotel_id)
+      // If no price configured → reject booking rather than invent a price
+      const rawSharingType = (data as any).roomSharing || (data as any).sharingType || "Quad";
+      const normalizedType = normalizeAccommodationType(rawSharingType);
+
+      let serverAccommodationPrice: number | null = null;
+      if (journey.id && normalizedType) {
+        serverAccommodationPrice = await resolveJourneyAccommodationPrice(
+          journey.id,
+          normalizedType
+        );
+      }
+
+      if (serverAccommodationPrice === null) {
+        // No price configured — do NOT proceed with a guessed/invented amount
+        // Log for debugging but throw a user-facing error
+        console.error(
+          `[createBookingFn] No accommodation price configured for journey_id=${journey.id}, type=${normalizedType}. Blocking booking.`
+        );
+        throw new Error(
+          `Accommodation pricing is not configured for this package (${journey.name || journey.id}). Please contact support.`
+        );
+      }
+
+      // 3. Pricing calculation using server-authoritative accommodation price
       const serverPricing = resolveBookingPricing({
         journey,
         departure: dep,
-        room: { sharing_type: (data as any).roomSharing || (data as any).sharingType || "Quad" },
+        room: { price: serverAccommodationPrice, sharing_type: rawSharingType },
         travellers: data.travellers,
         addons: data.addons || [],
         coupon: null,
