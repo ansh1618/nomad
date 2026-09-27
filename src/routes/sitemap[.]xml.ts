@@ -92,11 +92,20 @@ export const Route = createFileRoute("/sitemap.xml")({
 
         // 3. Fetch Journeys from DB + Static Fallbacks
         try {
-          const { data: dbJourneys } = await supabase
-            .from("packages")
+          let { data: dbJourneys } = await supabase
+            .from("journeys")
             .select("slug, updated_at")
             .eq("is_published", true)
             .eq("is_deleted", false);
+
+          if (!dbJourneys) {
+            const { data: pkgData } = await supabase
+              .from("packages")
+              .select("slug, updated_at")
+              .eq("is_published", true)
+              .eq("is_deleted", false);
+            if (pkgData) dbJourneys = pkgData;
+          }
 
           const journeySlugs = new Set<string>();
           if (dbJourneys && dbJourneys.length > 0) {

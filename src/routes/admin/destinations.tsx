@@ -191,6 +191,28 @@ function DestinationsPage() {
       ),
     },
     {
+      id: 'active',
+      header: 'Active',
+      cell: ({ row }) => {
+        const isPublished = row.original.status === 'PUBLISHED'
+        return (
+          <div className="flex items-center gap-2">
+            <Switch
+              checked={isPublished}
+              onCheckedChange={async (checked) => {
+                if (checked) {
+                  publishMutation.mutate(row.original.id)
+                } else {
+                  archiveMutation.mutate(row.original.id)
+                }
+              }}
+            />
+            <span className="text-xs text-muted-foreground">{isPublished ? 'Active' : 'Inactive'}</span>
+          </div>
+        )
+      },
+    },
+    {
       accessorKey: 'is_featured',
       header: 'Featured',
       cell: ({ row }) => (
@@ -221,48 +243,75 @@ function DestinationsPage() {
     },
     {
       id: 'actions',
-      header: '',
-      size: 60,
+      header: 'Actions',
+      size: 100,
       cell: ({ row }) => {
         const d = row.original
         return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44">
-              <DropdownMenuItem asChild>
-                <Link to="/admin/destinations/$id" params={{ id: d.id }}>
-                  <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <a href={`/destinations/${d.slug}`} target="_blank" rel="noreferrer">
-                  <Eye className="h-3.5 w-3.5 mr-2" /> Preview
-                </a>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              {d.status !== 'PUBLISHED' && (
-                <DropdownMenuItem onClick={() => publishMutation.mutate(d.id)}>
-                  <CheckCircle2 className="h-3.5 w-3.5 mr-2 text-emerald-600" /> Publish
+          <div className="flex items-center gap-1">
+            <Button variant="outline" size="sm" asChild className="h-8 px-2.5 text-xs">
+              <Link to="/admin/destinations/$id" params={{ id: d.id }}>
+                <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
+              </Link>
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuItem asChild>
+                  <Link to="/admin/destinations/$id" params={{ id: d.id }}>
+                    <Pencil className="h-3.5 w-3.5 mr-2" /> Edit Details
+                  </Link>
                 </DropdownMenuItem>
-              )}
-              {d.status !== 'ARCHIVED' && (
-                <DropdownMenuItem onClick={() => archiveMutation.mutate(d.id)}>
-                  <Archive className="h-3.5 w-3.5 mr-2 text-amber-600" /> Archive
+                <DropdownMenuItem asChild>
+                  <Link to="/admin/destinations/$id" params={{ id: d.id }} search={{ tab: 'images' }}>
+                    <Globe className="h-3.5 w-3.5 mr-2 text-indigo-500" /> Manage Images
+                  </Link>
                 </DropdownMenuItem>
-              )}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => setDeleteId(d.id)}
-                className="text-destructive focus:text-destructive"
-              >
-                <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                <DropdownMenuItem asChild>
+                  <Link to="/admin/destinations/$id" params={{ id: d.id }} search={{ tab: 'itinerary' }}>
+                    <CheckCircle2 className="h-3.5 w-3.5 mr-2 text-emerald-500" /> Manage Itinerary
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/admin/destinations/$id" params={{ id: d.id }} search={{ tab: 'faqs' }}>
+                    <Globe className="h-3.5 w-3.5 mr-2 text-amber-500" /> Manage FAQs
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/admin/destinations/$id" params={{ id: d.id }} search={{ tab: 'seo' }}>
+                    <Eye className="h-3.5 w-3.5 mr-2 text-blue-500" /> Manage SEO
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <a href={`/destinations/${d.slug}`} target="_blank" rel="noreferrer">
+                    <Eye className="h-3.5 w-3.5 mr-2" /> View Live Page
+                  </a>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                {d.status !== 'PUBLISHED' ? (
+                  <DropdownMenuItem onClick={() => publishMutation.mutate(d.id)}>
+                    <CheckCircle2 className="h-3.5 w-3.5 mr-2 text-emerald-600" /> Publish Destination
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem onClick={() => archiveMutation.mutate(d.id)}>
+                    <Archive className="h-3.5 w-3.5 mr-2 text-amber-600" /> Deactivate Destination
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => setDeleteId(d.id)}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         )
       },
     },

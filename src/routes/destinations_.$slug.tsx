@@ -43,34 +43,43 @@ export const Route = createFileRoute("/destinations_/$slug")({
     const dest = loaderData?.dest;
 
     const canonicalSlug = slug === "chopta-tungnath" ? "chopta" : slug === "mcleod-ganj" ? "mcleodganj" : slug;
-    const canonicalUrl = getCanonicalUrl(`/destinations/${canonicalSlug}`);
+    const canonicalUrl = dest?.seo?.canonical_url || getCanonicalUrl(`/destinations/${canonicalSlug}`);
 
-    // Search intent specific title & description mapping
-    let seoTitle = `${dest?.name || 'Destination'} Road Trip & Group Package from Delhi | GoNomadik`;
-    let seoDesc = `Explore ${dest?.name || 'Destination'} with GoNomadik. Handpicked stays, road trip convoy from Delhi NCR, verified Trip Captains & transparent itineraries.`;
+    // Search intent specific title & description mapping (Database first, then fallback)
+    let seoTitle = dest?.seo?.title || `${dest?.name || 'Destination'} Road Trip & Group Package from Delhi | GoNomadik`;
+    let seoDesc = dest?.seo?.description || dest?.description || `Explore ${dest?.name || 'Destination'} with GoNomadik. Handpicked stays, road trip convoy from Delhi NCR, verified Trip Captains & transparent itineraries.`;
 
-    if (canonicalSlug === "udaipur") {
-      seoTitle = "Udaipur Trip Package from Delhi — Road Trips & Weekend Getaway | GoNomadik";
-      seoDesc = "Plan your Udaipur road trip from Delhi with GoNomadik. City Palace, Lake Pichola, Monsoon Palace & luxury stays with zero hidden costs.";
-    } else if (canonicalSlug === "manali") {
-      seoTitle = "Manali Road Trip Package from Delhi — Old Manali & Solang Valley | GoNomadik";
-      seoDesc = "Join GoNomadik's curated Manali group trip from Delhi. Solang Valley snow drive, Old Manali cafe walks, Sethan valley & bonfire nights.";
-    } else if (canonicalSlug === "jibhi") {
-      seoTitle = "Jibhi Trip Package from Delhi — Tirthan Valley & Jalori Pass | GoNomadik";
-      seoDesc = "Discover Jibhi & Tirthan Valley on a curated road trip from Delhi. Waterfall hikes, Jalori Pass trek, cozy wooden homestays & Serolsar Lake.";
-    } else if (canonicalSlug === "chopta") {
-      seoTitle = "Chopta Tungnath Trek & Road Trip Package from Delhi | GoNomadik";
-      seoDesc = "Embark on the Chopta & Tungnath snow trek from Delhi / Rishikesh. Experience the highest Shiva temple, Chandrashila summit & Deoria Tal lake.";
-    } else if (canonicalSlug === "mcleodganj") {
-      seoTitle = "McLeod Ganj & Triund Trip Package from Delhi — Dharamshala Road Trip | GoNomadik";
-      seoDesc = "Explore McLeod Ganj, Dalai Lama Temple & Triund trek with GoNomadik. Premium road journeys from Delhi NCR with verified mountain stays.";
-    } else if (canonicalSlug === "winter-spiti") {
-      seoTitle = "Winter Spiti Expedition Package from Delhi — 8N/9D Snow Road Trip | GoNomadik";
-      seoDesc = "Join GoNomadik's 8N/9D White Winter Spiti Expedition. Experience frozen Spiti Valley, Key Monastery, Chicham Bridge, sub-zero Hikkim & heated homestays.";
-    } else if (canonicalSlug === "summer-spiti") {
-      seoTitle = "Summer Spiti & Chandratal Lake Trip Package from Delhi — 8N/9D Overland Circuit | GoNomadik";
-      seoDesc = "Explore Summer Spiti & Chandratal Moon Lake on an 8N/9D overland expedition. Cross Kunzum Pass, Key Monastery, Hikkim, Atal Tunnel & Swiss camps.";
+    if (!dest?.seo?.title) {
+      if (canonicalSlug === "udaipur") {
+        seoTitle = "Udaipur Trip Package from Delhi — Road Trips & Weekend Getaway | GoNomadik";
+        seoDesc = "Plan your Udaipur road trip from Delhi with GoNomadik. City Palace, Lake Pichola, Monsoon Palace & luxury stays with zero hidden costs.";
+      } else if (canonicalSlug === "manali") {
+        seoTitle = "Manali Road Trip Package from Delhi — Old Manali & Solang Valley | GoNomadik";
+        seoDesc = "Join GoNomadik's curated Manali group trip from Delhi. Solang Valley snow drive, Old Manali cafe walks, Sethan valley & bonfire nights.";
+      } else if (canonicalSlug === "jibhi") {
+        seoTitle = "Jibhi Trip Package from Delhi — Tirthan Valley & Jalori Pass | GoNomadik";
+        seoDesc = "Discover Jibhi & Tirthan Valley on a curated road trip from Delhi. Waterfall hikes, Jalori Pass trek, cozy wooden homestays & Serolsar Lake.";
+      } else if (canonicalSlug === "chopta") {
+        seoTitle = "Chopta Tungnath Trek & Road Trip Package from Delhi | GoNomadik";
+        seoDesc = "Embark on the Chopta & Tungnath snow trek from Delhi / Rishikesh. Experience the highest Shiva temple, Chandrashila summit & Deoria Tal lake.";
+      } else if (canonicalSlug === "mcleodganj") {
+        seoTitle = "McLeod Ganj & Triund Trip Package from Delhi — Dharamshala Road Trip | GoNomadik";
+        seoDesc = "Explore McLeod Ganj, Dalai Lama Temple & Triund trek with GoNomadik. Premium road journeys from Delhi NCR with verified mountain stays.";
+      } else if (canonicalSlug === "winter-spiti") {
+        seoTitle = "Winter Spiti Expedition Package from Delhi — 8N/9D Snow Road Trip | GoNomadik";
+        seoDesc = "Join GoNomadik's 8N/9D White Winter Spiti Expedition. Experience frozen Spiti Valley, Key Monastery, Chicham Bridge, sub-zero Hikkim & heated homestays.";
+      } else if (canonicalSlug === "summer-spiti") {
+        seoTitle = "Summer Spiti & Chandratal Lake Trip Package from Delhi — 8N/9D Overland Circuit | GoNomadik";
+        seoDesc = "Explore Summer Spiti & Chandratal Moon Lake on an 8N/9D overland expedition. Cross Kunzum Pass, Key Monastery, Hikkim, Atal Tunnel & Swiss camps.";
+      }
     }
+
+    const ogTitle = dest?.seo?.og_title || seoTitle;
+    const ogDesc = dest?.seo?.og_description || seoDesc;
+    const ogImage = dest?.seo?.og_image || dest?.image || dest?.hero_image || `${BASE_URL}/nomadik-favicon.png`;
+    const twTitle = dest?.seo?.twitter_title || ogTitle;
+    const twDesc = dest?.seo?.twitter_description || ogDesc;
+    const twImage = dest?.seo?.twitter_image || ogImage;
 
     const breadcrumbs = [
       { name: "Home", url: "/" },
@@ -82,12 +91,12 @@ export const Route = createFileRoute("/destinations_/$slug")({
       name: dest?.name || canonicalSlug,
       slug: canonicalSlug,
       overview: dest?.overview || dest?.description,
-      image: dest?.image || dest?.hero_image,
+      image: ogImage,
       topPlaces: dest?.topPlaces || []
     });
 
     const breadcrumbSchema = generateBreadcrumbSchema(breadcrumbs);
-    const faqSchema = dest?.faqs ? generateFAQSchema(dest.faqs) : null;
+    const faqSchema = dest?.faqs && dest.faqs.length > 0 ? generateFAQSchema(dest.faqs) : null;
 
     const scriptsArr = [
       { type: "application/ld+json", children: JSON.stringify(destSchema) },
@@ -97,20 +106,27 @@ export const Route = createFileRoute("/destinations_/$slug")({
       scriptsArr.push({ type: "application/ld+json", children: JSON.stringify(faqSchema) });
     }
 
+    const metaTags = [
+      { title: seoTitle },
+      { name: "description", content: seoDesc },
+      { property: "og:title", content: ogTitle },
+      { property: "og:description", content: ogDesc },
+      { property: "og:url", content: canonicalUrl },
+      { property: "og:type", content: "website" },
+      { property: "og:image", content: ogImage },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: twTitle },
+      { name: "twitter:description", content: twDesc },
+      { name: "twitter:image", content: twImage },
+    ];
+
+    if (dest?.seo?.keywords) {
+      const kw = Array.isArray(dest.seo.keywords) ? dest.seo.keywords.join(", ") : String(dest.seo.keywords);
+      metaTags.push({ name: "keywords", content: kw });
+    }
+
     return {
-      meta: [
-        { title: seoTitle },
-        { name: "description", content: seoDesc },
-        { property: "og:title", content: seoTitle },
-        { property: "og:description", content: seoDesc },
-        { property: "og:url", content: canonicalUrl },
-        { property: "og:type", content: "website" },
-        { property: "og:image", content: dest?.image || `${BASE_URL}/nomadik-favicon.png` },
-        { name: "twitter:card", content: "summary_large_image" },
-        { name: "twitter:title", content: seoTitle },
-        { name: "twitter:description", content: seoDesc },
-        { name: "twitter:image", content: dest?.image || `${BASE_URL}/nomadik-favicon.png` },
-      ],
+      meta: metaTags,
       links: [
         { rel: "canonical", href: canonicalUrl }
       ],

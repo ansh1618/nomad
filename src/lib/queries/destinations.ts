@@ -144,9 +144,15 @@ export async function getDestinationBySlug(slug: any): Promise<Destination | nul
     faqs: (data as any).faqs ?? [],
     gallery: Array.isArray((data as any).gallery) ? (data as any).gallery : [],
     things_to_do: Array.isArray((data as any).things_to_do) ? (data as any).things_to_do : [],
+    highlights: Array.isArray((data as any).highlights) ? (data as any).highlights : [],
+    weather: (data as any).weather ?? null,
+    how_to_reach: (data as any).how_to_reach ?? null,
+    seo: (data as any).seo ?? null,
+    best_time: (data as any).best_time_to_visit ?? (data as any).best_time ?? null,
+    best_time_to_visit: (data as any).best_time_to_visit ?? (data as any).best_time ?? null,
     status: (data as any).is_published ? 'PUBLISHED' : 'DRAFT',
-    is_featured: false,
-    priority: 0
+    is_featured: (data as any).is_featured ?? false,
+    priority: (data as any).priority ?? 0
   } as Destination;
 }
 
@@ -164,7 +170,7 @@ export async function getDestinationById(id: string): Promise<Destination | null
     console.warn('[getDestinationById] Select * failed, retrying core select:', error.message)
     const { data: fallbackData } = await supabase
       .from('destinations')
-      .select('id, name, slug, subtitle, description, hero_image, hero_video, gallery, things_to_do, country, state, is_published, created_at, updated_at')
+      .select('id, name, slug, subtitle, description, hero_image, hero_video, gallery, things_to_do, country, state, highlights, best_time_to_visit, map_embed_url, seo, weather, how_to_reach, is_published, created_at, updated_at')
       .eq('id', id)
       .maybeSingle()
     if (fallbackData) {
@@ -180,9 +186,15 @@ export async function getDestinationById(id: string): Promise<Destination | null
     faqs: (data as any).faqs ?? [],
     gallery: Array.isArray((data as any).gallery) ? (data as any).gallery : [],
     things_to_do: Array.isArray((data as any).things_to_do) ? (data as any).things_to_do : [],
+    highlights: Array.isArray((data as any).highlights) ? (data as any).highlights : [],
+    weather: (data as any).weather ?? null,
+    how_to_reach: (data as any).how_to_reach ?? null,
+    seo: (data as any).seo ?? null,
+    best_time: (data as any).best_time_to_visit ?? (data as any).best_time ?? null,
+    best_time_to_visit: (data as any).best_time_to_visit ?? (data as any).best_time ?? null,
     status: (data as any).is_published ? 'PUBLISHED' : 'DRAFT',
-    is_featured: false,
-    priority: 0
+    is_featured: (data as any).is_featured ?? false,
+    priority: (data as any).priority ?? 0
   } as Destination
 }
 
@@ -196,6 +208,12 @@ const ALLOWED_DESTINATION_KEYS = new Set([
   'gallery',
   'country',
   'state',
+  'highlights',
+  'weather',
+  'how_to_reach',
+  'seo',
+  'best_time_to_visit',
+  'map_embed_url',
   'is_published',
   'updated_at',
   'created_by',
@@ -228,6 +246,12 @@ export async function createDestination(payload: DestinationInsert): Promise<Des
     hero_image: p.hero_image || null,
     hero_video: p.hero_video || null,
     gallery: Array.isArray(p.gallery) ? p.gallery : [],
+    highlights: Array.isArray(p.highlights) ? p.highlights : [],
+    weather: p.weather || null,
+    how_to_reach: p.how_to_reach || null,
+    seo: p.seo || null,
+    best_time_to_visit: p.best_time_to_visit || p.best_time || null,
+    map_embed_url: p.map_embed_url || p.google_map_url || null,
     is_published: (p.status || 'DRAFT').toString().toUpperCase().trim() === 'PUBLISHED',
   }
   if (p.created_by) rawPayload.created_by = p.created_by
@@ -261,9 +285,15 @@ export async function createDestination(payload: DestinationInsert): Promise<Des
     faqs: (data as any).faqs ?? [],
     gallery: Array.isArray((data as any).gallery) ? (data as any).gallery : [],
     things_to_do: Array.isArray((data as any).things_to_do) ? (data as any).things_to_do : [],
+    highlights: Array.isArray((data as any).highlights) ? (data as any).highlights : [],
+    weather: (data as any).weather ?? null,
+    how_to_reach: (data as any).how_to_reach ?? null,
+    seo: (data as any).seo ?? null,
+    best_time: (data as any).best_time_to_visit ?? (data as any).best_time ?? null,
+    best_time_to_visit: (data as any).best_time_to_visit ?? (data as any).best_time ?? null,
     status: (data as any).is_published ? 'PUBLISHED' : 'DRAFT',
-    is_featured: false,
-    priority: 0
+    is_featured: (data as any).is_featured ?? false,
+    priority: (data as any).priority ?? 0
   } as Destination
 }
 
@@ -282,6 +312,12 @@ export async function updateDestination(id: string, payload: DestinationUpdate):
     hero_image: p.hero_image || null,
     hero_video: p.hero_video || null,
     gallery: Array.isArray(p.gallery) ? p.gallery : [],
+    highlights: Array.isArray(p.highlights) ? p.highlights : [],
+    weather: p.weather || null,
+    how_to_reach: p.how_to_reach || null,
+    seo: p.seo || null,
+    best_time_to_visit: p.best_time_to_visit || p.best_time || null,
+    map_embed_url: p.map_embed_url || p.google_map_url || null,
     is_published: (p.status || 'DRAFT').toString().toUpperCase().trim() === 'PUBLISHED',
     updated_at: new Date().toISOString()
   }

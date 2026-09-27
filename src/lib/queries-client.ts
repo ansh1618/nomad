@@ -75,21 +75,34 @@ export async function getDestinations() {
 
     return data.map((d: any) => {
       const galleryFirst = (d.gallery as any)?.[0]?.url || (d.gallery as any)?.[0] || null;
+      const rawPlaces = (Array.isArray(d.highlights) && d.highlights.length > 0)
+        ? d.highlights
+        : (Array.isArray(d.things_to_do) && d.things_to_do.length > 0)
+        ? d.things_to_do
+        : [];
+      const cleanPlaces = rawPlaces.map((p: any) => typeof p === 'string' ? p : p.title || p.name || '').filter(Boolean);
+
       return {
+        id: d.id,
         slug: d.slug,
         name: d.name,
         subtitle: d.subtitle,
+        state: d.state || null,
+        country: d.country || "India",
         hero_image: d.hero_image,
         thumbnail: d.thumbnail,
         cover_image: d.cover_image,
         image: getRealDestinationImage(d.slug, d.hero_image, d.thumbnail, d.cover_image, galleryFirst),
         gallery: d.gallery || [],
         overview: d.description,
+        description: d.description,
+        highlights: d.highlights || [],
         weather: d.weather,
         howToReach: d.how_to_reach,
-        bestTime: d.best_time || "Best time to visit",
-        topPlaces: d.things_to_do || [],
+        bestTime: d.best_time_to_visit || d.best_time || "Best time to visit",
+        topPlaces: cleanPlaces.length > 0 ? cleanPlaces : ["Scenic Mountain Roads", "Local Culture", "Himalayan Landscapes"],
         faqs: d.faqs || [],
+        seo: d.seo || null,
         reviews: []
       };
     });
@@ -148,22 +161,48 @@ export async function getDestinationBySlug(slug: string) {
 
   const galleryFirst = (data.gallery as any)?.[0]?.url || (data.gallery as any)?.[0] || null;
 
+  const rawPlaces = (Array.isArray(data.highlights) && data.highlights.length > 0)
+    ? data.highlights
+    : (Array.isArray(data.things_to_do) && data.things_to_do.length > 0)
+    ? data.things_to_do
+    : [];
+  const cleanPlaces = rawPlaces.map((p: any) => typeof p === 'string' ? p : p.title || p.name || '').filter(Boolean);
+
+  // Also fetch destination FAQs from faqs table if data.faqs is empty
+  let resolvedFaqs = Array.isArray(data.faqs) && data.faqs.length > 0 ? data.faqs : [];
+  if (resolvedFaqs.length === 0 && data.id) {
+    const { data: dbFaqs } = await supabase
+      .from('faqs')
+      .select('question, answer')
+      .eq('destination_id', data.id)
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true });
+    if (dbFaqs && dbFaqs.length > 0) {
+      resolvedFaqs = dbFaqs.map(f => ({ question: f.question, answer: f.answer, q: f.question, a: f.answer }));
+    }
+  }
+
   return {
     id: data.id,
     slug: data.slug,
     name: data.name,
     subtitle: data.subtitle,
+    state: data.state || null,
+    country: data.country || "India",
     hero_image: data.hero_image,
     thumbnail: (data as any).thumbnail,
     cover_image: (data as any).cover_image,
     image: getRealDestinationImage(data.slug, data.hero_image, (data as any).thumbnail, (data as any).cover_image, galleryFirst),
     gallery: data.gallery || [],
     overview: data.description,
+    description: data.description,
+    highlights: data.highlights || [],
     weather: data.weather,
     howToReach: data.how_to_reach,
-    bestTime: data.best_time || "Best time to visit",
-    topPlaces: data.things_to_do || [],
-    faqs: data.faqs || [],
+    bestTime: (data as any).best_time_to_visit || data.best_time || "Best time to visit",
+    topPlaces: cleanPlaces.length > 0 ? cleanPlaces : ["Scenic Himalayan Roads", "Kinnaur Valley", "Baspa River"],
+    faqs: resolvedFaqs,
+    seo: (data as any).seo || null,
     reviews: reviewsList
   };
 }
