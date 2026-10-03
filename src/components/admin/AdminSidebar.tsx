@@ -22,8 +22,7 @@ import {
   CalendarDays,
   Hotel,
   Bus,
-
-
+  GraduationCap,
   ClipboardList,
   MessageSquare,
   Users,
@@ -36,14 +35,12 @@ import {
   Settings,
   BarChart3,
   CreditCard,
-
   LogOut,
   Mountain,
   UserCog,
   Receipt,
   Wallet,
   Shield,
-
   TrendingDown,
   Globe,
   Megaphone,
@@ -92,6 +89,12 @@ const NAV_SECTIONS = [
       { title: "Bookings", href: "/admin/bookings", icon: ClipboardList },
       { title: "Inquiries", href: "/admin/inquiries", icon: MessageSquare },
       { title: "Customers", href: "/admin/customers", icon: Users },
+    ],
+  },
+  {
+    label: "College Trips",
+    items: [
+      { title: "College Trips", href: "/admin/college-trips", icon: GraduationCap },
     ],
   },
   {

@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as StudentVerificationRouteImport } from './routes/student-verification'
 import { Route as StoriesRouteImport } from './routes/stories'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SignupRouteImport } from './routes/signup'
@@ -23,6 +24,7 @@ import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as ExplorerRouteImport } from './routes/explorer'
 import { Route as DestinationsRouteImport } from './routes/destinations'
 import { Route as ContactRouteImport } from './routes/contact'
+import { Route as CollegeTripsRouteImport } from './routes/college-trips'
 import { Route as CancellationRouteImport } from './routes/cancellation'
 import { Route as CampusTripsRouteImport } from './routes/campus-trips'
 import { Route as BlogRouteImport } from './routes/blog'
@@ -66,6 +68,7 @@ import { Route as AdminDeparturesRouteImport } from './routes/admin/departures'
 import { Route as AdminCustomersRouteImport } from './routes/admin/customers'
 import { Route as AdminCouponsRouteImport } from './routes/admin/coupons'
 import { Route as AdminCommunityRouteImport } from './routes/admin/community'
+import { Route as AdminCollegeTripsRouteImport } from './routes/admin/college-trips'
 import { Route as AdminBusesRouteImport } from './routes/admin/buses'
 import { Route as AdminBookingsRouteImport } from './routes/admin/bookings'
 import { Route as AdminBlogRouteImport } from './routes/admin/blog'
@@ -87,6 +90,11 @@ import { Route as AccountItinerarySlugRouteImport } from './routes/account_.itin
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StudentVerificationRoute = StudentVerificationRouteImport.update({
+  id: '/student-verification',
+  path: '/student-verification',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StoriesRoute = StoriesRouteImport.update({
@@ -152,6 +160,11 @@ const DestinationsRoute = DestinationsRouteImport.update({
 const ContactRoute = ContactRouteImport.update({
   id: '/contact',
   path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CollegeTripsRoute = CollegeTripsRouteImport.update({
+  id: '/college-trips',
+  path: '/college-trips',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CancellationRoute = CancellationRouteImport.update({
@@ -369,6 +382,11 @@ const AdminCommunityRoute = AdminCommunityRouteImport.update({
   path: '/community',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminCollegeTripsRoute = AdminCollegeTripsRouteImport.update({
+  id: '/college-trips',
+  path: '/college-trips',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminBusesRoute = AdminBusesRouteImport.update({
   id: '/buses',
   path: '/buses',
@@ -465,6 +483,7 @@ export interface FileRoutesByFullPath {
   '/blog': typeof BlogRoute
   '/campus-trips': typeof CampusTripsRoute
   '/cancellation': typeof CancellationRoute
+  '/college-trips': typeof CollegeTripsRoute
   '/contact': typeof ContactRoute
   '/destinations': typeof DestinationsRoute
   '/explorer': typeof ExplorerRoute
@@ -478,6 +497,7 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/stories': typeof StoriesRoute
+  '/student-verification': typeof StudentVerificationRoute
   '/terms': typeof TermsRoute
   '/admin/activity': typeof AdminActivityRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
@@ -485,6 +505,7 @@ export interface FileRoutesByFullPath {
   '/admin/blog': typeof AdminBlogRoute
   '/admin/bookings': typeof AdminBookingsRoute
   '/admin/buses': typeof AdminBusesRoute
+  '/admin/college-trips': typeof AdminCollegeTripsRoute
   '/admin/community': typeof AdminCommunityRoute
   '/admin/coupons': typeof AdminCouponsRoute
   '/admin/customers': typeof AdminCustomersRoute
@@ -540,6 +561,7 @@ export interface FileRoutesByTo {
   '/blog': typeof BlogRoute
   '/campus-trips': typeof CampusTripsRoute
   '/cancellation': typeof CancellationRoute
+  '/college-trips': typeof CollegeTripsRoute
   '/contact': typeof ContactRoute
   '/destinations': typeof DestinationsRoute
   '/explorer': typeof ExplorerRoute
@@ -553,6 +575,7 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/stories': typeof StoriesRoute
+  '/student-verification': typeof StudentVerificationRoute
   '/terms': typeof TermsRoute
   '/admin/activity': typeof AdminActivityRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
@@ -560,6 +583,7 @@ export interface FileRoutesByTo {
   '/admin/blog': typeof AdminBlogRoute
   '/admin/bookings': typeof AdminBookingsRoute
   '/admin/buses': typeof AdminBusesRoute
+  '/admin/college-trips': typeof AdminCollegeTripsRoute
   '/admin/community': typeof AdminCommunityRoute
   '/admin/coupons': typeof AdminCouponsRoute
   '/admin/customers': typeof AdminCustomersRoute
@@ -617,6 +641,7 @@ export interface FileRoutesById {
   '/blog': typeof BlogRoute
   '/campus-trips': typeof CampusTripsRoute
   '/cancellation': typeof CancellationRoute
+  '/college-trips': typeof CollegeTripsRoute
   '/contact': typeof ContactRoute
   '/destinations': typeof DestinationsRoute
   '/explorer': typeof ExplorerRoute
@@ -630,6 +655,7 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/stories': typeof StoriesRoute
+  '/student-verification': typeof StudentVerificationRoute
   '/terms': typeof TermsRoute
   '/admin/activity': typeof AdminActivityRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
@@ -637,6 +663,7 @@ export interface FileRoutesById {
   '/admin/blog': typeof AdminBlogRoute
   '/admin/bookings': typeof AdminBookingsRoute
   '/admin/buses': typeof AdminBusesRoute
+  '/admin/college-trips': typeof AdminCollegeTripsRoute
   '/admin/community': typeof AdminCommunityRoute
   '/admin/coupons': typeof AdminCouponsRoute
   '/admin/customers': typeof AdminCustomersRoute
@@ -695,6 +722,7 @@ export interface FileRouteTypes {
     | '/blog'
     | '/campus-trips'
     | '/cancellation'
+    | '/college-trips'
     | '/contact'
     | '/destinations'
     | '/explorer'
@@ -708,6 +736,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/sitemap.xml'
     | '/stories'
+    | '/student-verification'
     | '/terms'
     | '/admin/activity'
     | '/admin/analytics'
@@ -715,6 +744,7 @@ export interface FileRouteTypes {
     | '/admin/blog'
     | '/admin/bookings'
     | '/admin/buses'
+    | '/admin/college-trips'
     | '/admin/community'
     | '/admin/coupons'
     | '/admin/customers'
@@ -770,6 +800,7 @@ export interface FileRouteTypes {
     | '/blog'
     | '/campus-trips'
     | '/cancellation'
+    | '/college-trips'
     | '/contact'
     | '/destinations'
     | '/explorer'
@@ -783,6 +814,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/sitemap.xml'
     | '/stories'
+    | '/student-verification'
     | '/terms'
     | '/admin/activity'
     | '/admin/analytics'
@@ -790,6 +822,7 @@ export interface FileRouteTypes {
     | '/admin/blog'
     | '/admin/bookings'
     | '/admin/buses'
+    | '/admin/college-trips'
     | '/admin/community'
     | '/admin/coupons'
     | '/admin/customers'
@@ -846,6 +879,7 @@ export interface FileRouteTypes {
     | '/blog'
     | '/campus-trips'
     | '/cancellation'
+    | '/college-trips'
     | '/contact'
     | '/destinations'
     | '/explorer'
@@ -859,6 +893,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/sitemap.xml'
     | '/stories'
+    | '/student-verification'
     | '/terms'
     | '/admin/activity'
     | '/admin/analytics'
@@ -866,6 +901,7 @@ export interface FileRouteTypes {
     | '/admin/blog'
     | '/admin/bookings'
     | '/admin/buses'
+    | '/admin/college-trips'
     | '/admin/community'
     | '/admin/coupons'
     | '/admin/customers'
@@ -923,6 +959,7 @@ export interface RootRouteChildren {
   BlogRoute: typeof BlogRoute
   CampusTripsRoute: typeof CampusTripsRoute
   CancellationRoute: typeof CancellationRoute
+  CollegeTripsRoute: typeof CollegeTripsRoute
   ContactRoute: typeof ContactRoute
   DestinationsRoute: typeof DestinationsRoute
   ExplorerRoute: typeof ExplorerRoute
@@ -936,6 +973,7 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   StoriesRoute: typeof StoriesRoute
+  StudentVerificationRoute: typeof StudentVerificationRoute
   TermsRoute: typeof TermsRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   BookingSuccessRoute: typeof BookingSuccessRoute
@@ -954,6 +992,13 @@ declare module '@tanstack/react-router' {
       path: '/terms'
       fullPath: '/terms'
       preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/student-verification': {
+      id: '/student-verification'
+      path: '/student-verification'
+      fullPath: '/student-verification'
+      preLoaderRoute: typeof StudentVerificationRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/stories': {
@@ -1045,6 +1090,13 @@ declare module '@tanstack/react-router' {
       path: '/contact'
       fullPath: '/contact'
       preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/college-trips': {
+      id: '/college-trips'
+      path: '/college-trips'
+      fullPath: '/college-trips'
+      preLoaderRoute: typeof CollegeTripsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cancellation': {
@@ -1348,6 +1400,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCommunityRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/college-trips': {
+      id: '/admin/college-trips'
+      path: '/college-trips'
+      fullPath: '/admin/college-trips'
+      preLoaderRoute: typeof AdminCollegeTripsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/buses': {
       id: '/admin/buses'
       path: '/buses'
@@ -1477,6 +1536,7 @@ interface AdminRouteChildren {
   AdminBlogRoute: typeof AdminBlogRoute
   AdminBookingsRoute: typeof AdminBookingsRoute
   AdminBusesRoute: typeof AdminBusesRoute
+  AdminCollegeTripsRoute: typeof AdminCollegeTripsRoute
   AdminCommunityRoute: typeof AdminCommunityRoute
   AdminCouponsRoute: typeof AdminCouponsRoute
   AdminCustomersRoute: typeof AdminCustomersRoute
@@ -1524,6 +1584,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminBlogRoute: AdminBlogRoute,
   AdminBookingsRoute: AdminBookingsRoute,
   AdminBusesRoute: AdminBusesRoute,
+  AdminCollegeTripsRoute: AdminCollegeTripsRoute,
   AdminCommunityRoute: AdminCommunityRoute,
   AdminCouponsRoute: AdminCouponsRoute,
   AdminCustomersRoute: AdminCustomersRoute,
@@ -1575,6 +1636,7 @@ const rootRouteChildren: RootRouteChildren = {
   BlogRoute: BlogRoute,
   CampusTripsRoute: CampusTripsRoute,
   CancellationRoute: CancellationRoute,
+  CollegeTripsRoute: CollegeTripsRoute,
   ContactRoute: ContactRoute,
   DestinationsRoute: DestinationsRoute,
   ExplorerRoute: ExplorerRoute,
@@ -1588,6 +1650,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   StoriesRoute: StoriesRoute,
+  StudentVerificationRoute: StudentVerificationRoute,
   TermsRoute: TermsRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   BookingSuccessRoute: BookingSuccessRoute,

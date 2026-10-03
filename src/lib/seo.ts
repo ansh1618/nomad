@@ -29,7 +29,7 @@ export function generateOrganizationSchema() {
     },
     image: `${BASE_URL}/images/gonomadik-full-logo.png`,
     description: "GoNomadik crafts premium, curated road trips and group journeys across India. Join our community of explorers on unforgettable road travel experiences.",
-    email: "support.nomadik@gmail.com",
+    email: "admin@gonomadik.in",
     telephone: "+91-7982850767",
     sameAs: [
       "https://www.instagram.com/gonomadik",

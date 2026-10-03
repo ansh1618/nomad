@@ -98,6 +98,7 @@ export function PaymentStep({
         coupon: data.coupon || undefined,
         discountAmount: pricing.couponDiscount,
         hotelId: journey?.hotel_id || journey?.accommodation?.id || null,
+        isStudentBooking: Boolean(data.isStudentBooking),
       };
 
       const booking = await createBookingFn({ data: bookingPayload });

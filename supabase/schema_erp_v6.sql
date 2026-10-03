@@ -1408,7 +1408,7 @@ INSERT INTO public.settings (category, key, value, description) VALUES
   ('site', 'site_tagline', '"Premium Curated Road Trips Across India"', 'Site tagline'),
   ('site', 'contact_phone_primary', '"+91 79828 50767"', 'Primary contact number'),
   ('site', 'contact_phone_secondary', '"+91 76785 96453"', 'Secondary contact number'),
-  ('site', 'contact_email', '"support.nomadik@gmail.com"', 'Primary contact email'),
+  ('site', 'contact_email', '"admin@gonomadik.in"', 'Primary contact email'),
   ('site', 'whatsapp_number', '"+917982850767"', 'WhatsApp contact'),
   ('site', 'instagram_url', '"https://www.instagram.com/nomadik.co.in"', 'Instagram URL'),
   ('site', 'facebook_url', '""', 'Facebook URL'),

@@ -259,6 +259,7 @@ export interface Destination {
   best_time: string | null
   weather: WeatherInfo | null
   things_to_do: ThingToDo[]
+  highlights?: string[] | any[] | null
   how_to_reach: HowToReach | null
   coordinates: { lat: number; lng: number } | null
   google_map_url: string | null

@@ -103,7 +103,7 @@ export async function sendBookingConfirmationEmail(
 
         <!-- Support -->
         <tr><td style="padding:16px 40px 32px;text-align:center;">
-          <p style="margin:0;font-size:13px;color:#888;">Questions? Reach us at <a href="mailto:support.nomadik@gmail.com" style="color:#163A5F;font-weight:600;">support.nomadik@gmail.com</a></p>
+          <p style="margin:0;font-size:13px;color:#888;">Questions? Reach us at <a href="mailto:admin@gonomadik.in" style="color:#163A5F;font-weight:600;">admin@gonomadik.in</a></p>
           <p style="margin:8px 0 0;font-size:13px;color:#888;">or WhatsApp us at <a href="https://wa.me/917982850767" style="color:#163A5F;font-weight:600;">+91 79828 50767</a> / <a href="tel:+917678596453" style="color:#163A5F;font-weight:600;">+91 76785 96453</a></p>
         </td></tr>
 

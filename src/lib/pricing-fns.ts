@@ -44,8 +44,9 @@ export function resolveBookingPricing({
   departure,
   room,
   travellers,
-  addons,
+  addons = [],
   coupon,
+  studentOffer,
 }: {
   journey: any;
   departure: any;
@@ -53,6 +54,11 @@ export function resolveBookingPricing({
   travellers: any[];
   addons: any[];
   coupon: any | null;
+  studentOffer?: {
+    isApplied: boolean;
+    discountPercentage: number;
+    allowCouponStacking?: boolean;
+  } | null;
 }) {
   // 1. Journey base price (fallback reference — not used for accommodation pricing)
   const journeyPrice = parseRupeeAmount(journey?.starting_price ?? journey?.price) || 6500;
@@ -88,16 +94,29 @@ export function resolveBookingPricing({
   const roomTotal = accommodationPrice * travellersCount;
   const addonsTotal = (addons || []).reduce((sum: number, a: any) => sum + (Number(a.price) || 0), 0);
 
-  // Gross total before coupon discount
+  // Gross total before discounts
   const grossSubtotal = roomTotal + addonsTotal;
+
+  // Student Discount Calculation (from base package price, NOT from an already discounted price)
+  let studentDiscountAmount = 0;
+  let isStudentApplied = false;
+  const allowCouponStacking = studentOffer?.allowCouponStacking === true;
+
+  if (studentOffer?.isApplied && studentOffer?.discountPercentage > 0) {
+    isStudentApplied = true;
+    // Calculate discount per traveller based on base accommodation price
+    studentDiscountAmount = Math.round((roomTotal * studentOffer.discountPercentage) / 100);
+  }
 
   // Coupon Discount
   let couponDiscount = 0;
-  if (coupon) {
+  // If student discount is applied and coupon stacking is NOT allowed, ignore coupon
+  if (coupon && (!isStudentApplied || allowCouponStacking)) {
     const dt = String(coupon.discount_type || coupon.discountType || "").toUpperCase();
     const val = Number(coupon.discount_value ?? coupon.discountValue ?? coupon.discount ?? 0);
 
     if (dt === "PERCENTAGE" || dt === "PERCENT") {
+      // Coupon percentage applies to grossSubtotal
       couponDiscount = Math.round((grossSubtotal * val) / 100);
       const maxDiscount = Number(coupon.max_discount_amount || coupon.maxDiscountAmount || 0);
       if (maxDiscount > 0 && couponDiscount > maxDiscount) {
@@ -110,10 +129,10 @@ export function resolveBookingPricing({
     }
   }
 
-  couponDiscount = Math.min(couponDiscount, grossSubtotal);
+  const totalDiscount = Math.min(studentDiscountAmount + couponDiscount, grossSubtotal);
 
   // Subtotal (post discount, before GST)
-  const subtotal = Math.max(0, grossSubtotal - couponDiscount);
+  const subtotal = Math.max(0, grossSubtotal - totalDiscount);
 
   // 5% GST applied to post-discount subtotal
   const gstRate = 5;
@@ -135,8 +154,11 @@ export function resolveBookingPricing({
     travellersCount,
     roomTotal,
     addonsTotal,
+    studentDiscountAmount,
+    isStudentApplied,
     couponDiscount,
-    subtotal,            // post-discount subtotal (Room * Travellers + Addons - Coupon)
+    totalDiscount,
+    subtotal,            // post-discount subtotal (Room * Travellers + Addons - Discounts)
     payableBeforeGst: subtotal,
     gstRate,
     gstAmount,           // 5% of subtotal

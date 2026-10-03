@@ -307,7 +307,7 @@ function CancellationRoute() {
                       <div className="h-8 w-8 rounded-lg bg-gold/10 flex items-center justify-center text-gold"><Mail className="h-4 w-4" /></div>
                       <div>
                         <p className="text-[10px] text-muted-foreground">Email</p>
-                        <a href="mailto:support.nomadik@gmail.com" className="font-semibold text-primary hover:underline">support.nomadik@gmail.com</a>
+                        <a href="mailto:admin@gonomadik.in" className="font-semibold text-primary hover:underline">admin@gonomadik.in</a>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">

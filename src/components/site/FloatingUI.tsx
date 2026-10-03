@@ -174,18 +174,22 @@ export function FloatingUI() {
       } else if (optionKey === "students") {
         responseText = (
           <div className="space-y-2">
-            <p className="font-semibold text-primary font-poppins">🎒 Student Specials:</p>
+            <p className="font-semibold text-primary font-poppins">🎒 College Trips & Student Specials:</p>
             <p className="text-xs text-foreground/80 leading-relaxed font-sans">
-              Pack your backpacks! Students get exclusive discount rates on all road trips:
+              Exclusive student offers on selected trips. Verified college students can unlock special discounted rates!
             </p>
             <div className="bg-white border border-border p-3 rounded-xl text-xs space-y-2 font-sans">
-              <p className="font-bold text-accent">Flat 5% Off Any Trip</p>
+              <p className="font-bold text-accent">Up to 25% Below Regular Price</p>
               <p className="text-[10px] text-muted-foreground">
-                Apply coupon code <strong className="text-primary font-mono bg-muted px-1.5 py-0.5 rounded border border-border">STUDENT5</strong> when you book.
+                Available on eligible trips to Manali, Chopta & Tungnath, Jibhi, and more.
               </p>
-              <p className="text-[10px] text-muted-foreground italic">
-                *Note: A valid student ID card must be verified by the Trip Captain before departure.
-              </p>
+              <Link
+                to="/college-trips"
+                onClick={() => setChatOpen(false)}
+                className="block text-center text-xs bg-gold-gradient text-gold-foreground font-bold py-2 rounded-xl mt-2 transition-all hover:brightness-105 font-poppins"
+              >
+                Explore College Trips →
+              </Link>
             </div>
           </div>
         );
@@ -380,18 +384,18 @@ export function FloatingUI() {
         } else if (key === "students") {
           responseText = (
             <div className="space-y-2">
-              <p className="font-semibold text-primary font-poppins">🎒 Student Specials:</p>
+              <p className="font-semibold text-primary font-poppins">🎒 College Trips & Student Specials:</p>
               <p className="text-xs text-foreground/80 leading-relaxed font-sans">
-                Pack your backpacks! Students get exclusive discount rates on all road trips:
+                Verified college students get up to 25% discount on curated trips to Manali, Chopta & Tungnath, Jibhi and more.
               </p>
               <div className="bg-white border border-border p-3 rounded-xl text-xs space-y-2 font-sans">
-                <p className="font-bold text-accent">Flat 5% Off Any Trip</p>
-                <p className="text-[10px] text-muted-foreground">
-                  Apply coupon code <strong className="text-primary font-mono bg-muted px-1.5 py-0.5 rounded border border-border">STUDENT5</strong> when you book.
-                </p>
-                <p className="text-[10px] text-muted-foreground italic">
-                  *Note: A valid student ID card must be verified by the Trip Captain before departure.
-                </p>
+                <Link
+                  to="/college-trips"
+                  onClick={() => setChatOpen(false)}
+                  className="block text-center text-xs bg-gold-gradient text-gold-foreground font-bold py-2 rounded-xl transition-all hover:brightness-105 font-poppins"
+                >
+                  View College Trips Program →
+                </Link>
               </div>
             </div>
           );
@@ -621,9 +625,9 @@ export function FloatingUI() {
 
         <a
           href={
-            location.pathname.includes("/go-nomadik-x-mh")
+            location.pathname.includes("/college-trips")
               ? `https://wa.me/919971046607?text=${encodeURIComponent(
-                  "Hi GoNomadik! I am inquiring about the Miranda House Udaipur 2026 trip."
+                  "Hi GoNomadik! I am inquiring about the College Trips & Student Special Program."
                 )}`
               : BRAND.community
           }

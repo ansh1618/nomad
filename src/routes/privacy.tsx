@@ -314,7 +314,7 @@ function PrivacyPolicyRoute() {
                       <div className="h-8 w-8 rounded-lg bg-gold/10 flex items-center justify-center text-gold"><Mail className="h-4 w-4" /></div>
                     <div>
                       <p className="text-[10px] text-muted-foreground">Email</p>
-                      <a href="mailto:support.nomadik@gmail.com" className="font-semibold text-primary hover:underline">support.nomadik@gmail.com</a>
+                      <a href="mailto:admin@gonomadik.in" className="font-semibold text-primary hover:underline">admin@gonomadik.in</a>
                     </div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -341,7 +341,7 @@ function PrivacyPolicyRoute() {
                   <h2 className="font-display text-xl font-bold text-primary">15. Grievance Officer</h2>
                   <p>In accordance with applicable Indian laws, users may contact our Grievance Officer regarding privacy or data-related concerns.</p>
                   <p className="text-xs">
-                    <strong>Email:</strong> <a href="mailto:support.nomadik@gmail.com" className="text-gold font-semibold hover:underline">support.nomadik@gmail.com</a>
+                    <strong>Email:</strong> <a href="mailto:admin@gonomadik.in" className="text-gold font-semibold hover:underline">admin@gonomadik.in</a>
                     <br />
                     <strong>Address:</strong> Rohini Sector 11, New Delhi – 110085, India
                   </p>

@@ -9,6 +9,7 @@ import {
   resolveJourneyAccommodationPrice,
   normalizeAccommodationType,
 } from "./queries/accommodation-prices";
+import { validateStudentBookingEligibilityFn } from "./college-trips/server-fns";
 
 // Helper: Extract 3-letter destination code from slug/name
 function getDestinationCode(slugOrName: any = ""): string {
@@ -227,6 +228,7 @@ const createBookingSchema = z.object({
   roomSharing: z.string().nullable().optional(),
   pickupPoint: z.string().nullable().optional(),
   addons: z.array(z.any()).optional().default([]),
+  isStudentBooking: z.boolean().optional().default(false),
 });
 
 export const createBookingFn = createServerFn({ method: "POST" })
@@ -392,17 +394,24 @@ export const createBookingFn = createServerFn({ method: "POST" })
         );
       }
 
-      // 3. Pricing calculation using server-authoritative accommodation price
-      const serverPricing = resolveBookingPricing({
-        journey,
-        departure: dep,
-        room: { price: serverAccommodationPrice, sharing_type: rawSharingType },
-        travellers: data.travellers,
-        addons: data.addons || [],
-        coupon: null,
-      });
+      const primaryTraveller = data.travellers[0] || {};
+      const rawName = (primaryTraveller.fullName || primaryTraveller.name || primaryTraveller.full_name || "").trim();
+      const customerName = rawName.length > 0 ? rawName : "Nomadik Explorer";
 
-      let serverDiscount = 0;
+      const rawPhone = (primaryTraveller.phone || primaryTraveller.mobile || "").trim();
+      const customerPhone = rawPhone.length > 0 ? rawPhone : "9999999999";
+
+      const rawEmail = (primaryTraveller.email || "").trim();
+      const customerEmail = rawEmail.length > 0 ? rawEmail : "guest@nomadik.in";
+
+      const isValidUuid = (val: any) => typeof val === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+
+      const cleanUserId = isValidUuid(data.userId) ? data.userId : null;
+      const cleanCouponId = isValidUuid(data.couponId) ? data.couponId : null;
+      const cleanHotelId = isValidUuid(data.hotelId) ? data.hotelId : null;
+
+      // 3. Coupon Lookup
+      let couponObj: any = null;
       let appliedCouponCode: string | null = data.couponCode || data.coupon?.code || null;
       let appliedCouponId: string | null = data.couponId || data.coupon?.id || null;
 
@@ -422,36 +431,54 @@ export const createBookingFn = createServerFn({ method: "POST" })
           const notExhausted = !maxUses || usedCount < maxUses;
 
           if (notExpired && notExhausted) {
-            if (c.discount_type === "PERCENTAGE" || c.discount_type === "PERCENT") {
-              serverDiscount = Math.round((serverPricing.subtotal * c.discount_value) / 100);
-            } else {
-              serverDiscount = c.discount_value || 500;
-            }
-            if (c.max_discount_amount) serverDiscount = Math.min(serverDiscount, c.max_discount_amount);
+            couponObj = c;
           }
         }
       }
 
+      // 4. Server-Side Student Verification & Eligibility Enforcement
+      let studentOfferPayload: { isApplied: boolean; discountPercentage: number; allowCouponStacking?: boolean } | null = null;
+      let studentValidationResult: any = null;
+
+      if (data.isStudentBooking) {
+        studentValidationResult = await validateStudentBookingEligibilityFn({
+          data: {
+            userId: cleanUserId,
+            userEmail: customerEmail,
+            packageId: journey.id || journey.slug || '',
+            departureId: data.departureId,
+            regularBasePrice: serverAccommodationPrice,
+            couponCode: appliedCouponCode,
+          },
+        });
+
+        if (!studentValidationResult.isEligibleForStudentPrice) {
+          throw new Error(studentValidationResult.rejectedReason || "Student verification required to book with student discount.");
+        }
+
+        studentOfferPayload = {
+          isApplied: true,
+          discountPercentage: studentValidationResult.effectiveDiscountPercentage,
+          allowCouponStacking: studentValidationResult.couponAllowed,
+        };
+      }
+
+      // 5. Pricing calculation using server-authoritative accommodation price, student offer, and coupon
+      const serverPricing = resolveBookingPricing({
+        journey,
+        departure: dep,
+        room: { price: serverAccommodationPrice, sharing_type: rawSharingType },
+        travellers: data.travellers,
+        addons: data.addons || [],
+        coupon: couponObj,
+        studentOffer: studentOfferPayload,
+      });
+
+      const serverDiscount = serverPricing.totalDiscount;
       const addonAmount = Number(data.addonAmount) || serverPricing.addonsTotal || 0;
       const taxableAmount = serverPricing.subtotal;
       const gstAmount = serverPricing.gstAmount;
       const totalAmount = serverPricing.grandTotal;
-
-      const primaryTraveller = data.travellers[0] || {};
-      const rawName = (primaryTraveller.fullName || primaryTraveller.name || primaryTraveller.full_name || "").trim();
-      const customerName = rawName.length > 0 ? rawName : "Nomadik Explorer";
-
-      const rawPhone = (primaryTraveller.phone || primaryTraveller.mobile || "").trim();
-      const customerPhone = rawPhone.length > 0 ? rawPhone : "9999999999";
-
-      const rawEmail = (primaryTraveller.email || "").trim();
-      const customerEmail = rawEmail.length > 0 ? rawEmail : "guest@nomadik.in";
-
-      const isValidUuid = (val: any) => typeof val === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
-
-      const cleanUserId = isValidUuid(data.userId) ? data.userId : null;
-      const cleanCouponId = isValidUuid(data.couponId) ? data.couponId : null;
-      const cleanHotelId = isValidUuid(data.hotelId) ? data.hotelId : null;
 
       // 3. TRY PL/pgSQL Atomic Transaction first
       const { data: txResult, error: txError } = await supabaseAdmin.rpc("create_complete_booking_tx", {
@@ -619,6 +646,23 @@ export const createBookingFn = createServerFn({ method: "POST" })
           });
         } catch (err) {
           console.warn("[createBookingFn] Coupon usage record warning:", err);
+        }
+      }
+
+      // Record Student Offer Redemption
+      if (serverPricing.isStudentApplied && bookingDbId) {
+        try {
+          await supabaseAdmin.from("student_offer_redemptions").insert({
+            booking_id: bookingDbId,
+            user_id: cleanUserId,
+            package_id: journey.id || null,
+            regular_price: serverPricing.roomTotal,
+            discount_percentage: serverPricing.studentDiscountAmount > 0 ? Math.round((serverPricing.studentDiscountAmount / serverPricing.roomTotal) * 100) : 0,
+            discount_amount: serverPricing.studentDiscountAmount,
+            student_price: serverPricing.roomTotal - serverPricing.studentDiscountAmount,
+          });
+        } catch (err) {
+          console.warn("[createBookingFn] student_offer_redemptions insert warning:", err);
         }
       }
 

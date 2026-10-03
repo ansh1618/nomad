@@ -45,16 +45,20 @@ export function Navbar() {
   // Default navigation links
   const defaultNavLinks = [
     { label: "Destinations", href: "/destinations", is_external: false },
-    { label: "MH SPECIAL", href: "/go-nomadik-x-mh", is_external: false },
-    { label: "Community", href: "/stories", is_external: false },
+    { label: "College Trips", href: "/college-trips", is_external: false },
+    { label: "Stories", href: "/stories", is_external: false },
     { label: "About", href: "/about", is_external: false },
     { label: "Contact", href: "/contact", is_external: false },
   ];
 
   const rawLinks = dbNavLinks.length > 0 ? dbNavLinks : defaultNavLinks;
   const activeLinks = rawLinks.map((l) => {
-    if (l.label.toLowerCase() === "journeys") {
-      return { ...l, label: "MH SPECIAL", href: "/go-nomadik-x-mh" };
+    const lower = l.label.toLowerCase();
+    if (lower.includes("mh") || lower.includes("special") || lower === "journeys" || l.href.includes("go-nomadik-x-mh")) {
+      return { ...l, label: "College Trips", href: "/college-trips" };
+    }
+    if (lower === "community") {
+      return { ...l, label: "Stories", href: "/stories" };
     }
     return l;
   });
@@ -94,14 +98,19 @@ export function Navbar() {
         <ul className="hidden items-center gap-8 lg:flex">
           {activeLinks.map((l, i) => {
             const isAnchor = l.href.startsWith("/#") || l.href.startsWith("#");
+            const isCurrent = location.pathname === l.href || (l.href !== "/" && location.pathname.startsWith(l.href));
             if (isAnchor || l.is_external) {
               return (
                 <li key={i}>
                   <a
                     href={l.href}
                     className={cn(
-                      "relative text-xs font-poppins font-semibold uppercase tracking-wider transition-colors after:absolute after:-bottom-1.5 after:left-0 after:h-0.5 after:w-0 after:bg-gold after:transition-all hover:after:w-full",
-                      scrolled ? "text-foreground/80 hover:text-primary" : "text-white/90 hover:text-white",
+                      "relative text-xs font-poppins font-semibold uppercase tracking-wider transition-colors after:absolute after:-bottom-1.5 after:left-0 after:h-0.5 after:bg-gold after:transition-all hover:after:w-full",
+                      isCurrent
+                        ? "text-gold font-bold after:w-full"
+                        : scrolled
+                        ? "text-foreground/80 hover:text-primary after:w-0"
+                        : "text-white/90 hover:text-white after:w-0"
                     )}
                   >
                     {l.label}
@@ -114,8 +123,12 @@ export function Navbar() {
                 <Link
                   to={l.href as any}
                   className={cn(
-                    "relative text-xs font-poppins font-semibold uppercase tracking-wider transition-colors after:absolute after:-bottom-1.5 after:left-0 after:h-0.5 after:w-0 after:bg-gold after:transition-all hover:after:w-full",
-                    scrolled ? "text-foreground/80 hover:text-primary" : "text-white/90 hover:text-white",
+                    "relative text-xs font-poppins font-semibold uppercase tracking-wider transition-colors after:absolute after:-bottom-1.5 after:left-0 after:h-0.5 after:bg-gold after:transition-all hover:after:w-full",
+                    isCurrent
+                      ? "text-gold font-bold after:w-full"
+                      : scrolled
+                      ? "text-foreground/80 hover:text-primary after:w-0"
+                      : "text-white/90 hover:text-white after:w-0"
                   )}
                 >
                   {l.label}
@@ -217,13 +230,19 @@ export function Navbar() {
           <ul className="flex flex-col gap-1">
             {activeLinks.map((l, i) => {
               const isAnchor = l.href.startsWith("/#") || l.href.startsWith("#");
+              const isCurrent = location.pathname === l.href || (l.href !== "/" && location.pathname.startsWith(l.href));
               if (isAnchor || l.is_external) {
                 return (
                   <li key={i}>
                     <a
                       href={l.href}
                       onClick={() => setOpen(false)}
-                      className="block rounded-lg px-3 py-2.5 text-xs font-poppins font-semibold uppercase tracking-wider text-foreground/80 hover:bg-secondary/10 hover:text-primary"
+                      className={cn(
+                        "block rounded-lg px-3 py-2.5 text-xs font-poppins font-semibold uppercase tracking-wider transition-colors",
+                        isCurrent
+                          ? "bg-gold/15 text-gold font-bold"
+                          : "text-foreground/80 hover:bg-secondary/10 hover:text-primary"
+                      )}
                     >
                       {l.label}
                     </a>
@@ -235,7 +254,12 @@ export function Navbar() {
                   <Link
                     to={l.href as any}
                     onClick={() => setOpen(false)}
-                    className="block rounded-lg px-3 py-2.5 text-xs font-poppins font-semibold uppercase tracking-wider text-foreground/80 hover:bg-secondary/10 hover:text-primary"
+                    className={cn(
+                      "block rounded-lg px-3 py-2.5 text-xs font-poppins font-semibold uppercase tracking-wider transition-colors",
+                      isCurrent
+                        ? "bg-gold/15 text-gold font-bold"
+                        : "text-foreground/80 hover:bg-secondary/10 hover:text-primary"
+                    )}
                   >
                     {l.label}
                   </Link>
