@@ -35,14 +35,16 @@ function NotFoundComponent() {
   );
 }
 
-function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+function ErrorComponent({ error, reset }: { error: unknown; reset: () => void }) {
   console.error(error);
   const router = useRouter();
 
+  const errorMessage =
+    error instanceof Error ? error.message : typeof error === "string" ? error : "";
   const isChunkError =
-    error.message?.includes("Failed to fetch dynamically imported module") ||
-    error.message?.includes("Importing a module script failed") ||
-    error.message?.includes("error loading dynamically imported module");
+    errorMessage.includes("Failed to fetch dynamically imported module") ||
+    errorMessage.includes("Importing a module script failed") ||
+    errorMessage.includes("error loading dynamically imported module");
 
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
@@ -66,7 +68,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
           {isChunkError ? "Updating Application..." : "This page didn't load"}
         </h1>
         <p className="mt-2 text-sm text-red-500 font-mono whitespace-pre-wrap text-left bg-red-500/10 p-4 rounded-md">
-          {error.message}
+          {errorMessage || "An unexpected error occurred"}
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
@@ -94,7 +96,12 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   );
 }
 
-import { BASE_URL, getCanonicalUrl, generateOrganizationSchema, generateWebSiteSchema } from "@/lib/seo";
+import {
+  BASE_URL,
+  getCanonicalUrl,
+  generateOrganizationSchema,
+  generateWebSiteSchema,
+} from "@/lib/seo";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
@@ -122,7 +129,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@gonomadik" },
       { name: "twitter:title", content: "GoNomadik — Premium Curated Road Trips & Group Travel" },
-      { name: "twitter:description", content: "Premium curated road trips and group journeys across India with GoNomadik." },
+      {
+        name: "twitter:description",
+        content: "Premium curated road trips and group journeys across India with GoNomadik.",
+      },
       { name: "twitter:image", content: `${BASE_URL}/images/gonomadik-full-logo.png` },
     ],
     links: [
@@ -210,7 +220,9 @@ function MainAppLayout() {
       {user && !isEmailVerified && (
         <div className="sticky top-0 z-[100] w-full bg-[#E53E3E] text-white py-2.5 px-4 text-center text-xs font-poppins font-semibold flex items-center justify-center gap-2 shadow-md animate-slide-down">
           <AlertTriangle className="h-4 w-4 shrink-0 animate-pulse" />
-          <span>Please verify your email address to complete bookings and access all profile features.</span>
+          <span>
+            Please verify your email address to complete bookings and access all profile features.
+          </span>
         </div>
       )}
       <div className="flex-1">
@@ -221,7 +233,6 @@ function MainAppLayout() {
     </div>
   );
 }
-
 
 import { AnalyticsProvider } from "@/components/analytics/AnalyticsProvider";
 

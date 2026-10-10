@@ -8,7 +8,7 @@ export function RouteLoadingState() {
 }
 
 interface RouteErrorStateProps {
-  error: Error;
+  error: unknown;
   reset?: () => void;
 }
 
@@ -31,7 +31,8 @@ export function RouteErrorState({ error, reset }: RouteErrorStateProps) {
         <div className="space-y-2">
           <h2 className="font-display text-2xl font-bold text-primary">Connection Interrupted</h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            This route is taking a scenic detour. Please refresh or return to our signature destinations.
+            This route is taking a scenic detour. Please refresh or return to our signature
+            destinations.
           </p>
         </div>
 
@@ -43,11 +44,7 @@ export function RouteErrorState({ error, reset }: RouteErrorStateProps) {
           >
             <RefreshCw className="h-4 w-4" /> Retry Connection
           </Button>
-          <Button
-            variant="outline"
-            asChild
-            className="flex items-center justify-center gap-2"
-          >
+          <Button variant="outline" asChild className="flex items-center justify-center gap-2">
             <Link to="/">
               <Home className="h-4 w-4" /> Go Home
             </Link>
