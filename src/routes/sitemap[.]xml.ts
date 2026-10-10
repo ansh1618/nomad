@@ -55,7 +55,8 @@ export const Route = createFileRoute("/sitemap.xml")({
         addEntry({ path: "/stories", changefreq: "daily", priority: "0.9", lastmod: todayIso });
         addEntry({ path: "/about", changefreq: "monthly", priority: "0.7", lastmod: todayIso });
         addEntry({ path: "/contact", changefreq: "monthly", priority: "0.7", lastmod: todayIso });
-        addEntry({ path: "/campus-trips", changefreq: "monthly", priority: "0.6", lastmod: todayIso });
+        addEntry({ path: "/college-trips", changefreq: "weekly", priority: "0.8", lastmod: todayIso });
+        addEntry({ path: "/student-verification", changefreq: "monthly", priority: "0.5", lastmod: todayIso });
         addEntry({ path: "/privacy", changefreq: "yearly", priority: "0.3", lastmod: todayIso });
         addEntry({ path: "/terms", changefreq: "yearly", priority: "0.3", lastmod: todayIso });
         addEntry({ path: "/cancellation", changefreq: "yearly", priority: "0.3", lastmod: todayIso });

@@ -16,6 +16,7 @@ async function updateFooterSettingsDb() {
         await supabase.from("site_settings").update({
           support_phone: "+91 7982850767",
           support_phone_2: "+91 7678596453",
+          support_email: "admin@gonomadik.in",
           footer_copyright: "© 2026 The Nomadik Traveller. All rights reserved."
         }).eq("id", row.id);
       }
@@ -26,7 +27,7 @@ async function updateFooterSettingsDb() {
         company_name: "The Nomadik Traveller",
         support_phone: "+91 7982850767",
         support_phone_2: "+91 7678596453",
-        support_email: "support.nomadik@gmail.com",
+        support_email: "admin@gonomadik.in",
         footer_copyright: "© 2026 The Nomadik Traveller. All rights reserved."
       });
       console.log("✓ Inserted site_settings row!");
@@ -39,6 +40,7 @@ async function updateFooterSettingsDb() {
   try {
     await supabase.from("settings").update({ value: '"+91 7982850767"' }).eq("key", "contact_phone_primary");
     await supabase.from("settings").update({ value: '"+91 7678596453"' }).eq("key", "contact_phone_secondary");
+    await supabase.from("settings").update({ value: '"admin@gonomadik.in"' }).eq("key", "contact_email");
     await supabase.from("settings").update({ value: '"© 2026 The Nomadik Traveller. All rights reserved."' }).eq("key", "footer_copyright");
     console.log("✓ Updated settings table key-values!");
   } catch (err: any) {

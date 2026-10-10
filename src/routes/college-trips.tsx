@@ -21,6 +21,11 @@ import {
   Check,
   ChevronRight,
   Info,
+  Flame,
+  Music,
+  Bus,
+  Tent,
+  ArrowUpRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -69,6 +74,14 @@ function CollegeTripsPage() {
   const [selectedDestinationFilter, setSelectedDestinationFilter] = useState<string>("ALL");
   const [unverifiedModalOpen, setUnverifiedModalOpen] = useState(false);
   const [selectedPackageForModal, setSelectedPackageForModal] = useState<StudentOfferPackage | null>(null);
+
+  // BPIT Trip interactive sharing state
+  const [bpitSharing, setBpitSharing] = useState<"QUAD" | "TRIPLE" | "DOUBLE">("QUAD");
+  const bpitPricingDetails: Record<"QUAD" | "TRIPLE" | "DOUBLE", { price: number; perPerson: string; title: string; subtitle: string }> = {
+    QUAD: { price: 5500, perPerson: "₹5,500", title: "Quad Sharing", subtitle: "4 friends per room" },
+    TRIPLE: { price: 6000, perPerson: "₹6,000", title: "Triple Sharing", subtitle: "3 friends per room" },
+    DOUBLE: { price: 6300, perPerson: "₹6,300", title: "Double Sharing", subtitle: "2 friends per room" },
+  };
 
   // Form state for College Trip Query
   const [formName, setFormName] = useState("");
@@ -211,26 +224,25 @@ function CollegeTripsPage() {
               transition={{ delay: 0.1 }}
               className="text-4xl sm:text-6xl lg:text-7xl font-display font-extrabold tracking-tight text-foreground uppercase"
             >
-              {settings?.title || "COLLEGE TRIPS"}
+              COLLEGE TRIPS
             </motion.h1>
 
             <motion.p
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15 }}
-              className="text-lg sm:text-2xl font-display font-semibold text-[#C8A96A] max-w-2xl mx-auto"
+              className="text-2xl sm:text-3xl md:text-4xl font-display font-bold text-[#C8A96A] max-w-3xl mx-auto tracking-wide"
             >
-              {settings?.subheading || "Special prices for college students. Travel more. Pay less."}
+              "Same People. New Places. Unforgettable Memories."
             </motion.p>
 
             <motion.p
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto font-sans leading-relaxed"
+              className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto font-sans leading-relaxed"
             >
-              {settings?.description ||
-                `Exclusive student offers on selected trips. Verified college students can unlock prices up to ${maxDiscountPct}% below the regular trip price.`}
+              Exclusive adventures, special student pricing and unforgettable trips with your college gang.
             </motion.p>
 
             {/* Verification Status Card / CTA Banner */}
@@ -316,6 +328,256 @@ function CollegeTripsPage() {
               )}
             </motion.div>
           </div>
+        </section>
+
+        {/* ================================================================ */}
+        {/* FEATURED COLLEGE TRIP: GONOMADIK × BPIT */}
+        {/* ================================================================ */}
+        <section id="featured-bpit-trip" className="px-4 sm:px-6 lg:px-8 py-8 max-w-7xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 25 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="relative rounded-3xl overflow-hidden border border-[#C8A96A]/30 bg-gradient-to-b from-[#0F2942] via-[#0B1E30] to-[#081827] text-white shadow-2xl"
+          >
+            {/* Top ambient glow */}
+            <div className="absolute top-0 right-1/4 w-96 h-96 bg-[#C8A96A]/15 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute bottom-0 left-10 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="relative z-10 p-6 sm:p-8 lg:p-12">
+              {/* Co-Branded Top Pill Header */}
+              <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-white/10">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2.5 bg-black/40 backdrop-blur-md px-3.5 py-1.5 rounded-2xl border border-white/15 shadow-sm">
+                    {/* GoNomadik Compass Icon */}
+                    <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-[#C8A96A] to-[#9C7A3C] p-0.5 grid place-items-center text-[#0F2942] font-black text-xs font-display">
+                      GN
+                    </div>
+                    <span className="font-display font-bold text-sm tracking-wide text-white">GoNomadik</span>
+                    <span className="text-[#C8A96A] text-xs font-bold">×</span>
+                    {/* BPIT Logo */}
+                    <img
+                      src="/images/campus/bpit-logo.svg"
+                      alt="BPIT"
+                      className="h-7 w-7 object-contain rounded-md"
+                      onError={(e) => {
+                        // Fallback if SVG fails to load
+                        (e.target as HTMLElement).style.display = "none";
+                      }}
+                    />
+                    <span className="font-display font-extrabold text-sm tracking-wider text-[#C8A96A]">BPIT</span>
+                  </div>
+
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#C8A96A]/15 text-[#E5C378] text-[11px] font-bold border border-[#C8A96A]/30">
+                    <Sparkles className="h-3 w-3" /> Featured College Trip
+                  </span>
+                </div>
+
+                <div className="inline-flex items-center gap-2 text-xs text-slate-300 bg-white/5 px-3 py-1 rounded-full border border-white/10">
+                  <Users className="h-3.5 w-3.5 text-[#C8A96A]" />
+                  <span>Open for 1st, 2nd, 3rd & 4th year BPIT students</span>
+                </div>
+              </div>
+
+              {/* Main Trip Overview Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 pt-8 items-start">
+                {/* Left Column: Visual Showcase & Itinerary Summary (7 cols) */}
+                <div className="lg:col-span-7 space-y-6">
+                  <div>
+                    <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#C8A96A] mb-2">
+                      <MapPin className="h-3.5 w-3.5" />
+                      <span>Himalayan Twin-Valley College Special</span>
+                    </div>
+                    <h2 className="text-3xl sm:text-5xl font-display font-extrabold text-white tracking-tight uppercase leading-tight">
+                      MANALI + KASOL
+                    </h2>
+                    <p className="text-sm sm:text-base text-slate-300 mt-2 font-sans leading-relaxed">
+                      Experience snow peaks, riverside camping by Parvati river, Old Manali bohemian cafes, DJ nights, and Dandiya celebration with your BPIT squad!
+                    </p>
+                  </div>
+
+                  {/* Highlights Grid with Visual Icons */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                    <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
+                      <div className="p-2 rounded-xl bg-blue-500/20 text-blue-400 shrink-0">
+                        <GraduationCap className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-white">All Years Welcome</p>
+                        <p className="text-[11px] text-slate-300 mt-0.5">Open for 1st, 2nd, 3rd & 4th year students</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
+                      <div className="p-2 rounded-xl bg-amber-500/20 text-amber-300 shrink-0">
+                        <Tent className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-white">2N Manali + 1N Kasol</p>
+                        <p className="text-[11px] text-slate-300 mt-0.5">Premium stays + riverside Parvati camping</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
+                      <div className="p-2 rounded-xl bg-purple-500/20 text-purple-300 shrink-0">
+                        <Music className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-white">Dandiya & DJ Nights</p>
+                        <p className="text-[11px] text-slate-300 mt-0.5">Dandiya Night in Manali + DJ Night in Kasol</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
+                      <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-300 shrink-0">
+                        <Bus className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-white">End-to-End Coordination</p>
+                        <p className="text-[11px] text-slate-300 mt-0.5">Sanitized AC transport, stays & trip captain</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Catchphrase punchline banner */}
+                  <div className="p-3.5 rounded-2xl bg-gradient-to-r from-[#C8A96A]/20 via-[#C8A96A]/10 to-transparent border border-[#C8A96A]/30 flex items-center gap-3">
+                    <Flame className="h-5 w-5 text-[#E5C378] shrink-0 animate-pulse" />
+                    <p className="text-xs sm:text-sm font-display font-bold tracking-wide text-[#E5C378]">
+                      SAME PEOPLE, NEW PLACES, UNFORGETTABLE MEMORIES!
+                    </p>
+                  </div>
+
+                  {/* Mandatory Organizer Disclosure */}
+                  <div className="p-3.5 rounded-2xl bg-black/40 border border-white/10 text-[11px] text-slate-300 flex items-start gap-2.5">
+                    <Info className="h-4 w-4 text-[#C8A96A] shrink-0 mt-0.5" />
+                    <span>
+                      <strong className="text-white">Student Trip Notice:</strong> Independent student trip organized by GoNomadik for BPIT students and friends. Not officially affiliated with or endorsed by BPIT college administration.
+                    </span>
+                  </div>
+                </div>
+
+                {/* Right Column: Interactive Price Card & Booking Actions (5 cols) */}
+                <div className="lg:col-span-5 bg-black/40 border border-[#C8A96A]/40 rounded-3xl p-6 sm:p-7 backdrop-blur-md space-y-6 shadow-xl">
+                  {/* Duration & Starting Price Tag */}
+                  <div className="flex items-center justify-between pb-4 border-b border-white/10">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold tracking-widest text-[#C8A96A] block">
+                        Duration
+                      </span>
+                      <span className="text-sm font-bold text-white flex items-center gap-1.5 mt-0.5">
+                        <Calendar className="h-4 w-4 text-[#C8A96A]" /> 3 Nights • 4 Days
+                      </span>
+                    </div>
+
+                    <div className="text-right">
+                      <span className="text-[10px] uppercase font-bold tracking-widest text-slate-300 block">
+                        Package Starting At
+                      </span>
+                      <span className="text-xs font-semibold text-emerald-400">
+                        ₹5,500 / person
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Interactive Sharing Option Selector */}
+                  <div className="space-y-3">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-200 block">
+                      Select Sharing Option:
+                    </label>
+
+                    <div className="grid grid-cols-3 gap-2">
+                      {(["QUAD", "TRIPLE", "DOUBLE"] as const).map((type) => {
+                        const opt = bpitPricingDetails[type];
+                        const isSelected = bpitSharing === type;
+                        return (
+                          <button
+                            key={type}
+                            type="button"
+                            onClick={() => setBpitSharing(type)}
+                            className={`p-3 rounded-2xl text-left border transition-all ${
+                              isSelected
+                                ? "bg-gradient-to-br from-[#C8A96A]/30 to-[#C8A96A]/10 border-[#C8A96A] shadow-md ring-1 ring-[#C8A96A]"
+                                : "bg-white/5 border-white/10 hover:bg-white/10 text-slate-300"
+                            }`}
+                          >
+                            <span className="text-[10px] font-bold block uppercase text-slate-300">
+                              {type}
+                            </span>
+                            <span className="text-sm sm:text-base font-extrabold text-white block mt-0.5">
+                              {opt.perPerson}
+                            </span>
+                            <span className="text-[9px] text-slate-400 block mt-0.5 leading-tight">
+                              per person
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Live Selected Pricing Summary Box */}
+                  <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-slate-300">
+                        Selected: <strong className="text-white">{bpitPricingDetails[bpitSharing].title}</strong>
+                      </span>
+                      <span className="text-xl sm:text-2xl font-display font-extrabold text-[#E5C378]">
+                        {bpitPricingDetails[bpitSharing].perPerson}
+                        <span className="text-[11px] font-normal text-slate-400"> /person</span>
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400">
+                      Includes roundtrip travel from Delhi NCR, 2N Manali hotel, 1N Kasol riverside camping, breakfast & dinner (MAP), DJ Night & Dandiya Night.
+                    </p>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="space-y-3 pt-2">
+                    <Button
+                      asChild
+                      className="w-full py-6 rounded-2xl font-bold text-sm bg-gold-gradient text-gold-foreground hover:brightness-105 shadow-xl transition-all"
+                    >
+                      <Link
+                        to="/journeys/$journeyId"
+                        params={{ journeyId: "manali-kasol-x-bpit" }}
+                        search={{ book: "true", roomType: bpitSharing.toLowerCase() } as any}
+                      >
+                        BOOK NOW — {bpitPricingDetails[bpitSharing].perPerson}
+                        <ArrowRight className="h-4 w-4 ml-2" />
+                      </Link>
+                    </Button>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <Button
+                        asChild
+                        variant="outline"
+                        className="py-5 rounded-2xl text-xs font-bold border-white/20 text-white bg-white/5 hover:bg-white/10"
+                      >
+                        <Link
+                          to="/journeys/$journeyId"
+                          params={{ journeyId: "manali-kasol-x-bpit" }}
+                        >
+                          EXPLORE TRIP
+                          <ArrowUpRight className="h-3.5 w-3.5 ml-1" />
+                        </Link>
+                      </Button>
+
+                      <Button
+                        asChild
+                        variant="ghost"
+                        className="py-5 rounded-2xl text-xs font-bold text-[#E5C378] hover:bg-[#C8A96A]/10 border border-[#C8A96A]/30"
+                      >
+                        <a href="#plan-trip">
+                          GANG ENQUIRY
+                        </a>
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
         </section>
 
         {/* ================================================================ */}

@@ -41,7 +41,10 @@ export const Route = createFileRoute("/journeys/$journeyId")({
     let seoTitle = `${journey?.name || 'Road Trip Package'} — Delhi Departure | GoNomadik`;
     let seoDesc = journey?.overview || `Join GoNomadik for ${journey?.name || 'this road trip'}. Detailed day-wise itinerary, verified hotel stays, transport from Delhi & 24x7 trip captain support.`;
 
-    if (journeyId.includes("udaipur")) {
+    if (journeyId.includes("bpit") || journeyId.includes("manali-kasol")) {
+      seoTitle = "Manali + Kasol × BPIT | 3N/4D College Trip from ₹5,500 | GoNomadik";
+      seoDesc = "Book the exclusive Manali + Kasol trip for BPIT students. 3N/4D adventure with riverside camping, Dandiya & DJ nights, luxury AC transfers and starting price of ₹5,500.";
+    } else if (journeyId.includes("udaipur")) {
       seoTitle = "Udaipur Weekend Road Trip Package from Delhi | GoNomadik";
       seoDesc = "Book 4D/3N Udaipur road trip from Delhi. City Palace, Lake Pichola boat ride, Monsoon Palace & heritage stay with transparent pricing.";
     } else if (journeyId.includes("manali")) {

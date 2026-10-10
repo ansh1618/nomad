@@ -10,9 +10,15 @@ export const Route = createFileRoute("/$slug")({
   loader: async ({ params }) => {
     const rawSlug = (params.slug || "").toLowerCase().trim();
 
-    // 1. Redirect /blog to /stories
+    // 1. Named-page safety-net redirects (catches stale client bundles or mismatch)
     if (rawSlug === "blog" || rawSlug === "blogs") {
       throw redirect({ to: "/stories", statusCode: 301 });
+    }
+    if (rawSlug === "college-trips" || rawSlug === "campus-trips" || rawSlug === "go-nomadik-x-mh") {
+      throw redirect({ to: "/college-trips", statusCode: 301, replace: true });
+    }
+    if (rawSlug === "student-verification") {
+      throw redirect({ to: "/student-verification", statusCode: 301, replace: true });
     }
 
     // 2. Redirect destination slugs to /destinations/$slug

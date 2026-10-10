@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" fill="none">
+  <!-- Outer Shield Badge -->
+  <defs>
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0F2942" />
+      <stop offset="100%" stop-color="#081827" />
+    </linearGradient>
+    <linearGradient id="goldBorder" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E5C378" />
+      <stop offset="50%" stop-color="#C8A96A" />
+      <stop offset="100%" stop-color="#9C7A3C" />
+    </linearGradient>
+  </defs>
+
+  <rect width="240" height="240" rx="36" fill="url(#shieldGrad)" />
+  <rect x="6" y="6" width="228" height="228" rx="30" stroke="url(#goldBorder)" stroke-width="3" fill="none" opacity="0.6" />
+  
+  <!-- Inner circular ring -->
+  <circle cx="120" cy="115" r="78" stroke="#C8A96A" stroke-width="2" stroke-dasharray="4 3" opacity="0.4" />
+  
+  <!-- Graduation / Temple Arch Emblem -->
+  <path d="M120 54 L170 80 L120 106 L70 80 Z" fill="#C8A96A" />
+  <path d="M170 80 V105 C170 126 148 142 120 148 C92 142 70 126 70 105 V80" stroke="#E5C378" stroke-width="3.5" fill="none" stroke-linecap="round" />
+  <path d="M120 114 V138" stroke="#C8A96A" stroke-width="2.5" stroke-linecap="round" />
+  
+  <!-- BPIT Bold Monogram -->
+  <text x="120" y="184" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="900" letter-spacing="4">BPIT</text>
+  <text x="120" y="202" text-anchor="middle" fill="#C8A96A" font-family="system-ui, -apple-system, sans-serif" font-size="9.5" font-weight="600" letter-spacing="1.5">DELHI • ESTD 2005</text>
+</svg>
