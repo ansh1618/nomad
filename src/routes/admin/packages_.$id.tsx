@@ -84,6 +84,18 @@ import {
 } from '@/lib/queries/accommodation-prices'
 import { useAdminAuth } from '@/hooks/use-admin-auth'
 import type { FaqItem, PolicyItem } from '@/types/supabase'
+import {
+  normalizeStringList,
+  normalizePackingList,
+  normalizePolicies,
+  normalizeItineraryDaysForForm,
+  normalizeGallery,
+  normalizeVideos,
+  normalizeReels,
+  normalizeTransport,
+  normalizeAccommodation,
+  buildPoliciesPayload,
+} from '@/lib/package-normalizer'
 
 export const Route = createFileRoute('/admin/packages_/$id')({
   component: PackageFormPage,
@@ -507,95 +519,70 @@ function PackageFormPage() {
   // Populate on edit
   useEffect(() => {
     if (pkg) {
+      // --- Derive safe values for form fields ---
+      // duration_days: prefer DB column, fallback to parsing the duration string
+      let durationDays = (pkg as any).duration_days
+      let durationNights = (pkg as any).duration_nights
+      if (!durationDays) {
+        const match = String(pkg.duration ?? '').match(/(\d+)\s*Day/i)
+        if (match) durationDays = parseInt(match[1])
+      }
+      if (!durationNights) {
+        const match = String(pkg.duration ?? '').match(/(\d+)\s*Night/i)
+        if (match) durationNights = parseInt(match[1])
+      }
+
+      // maximum_price: prefer DB column, fallback to policies.original_price
+      const maximumPrice =
+        (pkg as any).maximum_price ??
+        ((pkg.policies as any)?.original_price ?? undefined)
+
       reset({
         destination_id: pkg.destination_id,
-        trip_captain_id: pkg.trip_captain_id ?? '',
+        trip_captain_id: (pkg as any).trip_captain_id ?? '',
         name: pkg.name,
         slug: pkg.slug,
-        tagline: pkg.tagline ?? '',
+        tagline: (pkg as any).tagline ?? '',
         duration: pkg.duration ?? '',
-        duration_days: pkg.duration_days ?? undefined,
-        duration_nights: pkg.duration_nights ?? undefined,
+        duration_days: durationDays ?? undefined,
+        duration_nights: durationNights ?? undefined,
         difficulty: (pkg.difficulty as PackageFormValues['difficulty']) ?? 'EASY',
-        group_size_min: pkg.group_size_min,
-        group_size_max: pkg.group_size_max,
+        group_size_min: (pkg as any).group_size_min,
+        group_size_max: (pkg as any).group_size_max,
         starting_price: pkg.starting_price ?? undefined,
-        maximum_price: pkg.maximum_price ?? undefined,
+        maximum_price: maximumPrice,
         pickup_point: pkg.pickup_point ?? '',
         drop_point: pkg.drop_point ?? '',
-        short_description: pkg.short_description ?? '',
-        overview: pkg.overview ?? '',
+        short_description: (pkg as any).short_description ?? '',
+        overview: (pkg as any).overview ?? '',
         status: pkg.status ? (pkg.status.toUpperCase().trim() as any) : 'DRAFT',
-        is_featured: pkg.is_featured,
-        priority: pkg.priority,
-        hero_banner: pkg.hero_banner ?? '',
-        seo_title: pkg.seo?.title ?? '',
-        seo_description: pkg.seo?.description ?? '',
+        is_featured: (pkg as any).is_featured,
+        priority: (pkg as any).priority,
+        hero_banner: (pkg as any).hero_banner ?? '',
+        seo_title: (pkg as any).seo?.title ?? '',
+        seo_description: (pkg as any).seo?.description ?? '',
         category: pkg.category ?? 'WEEKEND',
-        hotel_id: pkg.hotel_id ?? '',
+        hotel_id: (pkg as any).hotel_id ?? '',
       })
-      setItinerary((pkg.itinerary_days ?? []).map((d) => ({
-        day_number: d.day_number,
-        title: d.title,
-        description: d.description,
-        meals: d.meals,
-        stay: d.stay,
-        transport: d.transport,
-        image_url: d.image_url,
-        is_highlight: d.is_highlight,
-        sort_order: d.sort_order,
-      })))
-      setHighlights(pkg.highlights ?? [])
-      setInclusions(pkg.inclusions ?? [])
-      setExclusions(pkg.exclusions ?? [])
-      setPackingList(pkg.packing_list ?? [])
-      setPolicies(pkg.policies ?? [])
-      setFaqs(pkg.faqs ?? [])
+
+      // --- Normalize all array/object fields before setting state ---
+      setItinerary(normalizeItineraryDaysForForm(pkg))
+      setHighlights(normalizeStringList(pkg.highlights))
+      setInclusions(normalizeStringList(pkg.inclusions))
+      setExclusions(normalizeStringList(pkg.exclusions))
+      setPackingList(normalizePackingList(pkg))
+      setPolicies(normalizePolicies(pkg.policies))
+      setFaqs(Array.isArray(pkg.faqs) ? pkg.faqs : [])
       const mappedIds = (pkg as any).package_faqs?.map((pf: any) => pf.faq_id).filter(Boolean) || []
       setMappedFaqIds(mappedIds)
-      setCustomFaqs((pkg as any).custom_package_faqs || [])
-      if ((pkg as any).transport) {
-        const raw = (pkg as any).transport;
-        let t = typeof raw === 'string' ? null : raw;
-        if (!t && typeof raw === 'string') {
-          try { t = JSON.parse(raw); } catch { t = { vehicle_name: raw }; }
-        }
-        if (Array.isArray(t)) t = t[0];
-        if (t && typeof t === 'object') {
-          setTransport({
-            vehicle_name: t.vehicle_name || t.name || '',
-            vehicle_type: t.vehicle_type || t.vehicleType || '',
-            capacity: t.capacity || '',
-            seat_capacity: t.seat_capacity || 30,
-            available_seats: t.available_seats || 30,
-            departure_time: t.departure_time || '',
-            arrival_time: t.arrival_time || '',
-            ac: t.ac ?? t.isAc ?? true,
-            music: t.music ?? true,
-            charging_ports: t.charging_ports ?? true,
-            trip_captain: t.trip_captain ?? true,
-            pushback_seats: t.pushback_seats ?? t.pushbackSeats ?? true,
-            charging_ports_text: t.charging_ports_text || t.chargingPorts || '',
-            music_system_text: t.music_system_text || t.musicSystem || '',
-            luggage_space: t.luggage_space || t.luggageSpace || '',
-            driver_experience: t.driver_experience || t.driverExperience || '',
-            washroom_stops: t.washroom_stops || t.washroomStops || '',
-            cover_image: Array.isArray(t.images) && t.images.length > 0 ? t.images[0] : (t.cover_image || ''),
-            gallery: Array.isArray(t.images) ? t.images : (Array.isArray(t.gallery) ? t.gallery : []),
-            features: Array.isArray(t.features) ? t.features : [],
-            pickup_points: Array.isArray(t.pickup_points) ? t.pickup_points : [],
-            drop_points: Array.isArray(t.drop_points) ? t.drop_points : []
-          });
-        }
-      }
-      if ((pkg as any).accommodation && (pkg as any).accommodation.length > 0) {
-        setAccommodation((pkg as any).accommodation[0])
-      }
-      setGallery((pkg.gallery ?? []).map((item: any) => typeof item === 'string' ? { url: item, caption: '', day: null } : { url: item.url || '', caption: item.caption || '', day: item.day || null }))
-      setVideos((pkg.videos ?? []).map((item: any) => typeof item === 'string' ? { url: item, title: '', day: null, type: 'youtube' } : { url: item.url || '', title: item.title || '', day: item.day || null, type: item.type || 'youtube' }))
-      setReels(((pkg as any).reels ?? []).map((item: any) => typeof item === 'string' ? { url: item, caption: '', day: null } : { url: item.url || '', caption: item.caption || '', day: item.day || null }))
-      setMemories((pkg as any).memories ?? [])
-      setTripMoments((pkg as any).trip_moments ?? [])
+      setCustomFaqs(Array.isArray((pkg as any).custom_package_faqs) ? (pkg as any).custom_package_faqs : [])
+      setTransport(normalizeTransport((pkg as any).transport))
+      setAccommodation(normalizeAccommodation((pkg as any).accommodation))
+      setGallery(normalizeGallery(pkg.gallery))
+      setVideos(normalizeVideos(pkg.videos))
+      setReels(normalizeReels((pkg as any).reels))
+      setMemories(Array.isArray((pkg as any).memories) ? (pkg as any).memories : [])
+      setTripMoments(Array.isArray((pkg as any).trip_moments) ? (pkg as any).trip_moments : [])
       setExperienceStats((pkg as any).experience_stats ?? {
         travelers: 420,
         stories: 178,
@@ -655,7 +642,13 @@ function PackageFormPage() {
         inclusions: inclusions.map(item => item.trim()).filter(Boolean).filter((val, i, self) => self.indexOf(val) === i),
         exclusions: exclusions.map(item => item.trim()).filter(Boolean).filter((val, i, self) => self.indexOf(val) === i),
         packing_list: packingList,
-        policies,
+        policies: buildPoliciesPayload(
+          Array.isArray(policies) ? policies : [],
+          pkg?.policies ?? null,
+          maxPrice,
+          startPrice,
+          packingList
+        ),
         faqs,
         gallery,
         videos,
@@ -1034,7 +1027,7 @@ function PackageFormPage() {
                       <SelectValue placeholder="Select destination" />
                     </SelectTrigger>
                     <SelectContent>
-                      {destinations.map((d) => (
+                      {(Array.isArray(destinations) ? destinations : []).map((d) => (
                         <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
                       ))}
                     </SelectContent>
@@ -1052,7 +1045,7 @@ function PackageFormPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">None</SelectItem>
-                      {captains.map((c) => (
+                      {(Array.isArray(captains) ? captains : []).map((c) => (
                         <SelectItem key={c.id} value={c.id}>{c.full_name}</SelectItem>
                       ))}
                     </SelectContent>
@@ -1281,7 +1274,7 @@ function PackageFormPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {policies.map((p, i) => (
+              {(Array.isArray(policies) ? policies : []).map((p, i) => (
                 <div key={i} className="p-3 border rounded-lg space-y-2">
                   <div className="flex gap-2">
                     <Input
@@ -1530,7 +1523,7 @@ function PackageFormPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="NONE">No Accommodation Assigned</SelectItem>
-                    {hotels.map((h: any) => (
+                    {(Array.isArray(hotels) ? hotels : []).map((h: any) => (
                       <SelectItem key={h.id} value={h.id}>
                         {h.name} ({h.city}, {h.state} • {h.star_rating}★)
                       </SelectItem>
@@ -1563,7 +1556,7 @@ function PackageFormPage() {
                   <Input
                     id="quad_price"
                     type="number"
-                    placeholder="e.g. 7499"
+                    placeholder="e.g. 6000"
                     value={quadPrice}
                     onChange={(e) => setQuadPrice(e.target.value)}
                   />
@@ -1573,7 +1566,7 @@ function PackageFormPage() {
                   <Input
                     id="triple_price"
                     type="number"
-                    placeholder="e.g. 7999"
+                    placeholder="e.g. 6500"
                     value={triplePrice}
                     onChange={(e) => setTriplePrice(e.target.value)}
                   />
@@ -1583,7 +1576,7 @@ function PackageFormPage() {
                   <Input
                     id="double_price"
                     type="number"
-                    placeholder="e.g. 8499"
+                    placeholder="e.g. 7000"
                     value={doublePrice}
                     onChange={(e) => setDoublePrice(e.target.value)}
                   />
@@ -1710,13 +1703,13 @@ function PackageFormPage() {
               </div>
             </CardHeader>
             <CardContent>
-              {tripMoments.length === 0 ? (
+              {(Array.isArray(tripMoments) ? tripMoments : []).length === 0 ? (
                 <div className="text-center p-6 border-2 border-dashed rounded-xl text-muted-foreground">
                   No vibe moments added yet. Click Add Moment.
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                  {tripMoments.map((moment, idx) => (
+                  {(Array.isArray(tripMoments) ? tripMoments : []).map((moment, idx) => (
                     <div key={idx} className="flex gap-2 items-center p-3 border rounded-xl bg-card">
                       <Input
                         value={moment.emoji}
@@ -1763,7 +1756,7 @@ function PackageFormPage() {
               </div>
             </CardHeader>
             <CardContent>
-              {gallery.length === 0 ? (
+              {(Array.isArray(gallery) ? gallery : []).length === 0 ? (
                 <div
                   className="border-2 border-dashed rounded-xl p-10 text-center cursor-pointer hover:bg-muted/20 transition-colors"
                   onClick={() => setGalleryPickerOpen(true)}
@@ -1773,7 +1766,7 @@ function PackageFormPage() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {gallery.map((item, idx) => (
+                  {(Array.isArray(gallery) ? gallery : []).map((item, idx) => (
                     <div key={idx} className="flex gap-4 p-3 border rounded-xl bg-card items-start">
                       <div className="h-20 w-28 rounded-lg overflow-hidden shrink-0 bg-muted border">
                         <img src={item.url} alt="" className="w-full h-full object-cover" />
@@ -1841,13 +1834,13 @@ function PackageFormPage() {
               </div>
             </CardHeader>
             <CardContent>
-              {videos.length === 0 ? (
+              {(Array.isArray(videos) ? videos : []).length === 0 ? (
                 <div className="text-center p-6 border-2 border-dashed rounded-xl text-muted-foreground">
                   No videos or reels added yet. Click Add Video.
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {videos.map((vid, idx) => (
+                  {(Array.isArray(videos) ? videos : []).map((vid, idx) => (
                     <div key={idx} className="p-4 border rounded-xl space-y-3 bg-card relative">
                       <Button
                         type="button"
@@ -1939,13 +1932,13 @@ function PackageFormPage() {
               </div>
             </CardHeader>
             <CardContent>
-              {memories.length === 0 ? (
+              {(Array.isArray(memories) ? memories : []).length === 0 ? (
                 <div className="text-center p-6 border-2 border-dashed rounded-xl text-muted-foreground">
                   No quick memories added yet. Click Add Memory.
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {memories.map((mem, idx) => (
+                  {(Array.isArray(memories) ? memories : []).map((mem, idx) => (
                     <div key={idx} className="flex gap-4 p-4 border rounded-xl bg-card items-start relative">
                       <Button
                         type="button"
@@ -2165,7 +2158,7 @@ function PackageFormPage() {
                     </div>
                   ) : (
                     <div className="space-y-2.5">
-                      {mappedFaqIds.map((id, index) => {
+                      {(Array.isArray(mappedFaqIds) ? mappedFaqIds : []).map((id, index) => {
                         const item = libraryPresets.find((preset: any) => preset.id === id)
                         if (!item) return null
                         return (
@@ -2260,7 +2253,7 @@ function PackageFormPage() {
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {customFaqs.map((cf, index) => (
+                      {(Array.isArray(customFaqs) ? customFaqs : []).map((cf, index) => (
                         <div key={index} className="p-3 border rounded-xl bg-white border-border/80 flex gap-3 items-start relative shadow-soft">
                           {/* Drag / Reorder arrows */}
                           <div className="flex flex-col gap-1 mt-1 shrink-0">
@@ -2644,7 +2637,7 @@ function PackageDocumentsTab({ packageId, packageSlug, isNew, adminId }: Package
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {docs.map((doc: any) => (
+                {(Array.isArray(docs) ? docs : []).map((doc: any) => (
                   <TableRow key={doc.id}>
                     <TableCell>
                       <span className="text-[10px] uppercase font-poppins font-bold bg-secondary/10 text-secondary px-2.5 py-1 rounded-full border border-secondary/20">

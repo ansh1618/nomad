@@ -38,6 +38,7 @@ export function DynamicListEditor({
   placeholder = 'Add new item...',
   maxChars = 120,
 }: DynamicListEditorProps) {
+  const safeList = Array.isArray(list) ? list : []
   const [isOpen, setIsOpen] = useState(true)
   const [inputValue, setInputValue] = useState('')
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
@@ -64,32 +65,32 @@ export function DynamicListEditor({
   const handleAddItem = (e?: React.FormEvent) => {
     if (e) e.preventDefault()
     const trimmed = inputValue.trim()
-    const check = validateItem(trimmed, list)
+    const check = validateItem(trimmed, safeList)
     if (!check.ok) {
       toast.warning(check.msg)
       return
     }
-    onChange([...list, trimmed])
+    onChange([...safeList, trimmed])
     setInputValue('')
   }
 
   const handleDeleteItem = (index: number) => {
-    onChange(list.filter((_, i) => i !== index))
+    onChange(safeList.filter((_, i) => i !== index))
   }
 
   const handleStartEdit = (index: number) => {
     setEditingIndex(index)
-    setEditingValue(list[index])
+    setEditingValue(safeList[index] || '')
   }
 
   const handleSaveEdit = (index: number) => {
     const trimmed = editingValue.trim()
-    const check = validateItem(trimmed, list, index)
+    const check = validateItem(trimmed, safeList, index)
     if (!check.ok) {
       toast.warning(check.msg)
       return
     }
-    const updated = [...list]
+    const updated = [...safeList]
     updated[index] = trimmed
     onChange(updated)
     setEditingIndex(null)
@@ -97,7 +98,7 @@ export function DynamicListEditor({
 
   const handleMoveUp = (index: number) => {
     if (index === 0) return
-    const updated = [...list]
+    const updated = [...safeList]
     const temp = updated[index]
     updated[index] = updated[index - 1]
     updated[index - 1] = temp
@@ -105,8 +106,8 @@ export function DynamicListEditor({
   }
 
   const handleMoveDown = (index: number) => {
-    if (index === list.length - 1) return
-    const updated = [...list]
+    if (index === safeList.length - 1) return
+    const updated = [...safeList]
     const temp = updated[index]
     updated[index] = updated[index + 1]
     updated[index + 1] = temp
@@ -124,7 +125,7 @@ export function DynamicListEditor({
     const duplicates: string[] = []
     const tooLong: string[] = []
 
-    const currentList = [...list]
+    const currentList = [...safeList]
     lines.forEach(line => {
       const check = validateItem(line, [...currentList, ...added])
       if (check.ok) {
@@ -137,7 +138,7 @@ export function DynamicListEditor({
     })
 
     if (added.length > 0) {
-      onChange([...list, ...added])
+      onChange([...safeList, ...added])
       toast.success(`Successfully added ${added.length} items`)
     }
     if (duplicates.length > 0 || tooLong.length > 0) {
@@ -258,7 +259,7 @@ export function DynamicListEditor({
               </form>
 
               {/* Items List */}
-              {list.length === 0 ? (
+              {safeList.length === 0 ? (
                 <div className="text-center py-8 border-2 border-dashed rounded-xl bg-muted/10">
                   <AlertTriangle className="h-6 w-6 text-muted-foreground mx-auto mb-2" />
                   <p className="text-xs text-muted-foreground">No items configured yet.</p>
@@ -266,11 +267,11 @@ export function DynamicListEditor({
               ) : (
                 <Reorder.Group
                   axis="y"
-                  values={list}
+                  values={safeList}
                   onReorder={onChange}
                   className="space-y-2 max-h-[300px] overflow-y-auto pr-1"
                 >
-                  {list.map((item, index) => {
+                  {safeList.map((item, index) => {
                     const isEditing = editingIndex === index
                     return (
                       <Reorder.Item

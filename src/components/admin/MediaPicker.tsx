@@ -220,14 +220,14 @@ export function MediaPicker({ open, onClose, onSelect, accept = 'image', multipl
                   <div className="flex items-center justify-center h-48">
                     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                   </div>
-                ) : assets.length === 0 ? (
+                ) : (Array.isArray(assets) ? assets : []).length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-48 gap-3 text-muted-foreground">
                     <Upload className="h-12 w-12 opacity-30" />
                     <p className="text-sm">Drop files here or click Upload</p>
                   </div>
                 ) : view === 'grid' ? (
                   <div className="p-4 grid grid-cols-4 gap-3">
-                    {assets.map((asset) => (
+                    {(Array.isArray(assets) ? assets : []).map((asset) => (
                       <motion.div
                         key={asset.id}
                         layout
@@ -283,7 +283,7 @@ export function MediaPicker({ open, onClose, onSelect, accept = 'image', multipl
                   </div>
                 ) : (
                   <div className="divide-y">
-                    {assets.map((asset) => (
+                    {(Array.isArray(assets) ? assets : []).map((asset) => (
                       <div
                         key={asset.id}
                         className={`flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-muted/30 transition-colors ${

@@ -16,23 +16,24 @@ export function StringListEditor({
   placeholder?: string
 }) {
   const [inputValue, setInputValue] = useState('')
+  const safeList = Array.isArray(list) ? list : []
 
   const handleAdd = () => {
     const val = inputValue.trim()
     if (!val) return
-    setList([...list, val])
+    setList([...safeList, val])
     setInputValue('')
   }
 
   const handleRemove = (index: number) => {
-    setList(list.filter((_, i) => i !== index))
+    setList(safeList.filter((_, i) => i !== index))
   }
 
   return (
     <div className="space-y-3">
       <Label>{label}</Label>
       <div className="space-y-2">
-        {list.map((item, i) => (
+        {safeList.map((item, i) => (
           <div key={i} className="flex items-center gap-2">
             <span className="flex-1 text-sm p-2 bg-muted/30 rounded-md border">{item}</span>
             <Button

@@ -42,16 +42,17 @@ const defaultDay = (dayNumber: number, sortOrder: number): ItineraryDayForm => (
 })
 
 export function ItineraryEditor({ value, onChange }: ItineraryEditorProps) {
+  const safeValue = Array.isArray(value) ? value : []
   const [expandedIndex, setExpandedIndex] = useState<number | null>(0)
 
   const addDay = () => {
-    const newDay = defaultDay(value.length + 1, value.length)
-    onChange([...value, newDay])
-    setExpandedIndex(value.length)
+    const newDay = defaultDay(safeValue.length + 1, safeValue.length)
+    onChange([...safeValue, newDay])
+    setExpandedIndex(safeValue.length)
   }
 
   const removeDay = (index: number) => {
-    const updated = value.filter((_, i) => i !== index).map((d, i) => ({
+    const updated = safeValue.filter((_, i) => i !== index).map((d, i) => ({
       ...d,
       day_number: i + 1,
       sort_order: i,
@@ -61,13 +62,13 @@ export function ItineraryEditor({ value, onChange }: ItineraryEditorProps) {
   }
 
   const updateDay = (index: number, field: keyof ItineraryDayForm, fieldValue: unknown) => {
-    const updated = [...value]
+    const updated = [...safeValue]
     updated[index] = { ...updated[index], [field]: fieldValue }
     onChange(updated)
   }
 
   const updateMeal = (index: number, meal: keyof MealPlan, checked: boolean) => {
-    const updated = [...value]
+    const updated = [...safeValue]
     updated[index] = {
       ...updated[index],
       meals: { ...updated[index].meals, [meal]: checked } as MealPlan,
@@ -76,7 +77,7 @@ export function ItineraryEditor({ value, onChange }: ItineraryEditorProps) {
   }
 
   const handleReorder = (newOrder: ItineraryDayForm[]) => {
-    const reordered = newOrder.map((d, i) => ({
+    const reordered = (Array.isArray(newOrder) ? newOrder : []).map((d, i) => ({
       ...d,
       day_number: i + 1,
       sort_order: i,
@@ -89,7 +90,7 @@ export function ItineraryEditor({ value, onChange }: ItineraryEditorProps) {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="font-semibold text-sm">Day-by-Day Itinerary</h3>
-          <p className="text-xs text-muted-foreground">Drag to reorder · {value.length} day{value.length !== 1 ? 's' : ''}</p>
+          <p className="text-xs text-muted-foreground">Drag to reorder · {safeValue.length} day{safeValue.length !== 1 ? 's' : ''}</p>
         </div>
         <Button type="button" size="sm" variant="outline" onClick={addDay}>
           <Plus className="h-4 w-4 mr-1.5" />
@@ -97,7 +98,7 @@ export function ItineraryEditor({ value, onChange }: ItineraryEditorProps) {
         </Button>
       </div>
 
-      {value.length === 0 ? (
+      {safeValue.length === 0 ? (
         <div className="border-2 border-dashed rounded-xl p-8 text-center text-muted-foreground">
           <p className="text-sm">No itinerary days yet.</p>
           <Button type="button" variant="ghost" size="sm" onClick={addDay} className="mt-2">
@@ -105,8 +106,8 @@ export function ItineraryEditor({ value, onChange }: ItineraryEditorProps) {
           </Button>
         </div>
       ) : (
-        <Reorder.Group axis="y" values={value} onReorder={handleReorder} className="space-y-2">
-          {value.map((day, index) => (
+        <Reorder.Group axis="y" values={safeValue} onReorder={handleReorder} className="space-y-2">
+          {safeValue.map((day, index) => (
             <Reorder.Item key={`${day.day_number}-${day.sort_order}`} value={day}>
               <motion.div
                 layout
