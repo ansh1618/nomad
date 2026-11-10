@@ -59,7 +59,7 @@ export function Hero() {
   const subtitle =
     settings.hero_subtitle ||
     "Discover breathtaking destinations, unforgettable journeys and experiences worth remembering with India's most trusted travel collective."
-  const badgeText = settings.badge_text || 'Curated Road Trips & Himalayan Treks'
+  const badgeText = settings.badge_text || 'TRAVEL MORE • DISCOVER DEEPER'
   const ctaPrimaryLabel = settings.cta_primary_label || 'Explore Destinations'
   const ctaPrimaryHref = settings.cta_primary_href || '/destinations'
   const ctaSecondaryLabel = settings.cta_secondary_label || 'Upcoming Trips'
@@ -90,7 +90,7 @@ export function Hero() {
       id="home"
       className="relative flex min-h-[92vh] lg:min-h-screen items-center justify-center overflow-hidden bg-[#0A1622]"
     >
-      {/* 1. Ambient Background Media (Optional background video with dark overlays) */}
+      {/* 1. Ambient Background Media */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
         {!bgVideoError && bgVideoUrl ? (
           <video
@@ -104,7 +104,7 @@ export function Hero() {
             onLoadedData={() => setBgVideoLoaded(true)}
             onError={() => setBgVideoError(true)}
             className={`h-full w-full object-cover object-center transition-opacity duration-1000 ${
-              bgVideoLoaded ? 'opacity-35 scale-100' : 'opacity-0 scale-105'
+              bgVideoLoaded ? 'opacity-30 scale-100' : 'opacity-0 scale-105'
             }`}
           >
             <source src={bgVideoUrl} type="video/mp4" />
@@ -116,28 +116,28 @@ export function Hero() {
           src={posterUrl}
           alt="Cinematic Himalayan Mountain Road Trip"
           className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ${
-            bgVideoLoaded && !bgVideoError ? 'opacity-0' : 'opacity-25'
+            bgVideoLoaded && !bgVideoError ? 'opacity-0' : 'opacity-20'
           }`}
         />
 
         {/* Cinematic Multi-layer Gradient Overlays for contrast and brand tone */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0A1622] via-[#0F2942]/80 to-[#0A1622]/95" />
-        <div className="absolute inset-0 bg-black/40" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0A1622] via-[#0F2942]/85 to-[#0A1622]/95" />
+        <div className="absolute inset-0 bg-black/45" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(10,22,34,0.7)_100%)]" />
       </div>
 
-      {/* 2. Main Hero Container: 2-Column Responsive Layout */}
-      <div className="relative z-10 mx-auto w-full max-w-7xl px-5 sm:px-8 pt-28 pb-16 sm:pt-36 sm:pb-20">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-8 items-center">
+      {/* 2. Main Hero Container: Left 43% / Right 57% Desktop Layout */}
+      <div className="relative z-10 mx-auto w-full max-w-[1440px] px-5 sm:px-8 xl:px-12 pt-32 pb-24 sm:pt-36 sm:pb-28 lg:pt-36 lg:pb-28">
+        <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-10 xl:gap-14 w-full">
           {/* ======================================================= */}
-          {/* LEFT COLUMN: Editorial Typography & Brand Badges (Cols 1-6/7) */}
+          {/* LEFT COLUMN: 43% - Typography, Editorial CTAs & Rating */}
           {/* ======================================================= */}
-          <div className="lg:col-span-6 xl:col-span-6 space-y-6 sm:space-y-7 text-left">
+          <div className="w-full lg:w-[43%] xl:w-[42%] space-y-6 sm:space-y-7 text-left shrink-0 z-10">
             {/* Tagline Badge */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
+              transition={{ duration: 0.5 }}
               className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 backdrop-blur-md shadow-lg"
             >
               <Sparkles className="h-4 w-4 text-gold animate-pulse" />
@@ -148,10 +148,10 @@ export function Hero() {
 
             {/* Main Headline */}
             <motion.h1
-              initial={{ opacity: 0, y: 25 }}
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.1 }}
-              className="font-display text-4xl font-extrabold leading-[1.08] tracking-tight text-white sm:text-5xl lg:text-6xl xl:text-7xl"
+              transition={{ duration: 0.6, delay: 0.1 }}
+              className="font-display text-4xl font-extrabold leading-[1.08] tracking-tight text-white sm:text-5xl lg:text-5xl xl:text-6xl"
             >
               {headline.includes('Begins Here') ? (
                 <>
@@ -167,9 +167,9 @@ export function Hero() {
 
             {/* Subheading Description */}
             <motion.p
-              initial={{ opacity: 0, y: 25 }}
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.2 }}
+              transition={{ duration: 0.6, delay: 0.18 }}
               className="max-w-xl font-poppins text-sm leading-relaxed text-white/80 sm:text-base sm:leading-relaxed"
             >
               {subtitle}
@@ -177,9 +177,9 @@ export function Hero() {
 
             {/* Primary & Secondary Action CTAs */}
             <motion.div
-              initial={{ opacity: 0, y: 25 }}
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.3 }}
+              transition={{ duration: 0.6, delay: 0.25 }}
               className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5 pt-1"
             >
               <Button
@@ -210,8 +210,8 @@ export function Hero() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ duration: 0.8, delay: 0.4 }}
-              className="pt-5 border-t border-white/15 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4"
+              transition={{ duration: 0.7, delay: 0.35 }}
+              className="pt-6 border-t border-white/15 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4"
             >
               {trustBadges.map((badge, idx) => {
                 const Icon = badge.icon
@@ -235,9 +235,9 @@ export function Hero() {
           </div>
 
           {/* ======================================================= */}
-          {/* RIGHT COLUMN: Floating Video Collage (Cols 7-12) */}
+          {/* RIGHT COLUMN: 57% - Large Cinematic Video Mosaic */}
           {/* ======================================================= */}
-          <div className="lg:col-span-6 xl:col-span-6 flex items-center justify-center">
+          <div className="w-full lg:w-[57%] xl:w-[58%] grow flex items-center justify-center z-10">
             {settings.is_enabled !== false ? (
               <HeroVideoCollage
                 cards={cards}
