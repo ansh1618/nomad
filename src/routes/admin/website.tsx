@@ -17,7 +17,8 @@ import {
   ArrowRight,
   Globe,
   Settings,
-  GraduationCap
+  GraduationCap,
+  Video,
 } from 'lucide-react'
 
 export const Route = createFileRoute('/admin/website')({
@@ -25,6 +26,13 @@ export const Route = createFileRoute('/admin/website')({
 })
 
 const CMS_MODULES = [
+  {
+    title: 'Hero Video Gallery',
+    description: 'Manage homepage cinematic floating video collage, cards, autoplay & layouts.',
+    icon: Video,
+    href: '/admin/website/hero-videos',
+    color: 'text-amber-600 bg-amber-50',
+  },
   {
     title: 'Homepage Layout',
     description: 'Toggle visibility and drag-reorder home sections.',

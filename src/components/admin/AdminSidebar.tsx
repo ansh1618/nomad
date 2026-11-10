@@ -46,6 +46,7 @@ import {
   Megaphone,
   BookOpen,
   CircleHelp,
+  Video,
 } from "lucide-react";
 
 const NAV_SECTIONS = [
@@ -71,6 +72,7 @@ const NAV_SECTIONS = [
     label: "Website Builder",
     items: [
       { title: "Website Builder", href: "/admin/website", icon: Globe },
+      { title: "Hero Video Gallery", href: "/admin/website/hero-videos", icon: Video },
       { title: "FAQ Builder", href: "/admin/website/faqs", icon: MessageSquare },
       { title: "Announcement Bar", href: "/admin/website/announcement", icon: Megaphone },
       { title: "SEO Manager", href: "/admin/website/seo", icon: Settings },

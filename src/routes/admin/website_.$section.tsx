@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ImageField } from '@/components/admin/MediaPicker'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
+import { HeroVideosEditor } from '@/components/admin/HeroVideosEditor'
 import {
   ArrowLeft,
   Save,
@@ -66,6 +67,10 @@ function WebsiteSectionEditor() {
   const { section } = Route.useParams()
   const navigate = useNavigate()
   const qc = useQueryClient()
+
+  if (section === 'hero_videos' || section === 'hero-videos' || section === 'hero_video_gallery') {
+    return <HeroVideosEditor />
+  }
 
   // ----------------------------------------------------
   // GENERAL MUTATIONS & SAVING LOADER
@@ -936,7 +941,7 @@ function WebsiteSectionEditor() {
                 </div>
                 <div className="space-y-1.5">
                   <Label>WhatsApp Broadcast / Chat Number</Label>
-                  <Input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="e.g. 919999988888" />
+                  <Input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} placeholder="e.g. 917982850767" />
                 </div>
               </div>
 
