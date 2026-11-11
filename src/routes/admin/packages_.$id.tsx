@@ -573,7 +573,9 @@ function PackageFormPage() {
       setPackingList(normalizePackingList(pkg))
       setPolicies(normalizePolicies(pkg.policies))
       setFaqs(Array.isArray(pkg.faqs) ? pkg.faqs : [])
-      const mappedIds = (pkg as any).package_faqs?.map((pf: any) => pf.faq_id).filter(Boolean) || []
+      const mappedIds = Array.isArray((pkg as any).package_faqs)
+        ? (pkg as any).package_faqs.map((pf: any) => pf.faq_id).filter(Boolean)
+        : []
       setMappedFaqIds(mappedIds)
       setCustomFaqs(Array.isArray((pkg as any).custom_package_faqs) ? (pkg as any).custom_package_faqs : [])
       setTransport(normalizeTransport((pkg as any).transport))
@@ -1788,7 +1790,7 @@ function PackageFormPage() {
                             className="flex-1 h-8 border border-input rounded-md px-2 text-xs font-poppins bg-white"
                           >
                             <option value="">General (No day link)</option>
-                            {itinerary.map((d) => (
+                            {(Array.isArray(itinerary) ? itinerary : []).map((d) => (
                               <option key={d.day_number} value={String(d.day_number)}>
                                 Day {d.day_number}: {d.title}
                               </option>
@@ -1895,7 +1897,7 @@ function PackageFormPage() {
                             className="w-full h-10 border border-input rounded-md px-3 text-sm font-poppins bg-white"
                           >
                             <option value="">General (No day link)</option>
-                            {itinerary.map((d) => (
+                            {(Array.isArray(itinerary) ? itinerary : []).map((d) => (
                               <option key={d.day_number} value={String(d.day_number)}>
                                 Day {d.day_number}: {d.title}
                               </option>
@@ -1998,7 +2000,7 @@ function PackageFormPage() {
                 type="button"
                 className="bg-amber-600 hover:bg-amber-700 text-white font-semibold font-poppins gap-2"
                 onClick={() => {
-                  const itineraryText = itinerary.map(d => `Day ${d.day_number}: ${d.title}`).join(', ');
+                  const itineraryText = (Array.isArray(itinerary) ? itinerary : []).map(d => `Day ${d.day_number}: ${d.title}`).join(', ');
                   toast.promise(
                     new Promise((resolve) => setTimeout(resolve, 1500)),
                     {
@@ -2037,7 +2039,7 @@ function PackageFormPage() {
                   <span className="text-[10px] text-muted-foreground uppercase font-bold">Ready</span>
                 </div>
                 <p className="whitespace-pre-wrap leading-relaxed text-slate-600 bg-muted/30 p-2.5 rounded-lg font-mono">
-                  {`Lost in ${nameValue || 'Udaipur'} ⛰️✨ From DJ nights under the stars to secret sunset lookouts, this wasn't just a trip—it was a community in motion. Swipe to see the real vibes! 👉\n\n${itinerary.map(d => `Day ${d.day_number}: ${d.title}`).join('\n')}\n\n#Nomadik #RoadTravel #CollegeTrip #${(nameValue || 'Udaipur').replace(/\s+/g, '')}Diaries #ExplorerCommunity`}
+                  {`Lost in ${nameValue || 'Udaipur'} ⛰️✨ From DJ nights under the stars to secret sunset lookouts, this wasn't just a trip—it was a community in motion. Swipe to see the real vibes! 👉\n\n${(Array.isArray(itinerary) ? itinerary : []).map(d => `Day ${d.day_number}: ${d.title}`).join('\n')}\n\n#Nomadik #RoadTravel #CollegeTrip #${(nameValue || 'Udaipur').replace(/\s+/g, '')}Diaries #ExplorerCommunity`}
                 </p>
                 <div className="flex items-center justify-between text-[10px] text-muted-foreground pt-1.5">
                   <span>✨ Copied to clipboard automatically</span>

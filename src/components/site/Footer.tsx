@@ -1,178 +1,75 @@
 import { Link } from "@tanstack/react-router";
-import { Instagram, Youtube, Mail, Phone, MapPin } from "lucide-react";
+import { Instagram, Youtube, Mail, Phone, MapPin, MessageCircle, Sparkles, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import logoFallback from "@/assets/logo.jpg";
-import { BRAND } from "@/config/brand";
+import { BRAND, WHATSAPP_NUMBER_DISPLAY, getWhatsAppUrl } from "@/config/brand";
 import { useQuery } from "@tanstack/react-query";
-import { getSiteSettings, getFooterSections } from "@/lib/queries/cms";
-import { getDestinations } from "@/lib/queries/destinations";
+import { getSiteSettings } from "@/lib/queries/cms";
 import { GoNomadikLogo } from "./GoNomadikLogo";
 
-import { trackEvent } from "@/lib/analytics";
+const FOOTER_DESTINATIONS = [
+  { name: "Munsiyari Trek", slug: "munsiyari" },
+  { name: "Kedarkantha Winter Summit", slug: "kedarkantha" },
+  { name: "Kedarnath Dham Expedition", slug: "kedarnath" },
+  { name: "Badrinath & Vasudhara Falls", slug: "badrinath-vasudhara" },
+  { name: "Yulla Kanda Lake", slug: "yulla-kanda" },
+  { name: "Rudranath & Kalpeshwar", slug: "rudranath-kalpeshwar" },
+  { name: "Madmaheshwar Trek", slug: "madmaheshwar" },
+  { name: "Kasol & Kheerganga", slug: "kasol-kheerganga" },
+  { name: "Manali & Solang Valley", slug: "manali" },
+  { name: "Jibhi & Jalori Pass", slug: "jibhi" },
+  { name: "Chopta & Tungnath", slug: "chopta-tungnath" },
+  { name: "McLeod Ganj & Triund", slug: "mcleodganj" },
+];
 
 export function Footer() {
-  const [email, setEmail] = useState("");
   const year = new Date().getFullYear();
 
-  // 1. Fetch site settings mapping
   const { data: settings } = useQuery({
     queryKey: ["site_settings"],
     queryFn: getSiteSettings,
-    staleTime: 1000,
+    staleTime: 5000,
   });
 
-  // 2. Fetch footer sections custom links
-  const { data: dbFooterSections = [] } = useQuery({
-    queryKey: ["footer_sections"],
-    queryFn: getFooterSections,
-    staleTime: 1000,
-  });
-
-  // 3. Fetch published destinations to build dynamic list
-  const { data: destsResult } = useQuery({
-    queryKey: ["destinations", "published-footer"],
-    queryFn: () => getDestinations({ page: 1, pageSize: 6, status: "PUBLISHED" }),
-    staleTime: 1000,
-  });
-
-  const publishedDests = destsResult?.data ?? [];
-
-  // Extract contact fields
   const supportPhone = settings?.support_phone || BRAND.phones[0];
   const supportPhone2 = settings?.support_phone_2 || BRAND.phones[1];
-  const supportEmail = settings?.support_email || BRAND.email;
-  const address = settings?.address || "Delhi NCR, India";
-  
-  const logoUrl = settings?.logo_url || logoFallback;
-  const copyrightText = settings?.footer_copyright || `© ${year} GoNomadik. All rights reserved.`;
-  const footerQuote = settings?.footer_quote || "Life is short. Take the scenic route.";
-
-  // Social links from settings or BRAND fallback
+  const supportEmail = "admin@gonomadik.in";
+  const address = settings?.address || "Delhi NCR (Akshardham / Majnu ka Tilla Hub), India";
   const instagramUrl = settings?.instagram_url || BRAND.instagram;
   const youtubeUrl = settings?.youtube_url || "https://youtube.com/@gonomadik";
-  const redditUrl = settings?.reddit_url || "https://www.reddit.com/user/gonomadik/";
-
-  // Render columns. We check if DB footer sections exist. If not, use standard columns.
-  const renderFooterColumns = () => {
-    if (dbFooterSections && dbFooterSections.length > 0) {
-      return dbFooterSections.map((sec) => (
-        <div key={sec.id}>
-          <h4 className="text-xs font-poppins font-bold uppercase tracking-[0.2em] text-gold mb-5">
-            {sec.title}
-          </h4>
-          <ul className="space-y-3">
-            {sec.links?.map((link, idx) => {
-              const isExt = link.is_external;
-              if (isExt) {
-                return (
-                  <li key={idx}>
-                    <a
-                      href={link.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-white/60 hover:text-gold transition-colors duration-200"
-                    >
-                      {link.label}
-                    </a>
-                  </li>
-                );
-              }
-              return (
-                <li key={idx}>
-                  <Link
-                    to={link.href as any}
-                    className="text-sm text-white/60 hover:text-gold transition-colors duration-200"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      ));
-    }
-
-    // Default fallback columns
-    return (
-      <>
-        {/* Dynamic Destinations Column */}
-        <div>
-          <h4 className="text-xs font-poppins font-bold uppercase tracking-[0.2em] text-gold mb-5">
-            Destinations
-          </h4>
-          <ul className="space-y-3">
-            {publishedDests.length > 0 ? (
-              publishedDests.map((d) => (
-                <li key={d.id}>
-                  <Link
-                    to={`/destinations/${d.slug}` as any}
-                    className="text-sm text-white/60 hover:text-gold transition-colors duration-200"
-                  >
-                    {d.name}
-                  </Link>
-                </li>
-              ))
-            ) : (
-              <>
-                <li><Link to="/$slug" params={{ slug: "manali" }} className="text-sm text-white/60 hover:text-gold transition-colors">Manali</Link></li>
-                <li><Link to="/$slug" params={{ slug: "jibhi" }} className="text-sm text-white/60 hover:text-gold transition-colors">Jibhi</Link></li>
-                <li><Link to="/$slug" params={{ slug: "chopta-tungnath" }} className="text-sm text-white/60 hover:text-gold transition-colors">Chopta</Link></li>
-              </>
-            )}
-          </ul>
-        </div>
-
-        {/* Company Links Column */}
-        <div>
-          <h4 className="text-xs font-poppins font-bold uppercase tracking-[0.2em] text-gold mb-5">
-            Company
-          </h4>
-          <ul className="space-y-3">
-            <li>
-              <Link to="/about" className="text-sm text-white/60 hover:text-gold transition-colors duration-200">
-                About Nomadik
-              </Link>
-            </li>
-            <li>
-              <Link to="/stories" className="text-sm text-white/60 hover:text-gold transition-colors duration-200">
-                Community
-              </Link>
-            </li>
-            <li>
-              <Link to="/contact" className="text-sm text-white/60 hover:text-gold transition-colors duration-200">
-                Contact Us
-              </Link>
-            </li>
-          </ul>
-        </div>
-      </>
-    );
-  };
 
   return (
-    <footer className="bg-primary text-white relative overflow-hidden">
-      {/* Decorative glow */}
-      <div className="pointer-events-none absolute -right-40 -top-40 h-96 w-96 rounded-full bg-gold/5 blur-3xl" />
+    <footer className="bg-[#0A1622] text-white relative overflow-hidden border-t border-white/10">
+      {/* Decorative Brand Accent Glows */}
+      <div className="pointer-events-none absolute -right-40 -top-40 h-96 w-96 rounded-full bg-gold/10 blur-[130px]" />
+      <div className="pointer-events-none absolute -left-40 -bottom-40 h-96 w-96 rounded-full bg-[#163A5F]/40 blur-[140px]" />
 
-      <div className="relative mx-auto max-w-7xl px-5 pt-20 pb-8">
-        {/* Top grid */}
-        <div className="grid grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-4">
-          {/* Brand column */}
-          <div className="space-y-5 lg:col-span-1">
-            <Link to="/" className="inline-block">
+      <div className="relative mx-auto max-w-7xl px-5 sm:px-8 pt-20 pb-10">
+        {/* Top Grid */}
+        <div className="grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-5">
+          {/* Brand Info Column */}
+          <div className="space-y-5 lg:col-span-2">
+            <Link to="/" className="inline-block transition-transform hover:scale-105 duration-200">
               <GoNomadikLogo variant="dark" size="lg" />
             </Link>
-            <p className="text-xs text-white/60 leading-relaxed max-w-xs">
-              Premium curated road trips across India. We don't sell destinations — we create memories, 
-              friendships, and stories that stay with you forever.
+
+            <div className="inline-block">
+              <span className="text-[11px] font-poppins font-extrabold uppercase tracking-[0.25em] text-gold">
+                TRAVEL MORE • DISCOVER DEEPER.
+              </span>
+            </div>
+
+            <p className="text-xs text-white/70 leading-relaxed max-w-md font-poppins">
+              India's premier road trip and Himalayan adventure community. We craft transformative journeys, verified boutique stays, and authentic friendships that linger long after the road ends.
             </p>
-            <div className="flex gap-3">
+
+            {/* Social Channels */}
+            <div className="flex items-center gap-3 pt-2">
               <a
                 href={instagramUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="grid h-9 w-9 place-items-center rounded-full bg-white/10 text-white/70 hover:bg-gold hover:text-gold-foreground transition-all duration-300"
+                className="grid h-10 w-10 place-items-center rounded-xl bg-white/10 text-white/80 hover:bg-gold hover:text-[#0F2942] transition-all duration-300 shadow"
                 aria-label="Instagram"
               >
                 <Instagram className="h-4 w-4" />
@@ -181,72 +78,119 @@ export function Footer() {
                 href={youtubeUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="grid h-9 w-9 place-items-center rounded-full bg-white/10 text-white/70 hover:bg-gold hover:text-gold-foreground transition-all duration-300"
+                className="grid h-10 w-10 place-items-center rounded-xl bg-white/10 text-white/80 hover:bg-gold hover:text-[#0F2942] transition-all duration-300 shadow"
                 aria-label="YouTube"
               >
                 <Youtube className="h-4 w-4" />
               </a>
               <a
-                href={redditUrl}
+                href={getWhatsAppUrl()}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="grid h-9 w-9 place-items-center rounded-full bg-white/10 text-white/70 hover:bg-gold hover:text-gold-foreground transition-all duration-300"
-                aria-label="Reddit"
+                className="grid h-10 w-10 place-items-center rounded-xl bg-[#25D366]/20 text-[#25D366] hover:bg-[#25D366] hover:text-white transition-all duration-300 shadow"
+                aria-label="WhatsApp"
               >
-                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M24 11.5c0-1.65-1.35-3-3-3-.96 0-1.86.48-2.42 1.24-1.64-1-3.85-1.64-6.28-1.72l1.32-4.16 4.31.92c.04.97.85 1.76 1.84 1.76 1.02 0 1.85-.83 1.85-1.85S18.99 3 17.97 3c-.76 0-1.42.46-1.71 1.12l-4.73-1c-.21-.04-.42.09-.49.3l-1.61 5.08C7.03 6.58 4.79 7.21 3.14 8.24 2.58 7.48 1.68 7 0.72 7 1.35 7 0 8.35 0 10c0 .96.48 1.86 1.24 2.42-.05.34-.08.69-.08 1.05 0 3.75 4.34 6.8 9.68 6.8s9.68-3.05 9.68-6.8c0-.36-.03-.71-.08-1.05.76-.56 1.24-1.46 1.24-2.42zm-16 2.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5-.67 1.5-1.5 1.5-1.5-.67-1.5-1.5zm8.4 2.75c-.94.94-2.73.94-3.67 0-.2-.2-.2-.51 0-.71.2-.2.51-.2.71 0 .55.55 1.71.55 2.26 0 .2-.2.51-.2.71 0 .2.2.2.51 0 .71zM15.5 14c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
-                </svg>
+                <MessageCircle className="h-4 w-4" />
               </a>
+            </div>
+
+            <div className="pt-2 flex items-center gap-2 text-xs font-poppins text-white/60">
+              <ShieldCheck className="h-4 w-4 text-gold" />
+              <span>Registered Travel Operator • Delhi NCR</span>
             </div>
           </div>
 
-          {/* Render layout columns */}
-          {renderFooterColumns()}
+          {/* Destinations Column (Split in 2 sub-columns for clean density) */}
+          <div className="lg:col-span-2 space-y-4">
+            <h4 className="text-xs font-poppins font-bold uppercase tracking-[0.2em] text-gold">
+              Himalayan Destinations
+            </h4>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-2.5">
+              {FOOTER_DESTINATIONS.map((d) => (
+                <Link
+                  key={d.slug}
+                  to={`/destinations/${d.slug}` as any}
+                  className="text-xs text-white/65 hover:text-gold transition-colors font-poppins truncate"
+                >
+                  {d.name}
+                </Link>
+              ))}
+            </div>
+          </div>
 
           {/* Contact Details Column */}
-          <div>
-            <h4 className="text-xs font-poppins font-bold uppercase tracking-[0.2em] text-gold mb-5">
-              Support & Contact
+          <div className="space-y-4">
+            <h4 className="text-xs font-poppins font-bold uppercase tracking-[0.2em] text-gold">
+              Get In Touch
             </h4>
-            <div className="space-y-3 text-white/70">
-              <a href={`tel:${supportPhone}`} className="flex items-center gap-2 text-sm text-white/60 hover:text-gold transition-colors">
-                <Phone className="h-4 w-4 shrink-0" /> {supportPhone}
+            <div className="space-y-3 font-poppins text-xs text-white/70">
+              <a
+                href={getWhatsAppUrl("Hi GoNomadik team! I have a question about your trips.")}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2.5 text-[#25D366] hover:text-[#25D366]/80 font-semibold"
+              >
+                <MessageCircle className="h-4 w-4 shrink-0" />
+                <span>WhatsApp: {WHATSAPP_NUMBER_DISPLAY}</span>
               </a>
+
+              <a
+                href={`tel:${supportPhone}`}
+                className="flex items-center gap-2.5 hover:text-gold transition-colors"
+              >
+                <Phone className="h-4 w-4 shrink-0 text-gold" />
+                <span>{supportPhone}</span>
+              </a>
+
               {supportPhone2 && (
-                <a href={`tel:${supportPhone2}`} className="flex items-center gap-2 text-sm text-white/60 hover:text-gold transition-colors">
-                  <Phone className="h-4 w-4 shrink-0" /> {supportPhone2}
+                <a
+                  href={`tel:${supportPhone2}`}
+                  className="flex items-center gap-2.5 hover:text-gold transition-colors"
+                >
+                  <Phone className="h-4 w-4 shrink-0 text-gold" />
+                  <span>{supportPhone2}</span>
                 </a>
               )}
-              <a href={`mailto:${supportEmail}`} className="flex items-center gap-2 text-sm text-white/60 hover:text-gold transition-colors">
-                <Mail className="h-4 w-4 shrink-0" /> {supportEmail}
+
+              <a
+                href={`mailto:${supportEmail}`}
+                className="flex items-center gap-2.5 hover:text-gold transition-colors"
+              >
+                <Mail className="h-4 w-4 shrink-0 text-gold" />
+                <span className="truncate">{supportEmail}</span>
               </a>
-              <p className="flex items-start gap-2 text-sm text-white/60">
-                <MapPin className="h-4 w-4 shrink-0 mt-0.5" /> {address}
-              </p>
+
+              <div className="flex items-start gap-2.5 text-white/60 pt-1">
+                <MapPin className="h-4 w-4 shrink-0 mt-0.5 text-gold" />
+                <span className="leading-relaxed">{address}</span>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Signature quote */}
+        {/* Brand Manifesto Quote */}
         <div className="mt-16 border-t border-white/10 pt-8 text-center">
-          <p className="font-display text-lg italic text-white/40">
-            &ldquo;{footerQuote}&rdquo;
+          <p className="font-display text-base sm:text-lg italic text-white/50 tracking-wide">
+            &ldquo;Jobs fill your pockets, but adventures fill your soul.&rdquo;
           </p>
         </div>
 
-        {/* Bottom bar */}
-        <div className="mt-6 flex flex-col items-center justify-between gap-4 border-t border-white/5 pt-6 sm:flex-row">
-          <p className="text-[10px] text-white/40 font-sans">
-            {copyrightText}
-          </p>
-          <div className="flex gap-6 text-[10px] text-white/40 font-sans">
-            <Link to={"/privacy" as any} className="hover:text-white/60 transition-colors">Privacy Policy</Link>
-            <Link to={"/terms" as any} className="hover:text-white/60 transition-colors">Terms of Service</Link>
-            <Link to={"/cancellation" as any} className="hover:text-white/60 transition-colors">Refund Policy</Link>
+        {/* Bottom Legal & Copyright Bar */}
+        <div className="mt-8 flex flex-col items-center justify-between gap-4 border-t border-white/10 pt-6 sm:flex-row text-xs font-poppins text-white/50">
+          <p>© 2026 GoNomadik. All rights reserved.</p>
+          <div className="flex flex-wrap gap-6 text-[11px]">
+            <Link to={"/privacy" as any} className="hover:text-gold transition-colors">
+              Privacy Policy
+            </Link>
+            <Link to={"/terms" as any} className="hover:text-gold transition-colors">
+              Terms & Conditions
+            </Link>
+            <Link to={"/cancellation" as any} className="hover:text-gold transition-colors">
+              Cancellation & Refund Policy
+            </Link>
           </div>
         </div>
       </div>
     </footer>
   );
 }
-
