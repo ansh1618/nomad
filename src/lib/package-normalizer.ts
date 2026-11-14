@@ -2,6 +2,35 @@ import type { PolicyItem, FaqItem } from '@/types/supabase'
 import type { ItineraryDayForm } from '@/components/admin/ItineraryEditor'
 
 /**
+ * Normalizes any difficulty input (e.g. 'Moderate', 'Easy to Moderate', 'Hard', 'EASY')
+ * into the authoritative uppercase enum: 'EASY' | 'MODERATE' | 'DIFFICULT' | 'EXTREME'
+ */
+export function normalizeDifficulty(raw: any): 'EASY' | 'MODERATE' | 'DIFFICULT' | 'EXTREME' {
+  if (!raw || typeof raw !== 'string') return 'EASY';
+  const val = raw.toUpperCase().trim();
+  if (val.includes('EXTREME') || val.includes('STRENUOUS')) return 'EXTREME';
+  if (val.includes('DIFFICULT') || val.includes('HARD') || val.includes('CHALLENGING')) return 'DIFFICULT';
+  if (val.includes('MODERATE')) return 'MODERATE';
+  if (val.includes('EASY')) return 'EASY';
+  return 'EASY';
+}
+
+/**
+ * Normalizes category strings from diverse database entries into standard categories.
+ */
+export function normalizeCategory(raw: any): string {
+  if (!raw || typeof raw !== 'string') return 'WEEKEND';
+  const val = raw.toUpperCase().trim();
+  if (val.includes('SPIRITUAL') || val.includes('SACRED') || val.includes('DHAM')) return 'SPIRITUAL';
+  if (val.includes('COLLEGE') || val.includes('BPIT') || val.includes('STUDENT')) return 'COLLEGE';
+  if (val.includes('BACKPACK') || val.includes('TREK') || val.includes('SUMMIT') || val.includes('EXPEDITION')) return 'BACKPACKING';
+  if (val.includes('LUXURY')) return 'LUXURY';
+  if (val.includes('INTERNATIONAL') || val.includes('CONVOY')) return 'INTERNATIONAL';
+  if (val.includes('WEEKEND') || val.includes('ROAD') || val.includes('ESCAPE') || val.includes('RETREAT')) return 'WEEKEND';
+  return 'WEEKEND';
+}
+
+/**
  * Normalizes any raw input (array, JSON string, comma-separated string, or object)
  * into a safe, clean string array.
  */

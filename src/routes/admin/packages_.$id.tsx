@@ -95,6 +95,8 @@ import {
   normalizeTransport,
   normalizeAccommodation,
   buildPoliciesPayload,
+  normalizeDifficulty,
+  normalizeCategory,
 } from '@/lib/package-normalizer'
 
 export const Route = createFileRoute('/admin/packages_/$id')({
@@ -121,9 +123,12 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 const packageSchema = z.object({
   destination_id: z.string().min(1, 'Destination is required'),
-  trip_captain_id: z.string().optional(),
+  trip_captain_id: z.string().optional().nullable(),
   name: z.string().min(2, 'Package name is required'),
-  slug: z.string().min(2, 'Slug is required').regex(/^[a-z0-9-]+$/, 'Slug must be lowercase with dashes'),
+  slug: z.preprocess(
+    (val) => (typeof val === 'string' ? val.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') : val),
+    z.string().min(2, 'Slug is required').regex(/^[a-z0-9-]+$/, 'Slug must be lowercase with dashes')
+  ),
   tagline: z.string().optional(),
   duration: z.string().optional(),
   duration_days: z.preprocess((val) => {
@@ -136,7 +141,10 @@ const packageSchema = z.object({
     const num = Number(val);
     return isNaN(num) ? undefined : Math.round(num);
   }, z.number().int().min(0).optional()),
-  difficulty: z.enum(['EASY', 'MODERATE', 'DIFFICULT', 'EXTREME']).default('EASY'),
+  difficulty: z.preprocess(
+    (val) => normalizeDifficulty(val),
+    z.enum(['EASY', 'MODERATE', 'DIFFICULT', 'EXTREME']).default('EASY')
+  ),
   group_size_min: z.preprocess((val) => {
     if (val === "" || val === null || val === undefined) return undefined;
     const num = Number(val);
@@ -161,7 +169,10 @@ const packageSchema = z.object({
   drop_point: z.string().optional(),
   short_description: z.string().optional(),
   overview: z.string().optional(),
-  category: z.string().optional(),
+  category: z.preprocess(
+    (val) => normalizeCategory(val),
+    z.string().optional().default('WEEKEND')
+  ),
   status: z.preprocess((val) => {
     if (typeof val === 'string') return val.toUpperCase().trim();
     return val;
@@ -539,14 +550,14 @@ function PackageFormPage() {
 
       reset({
         destination_id: pkg.destination_id,
-        trip_captain_id: (pkg as any).trip_captain_id ?? '',
+        trip_captain_id: (!((pkg as any).trip_captain_id) || (pkg as any).trip_captain_id === 'none') ? '' : (pkg as any).trip_captain_id,
         name: pkg.name,
         slug: pkg.slug,
         tagline: (pkg as any).tagline ?? '',
         duration: pkg.duration ?? '',
         duration_days: durationDays ?? undefined,
         duration_nights: durationNights ?? undefined,
-        difficulty: (pkg.difficulty as PackageFormValues['difficulty']) ?? 'EASY',
+        difficulty: normalizeDifficulty(pkg.difficulty),
         group_size_min: (pkg as any).group_size_min,
         group_size_max: (pkg as any).group_size_max,
         starting_price: pkg.starting_price ?? undefined,
@@ -561,7 +572,7 @@ function PackageFormPage() {
         hero_banner: (pkg as any).hero_banner ?? '',
         seo_title: (pkg as any).seo?.title ?? '',
         seo_description: (pkg as any).seo?.description ?? '',
-        category: pkg.category ?? 'WEEKEND',
+        category: normalizeCategory(pkg.category),
         hotel_id: (pkg as any).hotel_id ?? '',
       })
 
@@ -634,12 +645,14 @@ function PackageFormPage() {
       const payload = {
         ...rest,
         status: statusUpper,
+        difficulty: normalizeDifficulty(rest.difficulty),
+        category: normalizeCategory(rest.category),
         duration_days: days,
         duration_nights: nights,
         duration: rest.duration || `${days} Days / ${nights} Nights`,
         starting_price: startPrice,
         maximum_price: maxPrice,
-        trip_captain_id: rest.trip_captain_id || null,
+        trip_captain_id: (!rest.trip_captain_id || rest.trip_captain_id === 'none' || rest.trip_captain_id === 'NONE' || rest.trip_captain_id === '') ? null : rest.trip_captain_id,
         highlights,
         inclusions: inclusions.map(item => item.trim()).filter(Boolean).filter((val, i, self) => self.indexOf(val) === i),
         exclusions: exclusions.map(item => item.trim()).filter(Boolean).filter((val, i, self) => self.indexOf(val) === i),
@@ -880,9 +893,8 @@ function PackageFormPage() {
     console.error('Validation errors:', errors)
     const errList = Object.entries(errors)
     if (errList.length > 0) {
-      const [field, err] = errList[0]
-      const msg = (err as any)?.message || 'Invalid value'
-      toast.error(`Validation Error (${field}): ${msg}`)
+      const messages = errList.map(([field, err]) => `${field}: ${(err as any)?.message ?? 'Invalid'}`).join(' | ')
+      toast.error(`Fix before saving — ${messages}`, { duration: 6000 })
     } else {
       toast.error('Please check the form for errors.')
     }
@@ -1079,8 +1091,8 @@ function PackageFormPage() {
                 <div className="space-y-1.5">
                   <Label>Category</Label>
                   <Select
-                    value={watch('category') ?? 'WEEKEND'}
-                    onValueChange={(v) => setValue('category', v, { shouldDirty: true })}
+                    value={normalizeCategory(watch('category')) ?? 'WEEKEND'}
+                    onValueChange={(v) => setValue('category', normalizeCategory(v), { shouldDirty: true })}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select Category" />
@@ -1091,6 +1103,7 @@ function PackageFormPage() {
                       <SelectItem value="BACKPACKING">Backpacking Adventure</SelectItem>
                       <SelectItem value="LUXURY">Luxury Escapade</SelectItem>
                       <SelectItem value="INTERNATIONAL">International Convoy</SelectItem>
+                      <SelectItem value="COLLEGE">College Special</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1112,11 +1125,11 @@ function PackageFormPage() {
                 <div className="space-y-1.5">
                   <Label>Difficulty</Label>
                   <Select
-                    value={watch('difficulty')}
-                    onValueChange={(v) => setValue('difficulty', v as PackageFormValues['difficulty'])}
+                    value={normalizeDifficulty(watch('difficulty'))}
+                    onValueChange={(v) => setValue('difficulty', normalizeDifficulty(v) as PackageFormValues['difficulty'], { shouldDirty: true, shouldValidate: true })}
                   >
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="Select Difficulty" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="EASY">Easy</SelectItem>
