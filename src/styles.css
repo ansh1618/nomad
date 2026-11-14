@@ -261,48 +261,31 @@
 /* Cinematic Ambient Hero Animations */
 @keyframes ambient-drift-1 {
   0% { transform: translate(0px, 0px) scale(1); opacity: 0.35; }
-  50% { transform: translate(35px, -25px) scale(1.1); opacity: 0.55; }
-  100% { transform: translate(-25px, 20px) scale(0.95); opacity: 0.35; }
+  50% { transform: translate(25px, -18px) scale(1.08); opacity: 0.48; }
+  100% { transform: translate(-20px, 15px) scale(0.96); opacity: 0.35; }
 }
 
 @keyframes ambient-drift-2 {
-  0% { transform: translate(0px, 0px) scale(1); opacity: 0.25; }
-  50% { transform: translate(-30px, 30px) scale(1.12); opacity: 0.45; }
-  100% { transform: translate(25px, -20px) scale(0.92); opacity: 0.25; }
+  0% { transform: translate(0px, 0px) scale(1); opacity: 0.22; }
+  50% { transform: translate(-22px, 22px) scale(1.1); opacity: 0.38; }
+  100% { transform: translate(18px, -15px) scale(0.94); opacity: 0.22; }
 }
 
 @keyframes ambient-pulse-slow {
-  0%, 100% { opacity: 0.08; transform: scale(1); }
-  50% { opacity: 0.16; transform: scale(1.06); }
-}
-
-@keyframes ember-rise {
-  0% {
-    transform: translateY(0) translateX(0) scale(0.8);
-    opacity: 0;
-  }
-  20% {
-    opacity: 0.6;
-  }
-  80% {
-    opacity: 0.4;
-  }
-  100% {
-    transform: translateY(-220px) translateX(var(--drift-x, 20px)) scale(1.2);
-    opacity: 0;
-  }
+  0%, 100% { opacity: 0.18; transform: scale(1); }
+  50% { opacity: 0.32; transform: scale(1.05); }
 }
 
 .hero-ambient-orb-1 {
-  animation: ambient-drift-1 22s ease-in-out infinite alternate;
+  animation: ambient-drift-1 32s ease-in-out infinite alternate;
 }
 
 .hero-ambient-orb-2 {
-  animation: ambient-drift-2 28s ease-in-out infinite alternate;
+  animation: ambient-drift-2 38s ease-in-out infinite alternate;
 }
 
 .hero-ambient-pulse {
-  animation: ambient-pulse-slow 16s ease-in-out infinite;
+  animation: ambient-pulse-slow 24s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -86,48 +86,25 @@ export function Hero() {
   return (
     <section
       id="home"
-      className="relative flex min-h-[92vh] lg:min-h-screen items-center justify-center overflow-hidden bg-[#060B12]"
+      className="relative flex min-h-[90vh] lg:min-h-screen items-center justify-center overflow-hidden bg-[#060D17]"
     >
       {/* ========================================================= */}
       {/* 1. SOPHISTICATED MODERN BACKGROUND & AMBIENT DEPTH */}
       {/* ========================================================= */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none select-none">
-        {/* Base Midnight Background Canvas */}
-        <div className="absolute inset-0 bg-[#060B12]" />
+        {/* Base Midnight Navy Background Gradient */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#060D17] via-[#091524] to-[#060D17]" />
 
         {/* Ambient Orb 1: Midnight Sapphire Depth (Top Left) */}
-        <div className="absolute -top-32 -left-32 w-[680px] h-[680px] rounded-full bg-[radial-gradient(circle,rgba(20,52,86,0.45)_0%,rgba(10,25,45,0.18)_50%,transparent_75%)] blur-3xl hero-ambient-orb-1" />
+        <div className="absolute -top-32 -left-32 w-[720px] h-[720px] rounded-full bg-[radial-gradient(circle,rgba(22,62,102,0.38)_0%,rgba(10,26,45,0.14)_50%,transparent_70%)] blur-3xl hero-ambient-orb-1" />
 
-        {/* Ambient Orb 2: Warm Golden Amber Glow (Center Right behind videos) */}
-        <div className="absolute top-1/4 -right-24 w-[760px] h-[760px] rounded-full bg-[radial-gradient(circle,rgba(212,175,55,0.11)_0%,rgba(180,130,40,0.035)_45%,transparent_70%)] blur-3xl hero-ambient-orb-2" />
+        {/* Ambient Orb 2: Warm Golden Amber Glow (Behind video gallery) */}
+        <div className="absolute top-1/4 -right-24 w-[780px] h-[780px] rounded-full bg-[radial-gradient(circle,rgba(200,169,106,0.10)_0%,rgba(180,130,40,0.025)_45%,transparent_70%)] blur-3xl hero-ambient-orb-2" />
 
-        {/* Ambient Orb 3: Subtle Oceanic Teal/Indigo Core (Bottom Center) */}
-        <div className="absolute -bottom-24 left-1/3 w-[820px] h-[520px] rounded-full bg-[radial-gradient(circle,rgba(16,42,68,0.4)_0%,transparent_65%)] blur-3xl hero-ambient-pulse" />
+        {/* Ambient Orb 3: Subtle Deep Oceanic Indigo (Bottom Center) */}
+        <div className="absolute -bottom-28 left-1/3 w-[840px] h-[540px] rounded-full bg-[radial-gradient(circle,rgba(14,38,62,0.32)_0%,transparent_65%)] blur-3xl hero-ambient-pulse" />
 
-        {/* Floating Mountain Stardust Embers (Lightweight, pure CSS, no canvas) */}
-        <div className="absolute inset-0 overflow-hidden">
-          {[
-            { left: '12%', delay: '0s', dur: '18s', dx: '25px' },
-            { left: '28%', delay: '4s', dur: '22s', dx: '-30px' },
-            { left: '46%', delay: '9s', dur: '20s', dx: '18px' },
-            { left: '64%', delay: '2s', dur: '25s', dx: '-24px' },
-            { left: '82%', delay: '7s', dur: '19s', dx: '30px' },
-            { left: '94%', delay: '12s', dur: '21s', dx: '-15px' },
-          ].map((ember, i) => (
-            <span
-              key={i}
-              className="absolute bottom-8 h-1 w-1 rounded-full bg-amber-300/40 blur-[0.5px]"
-              style={{
-                left: ember.left,
-                animation: `ember-rise ${ember.dur} ease-in-out infinite`,
-                animationDelay: ember.delay,
-                ['--drift-x' as any]: ember.dx,
-              }}
-            />
-          ))}
-        </div>
-
-        {/* Optional Ambient Background Video (Subtle atmospheric presence at opacity-20) */}
+        {/* Optional Ambient Background Video (Subtle atmospheric presence at opacity-18) */}
         {!bgVideoError && bgVideoUrl ? (
           <video
             ref={bgVideoRef}
@@ -140,7 +117,7 @@ export function Hero() {
             onLoadedData={() => setBgVideoLoaded(true)}
             onError={() => setBgVideoError(true)}
             className={`h-full w-full object-cover object-center transition-opacity duration-1000 ${
-              bgVideoLoaded ? 'opacity-20 scale-100' : 'opacity-0 scale-105'
+              bgVideoLoaded ? 'opacity-[0.18] scale-100' : 'opacity-0 scale-105'
             }`}
           >
             <source src={bgVideoUrl} type="video/mp4" />
@@ -148,30 +125,30 @@ export function Hero() {
         ) : null}
 
         {/* Subtle Vignette Gradient Masks top & bottom */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#060B12]/80 via-transparent to-[#060B12]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(6,11,18,0.65)_100%)]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#060D17]/85 via-transparent to-[#060D17]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(6,13,23,0.55)_100%)]" />
       </div>
 
       {/* ========================================================= */}
-      {/* 2. MAIN HERO CONTAINER: LEFT 43% / RIGHT 57% */}
+      {/* 2. MAIN HERO CONTAINER: LEFT 44% / RIGHT 56% */}
       {/* ========================================================= */}
-      <div className="relative z-10 mx-auto w-full max-w-[1440px] px-5 sm:px-8 xl:px-12 pt-28 pb-20 sm:pt-32 sm:pb-24 lg:pt-36 lg:pb-24">
-        <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-10 xl:gap-14 w-full">
+      <div className="relative z-10 mx-auto w-full max-w-7xl xl:max-w-[1360px] px-5 sm:px-8 xl:px-10 pt-28 pb-14 sm:pt-32 sm:pb-16 lg:pt-32 lg:pb-16">
+        <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-8 xl:gap-12 w-full">
           {/* ======================================================= */}
-          {/* LEFT COLUMN: 43% - Typography, Editorial CTAs & Rating */}
+          {/* LEFT COLUMN: 44% - Typography, Editorial CTAs & Trust Badges */}
           {/* ======================================================= */}
-          <div className="w-full lg:w-[43%] xl:w-[42%] space-y-6 sm:space-y-7 text-left shrink-0 z-10">
+          <div className="w-full lg:w-[44%] xl:w-[43%] space-y-6 sm:space-y-7 text-left shrink-0 z-10">
             {/* Main Headline: Primary Visual Focus */}
             <motion.h1
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-              className="font-display text-4xl sm:text-5xl lg:text-[3.25rem] xl:text-[4rem] 2xl:text-[4.4rem] font-extrabold leading-[1.08] tracking-[-0.015em] text-white drop-shadow-sm"
+              transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1] }}
+              className="font-display text-4xl sm:text-5xl lg:text-[3.15rem] xl:text-[3.75rem] font-bold leading-[1.08] tracking-[-0.02em] text-white"
             >
               {headline.includes('Begins Here') ? (
                 <>
                   Your Next Adventure <br />
-                  <span className="bg-gradient-to-r from-[#FDE047] via-[#D4AF37] to-[#F59E0B] bg-clip-text text-transparent">
+                  <span className="bg-gradient-to-r from-[#F6E0A4] via-[#D4AF37] to-[#C89B3C] bg-clip-text text-transparent">
                     Begins Here.
                   </span>
                 </>
@@ -182,24 +159,24 @@ export function Hero() {
 
             {/* Subheading Description */}
             <motion.p
-              initial={{ opacity: 0, y: 18 }}
+              initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.12, ease: [0.16, 1, 0.3, 1] }}
-              className="max-w-xl font-poppins text-base sm:text-lg leading-relaxed text-slate-300/90 font-normal"
+              transition={{ duration: 0.65, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+              className="max-w-lg font-poppins text-sm sm:text-base lg:text-[1.05rem] leading-relaxed text-slate-300/90 font-normal"
             >
               Discover breathtaking destinations, unforgettable journeys and experiences worth remembering with India&apos;s most trusted travel collective.
             </motion.p>
 
             {/* Primary & Secondary Action CTAs */}
             <motion.div
-              initial={{ opacity: 0, y: 18 }}
+              initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-              className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-1"
+              transition={{ duration: 0.65, delay: 0.18, ease: [0.16, 1, 0.3, 1] }}
+              className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5 pt-1"
             >
               <Button
-                size="xl"
-                className="group relative h-13 sm:h-14 px-8 rounded-full bg-gradient-to-r from-[#D4AF37] via-[#F59E0B] to-[#D4AF37] bg-[length:200%_auto] text-[#0A1622] font-poppins font-bold text-sm uppercase tracking-wider shadow-[0_4px_24px_rgba(212,175,55,0.35)] hover:shadow-[0_6px_32px_rgba(212,175,55,0.55)] hover:bg-right transition-all duration-500 cursor-pointer"
+                size="lg"
+                className="group relative h-12 sm:h-13 px-7 sm:px-8 rounded-full bg-gradient-to-r from-[#D4AF37] via-[#E2B744] to-[#C89B3C] text-[#071426] font-poppins font-bold text-xs uppercase tracking-wider shadow-[0_4px_20px_rgba(212,175,55,0.32)] hover:shadow-[0_6px_28px_rgba(212,175,55,0.48)] hover:brightness-105 transition-all duration-300 cursor-pointer"
                 asChild
               >
                 <Link to={ctaPrimaryHref as any} className="flex items-center justify-center gap-2">
@@ -209,9 +186,9 @@ export function Hero() {
               </Button>
 
               <Button
-                size="xl"
+                size="lg"
                 variant="outline"
-                className="h-13 sm:h-14 px-7 rounded-full border-white/20 bg-white/5 text-white hover:bg-white/12 hover:border-white/40 backdrop-blur-md font-poppins font-semibold text-sm uppercase tracking-wider transition-all duration-300 cursor-pointer shadow-sm"
+                className="h-12 sm:h-13 px-6 sm:px-7 rounded-full border border-white/20 bg-white/[0.04] text-white hover:bg-white/[0.09] hover:border-white/35 backdrop-blur-md font-poppins font-semibold text-xs uppercase tracking-wider transition-all duration-300 cursor-pointer shadow-sm"
                 asChild
               >
                 <Link to={ctaSecondaryHref as any} className="flex items-center justify-center gap-2">
@@ -225,21 +202,21 @@ export function Hero() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ duration: 0.7, delay: 0.3 }}
-              className="pt-7 sm:pt-8 border-t border-white/10 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4"
+              transition={{ duration: 0.7, delay: 0.26 }}
+              className="pt-6 sm:pt-7 border-t border-white/10 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-3.5"
             >
               {trustBadges.map((badge, idx) => {
                 const Icon = badge.icon
                 return (
                   <div key={idx} className="flex items-center gap-2.5">
-                    <div className="grid h-9 w-9 sm:h-10 sm:w-10 shrink-0 place-items-center rounded-xl bg-white/[0.07] border border-white/10 backdrop-blur-md">
-                      <Icon className={`h-4.5 w-4.5 ${badge.color}`} />
+                    <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white/[0.06] border border-white/10 backdrop-blur-md">
+                      <Icon className={`h-4 w-4 ${badge.color}`} />
                     </div>
-                    <div>
-                      <div className="text-xs sm:text-sm font-poppins font-bold text-white tracking-wide">
+                    <div className="min-w-0">
+                      <div className="text-xs font-poppins font-bold text-white tracking-wide truncate">
                         {badge.label}
                       </div>
-                      <div className="text-[10px] sm:text-xs text-slate-400 font-poppins truncate max-w-[110px]">
+                      <div className="text-[10px] text-slate-400 font-poppins truncate">
                         {badge.sub}
                       </div>
                     </div>
@@ -250,9 +227,9 @@ export function Hero() {
           </div>
 
           {/* ======================================================= */}
-          {/* RIGHT COLUMN: 57% - Cinematic Video Mosaic */}
+          {/* RIGHT COLUMN: 56% - Cinematic Video Mosaic */}
           {/* ======================================================= */}
-          <div className="w-full lg:w-[57%] xl:w-[58%] grow flex items-center justify-center z-10">
+          <div className="w-full lg:w-[56%] xl:w-[57%] grow flex items-center justify-center z-10">
             {settings.is_enabled !== false ? (
               <HeroVideoCollage
                 cards={cards}

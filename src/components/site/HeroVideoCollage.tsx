@@ -87,11 +87,11 @@ function CinematicMosaicCard({
   return (
     <motion.div
       ref={containerRef}
-      initial={{ opacity: 0, y: 15 }}
+      initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, delay: 0.08 * index }}
-      whileHover={{ scale: 1.018 }}
-      className={`group relative overflow-hidden rounded-[22px] lg:rounded-[26px] bg-slate-900 border border-white/10 shadow-[0_12px_36px_rgba(0,0,0,0.5)] cursor-pointer select-none transition-all duration-300 hover:border-amber-400/40 hover:shadow-[0_16px_48px_rgba(212,175,55,0.2)] ${className}`}
+      transition={{ duration: 0.6, delay: 0.08 * index, ease: [0.16, 1, 0.3, 1] }}
+      whileHover={{ scale: 1.015 }}
+      className={`group relative overflow-hidden rounded-[20px] xl:rounded-[22px] bg-[#0A1624] border border-white/12 shadow-[0_10px_32px_rgba(0,0,0,0.45)] cursor-pointer select-none transition-all duration-300 hover:border-[#D4AF37]/45 hover:shadow-[0_14px_40px_rgba(212,175,55,0.18)] ${className}`}
       onClick={() => onOpenPreview(card)}
     >
       {/* 1. Muted Autoplay Video */}
@@ -107,7 +107,7 @@ function CinematicMosaicCard({
           poster={card.thumbnail_url}
           onLoadedData={() => setIsLoaded(true)}
           onError={() => setHasError(true)}
-          className={`h-full w-full object-cover transition-opacity duration-500 ${
+          className={`h-full w-full object-cover object-center transition-opacity duration-500 ${
             isLoaded ? 'opacity-100' : 'opacity-0'
           }`}
         />
@@ -118,19 +118,19 @@ function CinematicMosaicCard({
         <img
           src={card.thumbnail_url}
           alt={card.title}
-          className="absolute inset-0 h-full w-full object-cover"
+          className="absolute inset-0 h-full w-full object-cover object-center"
           loading="lazy"
         />
       )}
 
       {/* 3. Subtle bottom gradient only (leaves top 75% video totally clean) */}
-      <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/80 via-black/25 to-transparent pointer-events-none" />
+      <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/85 via-black/30 to-transparent pointer-events-none" />
 
       {/* 4. Top-Right Subtle Icons (Instagram or Expand on Hover) */}
-      <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10 opacity-70 group-hover:opacity-100 transition-opacity">
+      <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 z-10 opacity-70 group-hover:opacity-100 transition-opacity">
         {card.instagram_url && (
           <div
-            className="p-1.5 rounded-full bg-black/50 text-pink-300 hover:text-white backdrop-blur-md border border-white/10 transition-colors"
+            className="p-1.5 rounded-full bg-black/60 text-pink-300 hover:text-white backdrop-blur-md border border-white/10 transition-colors"
             title="Instagram Reel"
             onClick={(e) => {
               e.stopPropagation()
@@ -140,23 +140,23 @@ function CinematicMosaicCard({
             <Instagram className="h-3 w-3" />
           </div>
         )}
-        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-black/50 text-white/90 backdrop-blur-md border border-white/10">
+        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white/90 backdrop-blur-md border border-white/10">
           <Maximize2 className="h-2.5 w-2.5 opacity-80 group-hover:opacity-100" />
         </div>
       </div>
 
-      {/* 5. ONLY Destination Name at Bottom-Left */}
-      <div className="absolute bottom-3.5 left-3.5 z-10 flex items-center gap-1.5 pointer-events-none">
-        <div className="inline-flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5 text-xs font-semibold text-white/95 backdrop-blur-md border border-white/15 shadow-sm">
-          <MapPin className="h-3 w-3 text-[#F59E0B] shrink-0" />
+      {/* 5. ONLY Minimal Destination Name at Bottom-Left */}
+      <div className="absolute bottom-3 left-3 z-10 flex items-center gap-1.5 pointer-events-none">
+        <div className="inline-flex items-center gap-1.5 rounded-full bg-black/65 px-3 py-1.5 text-xs font-semibold text-white/95 backdrop-blur-md border border-white/15 shadow-sm">
+          <MapPin className="h-3 w-3 text-gold shrink-0" />
           <span className="tracking-wide">{getShortDestination(card)}</span>
         </div>
       </div>
 
       {/* 6. Soft Play Overlay on Hover */}
       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-        <div className="h-11 w-11 rounded-full bg-black/60 text-white/95 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-lg transition-transform transform group-hover:scale-105">
-          <Play className="h-5 w-5 fill-current ml-0.5 text-amber-400" />
+        <div className="h-10 w-10 rounded-full bg-black/65 text-white/95 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-lg transition-transform transform group-hover:scale-105">
+          <Play className="h-4 w-4 fill-current ml-0.5 text-amber-400" />
         </div>
       </div>
     </motion.div>
@@ -201,9 +201,9 @@ export function HeroVideoCollage({ cards, settings, onOpenPreview }: HeroVideoCo
     <div className="w-full">
       {/* ========================================================== */}
       {/* 1. DESKTOP CINEMATIC MOSAIC LAYOUT (lg & xl >= 1024px) */}
-      {/* Utilizes 100% of the right 57% space with large, balanced mosaic */}
+      {/* Fits comfortably within standard desktop viewport fold */}
       {/* ========================================================== */}
-      <div className="hidden lg:flex w-full h-[580px] xl:h-[620px] 2xl:h-[650px] gap-3.5 xl:gap-4 select-none">
+      <div className="hidden lg:flex w-full h-[500px] xl:h-[530px] 2xl:h-[560px] gap-3.5 xl:gap-4 select-none">
         {/* Column A (~58% width): Large Featured Video on Top + 2 Landscape Videos on Bottom */}
         <div className="flex flex-col gap-3.5 xl:gap-4 w-[58%] h-full">
           {/* Top Featured Large Landscape Video (~58% height) */}
@@ -264,7 +264,7 @@ export function HeroVideoCollage({ cards, settings, onOpenPreview }: HeroVideoCo
       {/* ========================================================== */}
       {/* 2. TABLET 2-COLUMN BALANCED GRID (md >= 768px and < 1024px) */}
       {/* ========================================================== */}
-      <div className="hidden md:grid lg:hidden grid-cols-2 gap-4 w-full h-[480px]">
+      <div className="hidden md:grid lg:hidden grid-cols-2 gap-3.5 w-full h-[430px]">
         {/* Left Column: Big Featured Video */}
         <div className="h-full w-full">
           <CinematicMosaicCard
