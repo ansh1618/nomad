@@ -121,6 +121,13 @@ const CATEGORY_COLORS: Record<string, string> = {
   Activities: 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200/50',
 }
 
+export const DIFFICULTY_OPTIONS = [
+  { label: 'Easy', value: 'EASY' as const },
+  { label: 'Moderate', value: 'MODERATE' as const },
+  { label: 'Difficult', value: 'DIFFICULT' as const },
+  { label: 'Extreme', value: 'EXTREME' as const },
+]
+
 const packageSchema = z.object({
   destination_id: z.string().min(1, 'Destination is required'),
   trip_captain_id: z.string().optional().nullable(),
@@ -1132,10 +1139,11 @@ function PackageFormPage() {
                       <SelectValue placeholder="Select Difficulty" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="EASY">Easy</SelectItem>
-                      <SelectItem value="MODERATE">Moderate</SelectItem>
-                      <SelectItem value="DIFFICULT">Difficult</SelectItem>
-                      <SelectItem value="EXTREME">Extreme</SelectItem>
+                      {DIFFICULTY_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>

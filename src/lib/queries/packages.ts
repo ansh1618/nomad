@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { normalizeDifficulty, normalizeCategory } from '@/lib/package-normalizer'
 import type {
   Journey,
   JourneyInsert,
@@ -79,7 +80,11 @@ export async function getPackages(
   if (error) throw new Error(error.message)
 
   return {
-    data: (data ?? []) as Journey[],
+    data: ((data ?? []) as Journey[]).map(j => ({
+      ...j,
+      difficulty: normalizeDifficulty(j.difficulty),
+      category: normalizeCategory(j.category),
+    })),
     total: count ?? 0,
     page,
     pageSize,
@@ -262,6 +267,8 @@ export async function getPackageBySlug(slug: string): Promise<Journey | null> {
     const j = journey as any
     if (j.price && !j.starting_price) j.starting_price = Number(j.price)
     if (j.gallery?.length > 0 && !j.hero_banner) j.hero_banner = j.gallery[0]
+    j.difficulty = normalizeDifficulty(j.difficulty)
+    j.category = normalizeCategory(j.category)
   }
 
   return journey
@@ -375,11 +382,13 @@ export async function getPackageById(id: string): Promise<Journey | null> {
     }
   }
 
-  // Legacy price/banner compat
+  // Legacy price/banner compat & normalizations
   if (journey) {
     const j = journey as any
     if (j.price && !journey.starting_price) (journey as any).starting_price = Number(j.price)
     if (j.gallery?.length > 0 && !journey.hero_banner) (journey as any).hero_banner = j.gallery[0]
+    j.difficulty = normalizeDifficulty(j.difficulty)
+    j.category = normalizeCategory(j.category)
   }
 
   return journey
@@ -396,12 +405,12 @@ export async function createPackage(payload: any): Promise<Journey> {
     name: payload.name,
     duration: payload.duration,
     transport: payload.transport,
-    difficulty: payload.difficulty,
+    difficulty: normalizeDifficulty(payload.difficulty),
     pickup_point: payload.pickup_point,
     drop_point: payload.drop_point,
     starting_price: payload.starting_price,
     price: payload.starting_price ?? payload.price ?? 0,
-    category: payload.category,
+    category: normalizeCategory(payload.category),
     highlights: payload.highlights,
     inclusions: payload.inclusions,
     exclusions: payload.exclusions,
@@ -449,12 +458,12 @@ export async function updatePackage(id: string, payload: any): Promise<Journey> 
     name: payload.name,
     duration: payload.duration,
     transport: payload.transport,
-    difficulty: payload.difficulty,
+    difficulty: normalizeDifficulty(payload.difficulty),
     pickup_point: payload.pickup_point,
     drop_point: payload.drop_point,
     starting_price: payload.starting_price,
     price: payload.starting_price ?? payload.price ?? 0,
-    category: payload.category,
+    category: normalizeCategory(payload.category),
     highlights: payload.highlights,
     inclusions: payload.inclusions,
     exclusions: payload.exclusions,
